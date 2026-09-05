@@ -11,17 +11,17 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Verifica que la llamada venga realmente de tu agente de ElevenLabs, no de cualquiera
-  // que descubra esta URL. ElevenLabs manda el secreto en el header "Authorization".
   const sharedSecret = process.env.ELEVENLABS_SHARED_SECRET;
   const authHeader = req.headers['authorization'] || '';
   if (sharedSecret && authHeader !== `Bearer ${sharedSecret}`) {
+    console.error('Rechazado por autenticación. Header recibido:', authHeader ? authHeader.slice(0, 15) + '...' : '(vacío)');
     res.status(401).json({ error: 'No autorizado' });
     return;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error('Falta ANTHROPIC_API_KEY en las variables de entorno');
     res.status(500).json({ error: 'Falta configurar ANTHROPIC_API_KEY en Vercel' });
     return;
   }
@@ -83,6 +83,7 @@ module.exports = async function handler(req, res) {
       }
     });
   } catch (err) {
+    console.error('Error en elevenlabs-llm/chat/completions:', err.message, err.stack);
     res.status(500).json({ error: err.message });
   }
 };
