@@ -6,8 +6,11 @@ const SYSTEM_PROMPT = require('../../systemPrompt.js');
 // streaming para poder empezar a hablar antes de que termine de generarse todo el texto.
 
 function fixAlternatingRoles(messages) {
+  // Filtramos mensajes vacíos (Anthropic rechaza contenido vacío/solo espacios)
+  const nonEmpty = messages.filter(m => m.content && m.content.trim().length > 0);
+
   const fixed = [];
-  for (const m of messages) {
+  for (const m of nonEmpty) {
     if (fixed.length > 0 && fixed[fixed.length - 1].role === m.role) {
       fixed[fixed.length - 1].content += '\n' + m.content;
     } else {
