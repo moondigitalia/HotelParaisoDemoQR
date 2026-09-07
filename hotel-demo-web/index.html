@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Paraíso Cancún — Asistente Coral</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     🎨 PERSONALIZAR AQUÍ #1 — Colores de marca del hotel
+     Cambia estos 5 valores y todo el diseño se actualiza solo
+     (botones, fondos, textos, bordes, todo usa estas variables).
+     ============================================================ */
+  :root{
+    --navy:#0B2E33;
+    --teal:#12514D;
+    --sand:#F3ECDA;
+    --gold:#E8B34C;
+    --seafoam:#8FBFAE;
+    --ink:#0B2E33;
+    --line: rgba(243,236,218,0.18);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--navy);color:var(--sand);font-family:'Karla',sans-serif;}
+  .wrap{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:
+    radial-gradient(120% 60% at 50% -10%, rgba(232,179,76,0.14), transparent 60%),
+    var(--navy);}
+
+  /* HERO */
+  .hero{padding:40px 20px 28px;text-align:center;border-bottom:1px solid var(--line);}
+  .hero .eyebrow{font-size:13px;letter-spacing:.02em;color:var(--seafoam);margin-bottom:10px;}
+  .hero h1{font-family:'Fraunces',serif;font-weight:500;font-size:30px;line-height:1.15;margin:0 0 8px;
+    color:var(--sand);text-transform:uppercase;letter-spacing:.01em;}
+  .hero p{font-size:14px;line-height:1.4;color:rgba(243,236,218,0.72);margin:0 auto;max-width:400px;
+    white-space:nowrap;}
+
+  .logo-coral{margin:14px auto 4px;width:44px;height:44px;}
+
+  /* LEGAL NOTICE */
+  .legal{margin:22px 20px 0;padding:14px 16px;background:rgba(15,61,54,0.55);border:1px solid var(--line);
+    border-radius:10px;font-size:12px;line-height:1.55;color:rgba(243,236,218,0.75);}
+  .legal-label{font-size:13px;font-weight:700;letter-spacing:.04em;color:var(--gold);margin-bottom:4px;}
+  .legal-text{white-space:normal;}
+
+  /* MODE TABS */
+  .mode-tabs{display:flex;gap:8px;margin:18px 20px 0;}
+  .mode-tab{flex:1;text-align:center;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+    background:transparent;color:rgba(243,236,218,0.6);font-family:'Karla',sans-serif;font-size:13px;
+    font-weight:600;cursor:pointer;transition:.15s;}
+  .mode-tab.active{background:var(--gold);border-color:var(--gold);color:var(--navy);}
+  .mode-tab:not(.active):hover{border-color:var(--gold);color:var(--gold);}
+
+  /* CALL MODE — interfaz propia, sin el widget de ElevenLabs */
+  .call-shell{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;
+    padding:30px 20px;text-align:center;}
+  .call-shell.active{display:flex;}
+  .call-shell p{font-size:13px;color:rgba(243,236,218,0.6);margin-top:20px;max-width:280px;}
+
+  .orb{width:140px;height:140px;border-radius:50%;position:relative;margin-bottom:26px;
+    background:radial-gradient(circle at 35% 30%, var(--seafoam), var(--teal) 70%);
+    box-shadow:0 0 0 0 rgba(232,179,76,0.4);transition:.3s;}
+  .orb.listening{animation:pulse 1.8s infinite;}
+  .orb.speaking{background:radial-gradient(circle at 35% 30%, var(--gold), #c98f2e 70%);animation:pulse 1s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(232,179,76,0.35);}
+    70%{box-shadow:0 0 0 24px rgba(232,179,76,0);}
+    100%{box-shadow:0 0 0 0 rgba(232,179,76,0);}
+  }
+
+  .call-status{font-size:13px;color:var(--seafoam);margin-bottom:22px;letter-spacing:.02em;}
+
+  .call-btn{padding:14px 28px;border-radius:26px;border:none;font-family:'Karla',sans-serif;
+    font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
+  .call-btn.start{background:var(--gold);color:var(--navy);}
+  .call-btn.start:hover{background:#f0c05f;}
+  .call-btn.end{background:transparent;border:1.5px solid #e06a5f;color:#e06a5f;}
+  .call-btn.end:hover{background:rgba(224,106,95,0.1);}
+  .call-btn:disabled{opacity:.5;cursor:default;}
+
+  /* CHAT */
+  .chat-shell{flex:1;display:flex;flex-direction:column;padding:18px 20px 16px;}
+  .chat-shell.hidden{display:none;}
+  .chat-header{display:flex;align-items:center;gap:10px;padding:8px 6px 14px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#c98f2e);
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;color:var(--navy);font-weight:600;}
+  .chat-header .name{font-family:'Fraunces',serif;font-size:16px;color:var(--sand);}
+  .chat-header .status{font-size:11.5px;color:var(--seafoam);}
+
+  .messages{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:6px 2px 14px;min-height:220px;}
+  .msg{max-width:82%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.5;}
+  .msg.bot{align-self:flex-start;background:var(--teal);color:var(--sand);border-bottom-left-radius:4px;}
+  .msg.user{align-self:flex-end;background:var(--gold);color:var(--navy);border-bottom-right-radius:4px;font-weight:500;}
+  .msg.typing{align-self:flex-start;background:var(--teal);padding:12px 16px;}
+  .dot{display:inline-block;width:5px;height:5px;background:rgba(243,236,218,0.6);border-radius:50%;margin-right:4px;animation:blink 1.2s infinite;}
+  .dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;margin-right:0;}
+  @keyframes blink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+
+  .input-row{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px;}
+  .input-row input{flex:1;background:rgba(243,236,218,0.06);border:1px solid var(--line);border-radius:22px;
+    padding:12px 16px;color:var(--sand);font-size:16px;font-family:'Karla',sans-serif;outline:none;}
+  .input-row input::placeholder{color:rgba(243,236,218,0.4);}
+  .input-row input:focus{border-color:var(--gold);}
+  .send{width:42px;height:42px;border-radius:50%;border:none;background:var(--gold);color:var(--navy);
+    font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .send:disabled{opacity:.5;cursor:default;}
+
+  .footer{text-align:center;padding:14px 20px calc(22px + env(safe-area-inset-bottom));font-size:10.5px;color:rgba(243,236,218,0.35);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <!-- 🎨 PERSONALIZAR AQUÍ #2 — Nombre del hotel -->
+    <div class="eyebrow">HOTEL PARAÍSO CANCÚN</div>
+    <!-- 🎨 PERSONALIZAR AQUÍ #7 (OPCIONAL) — Logo. Este ícono de coral puede quedarse igual
+         como "firma visual" de MOON Digital en todos los hoteles, o cambiarse si el hotel
+         cliente quiere su propio ícono/logo. -->
+    <div class="logo-coral">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="22" cy="39" rx="9" ry="3" fill="#FFFFFF"/>
+        <path d="M22 38L22 11" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+        <path d="M19.5 38L12 17" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+        <path d="M16.5 38L7 23" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M24.5 38L32 17" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+        <path d="M27.5 38L37 23" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <!-- 🎨 PERSONALIZAR AQUÍ #3 — Nombre del agente y tagline -->
+    <h1>Coral responde</h1>
+    <p>Todo sobre tu estancia, al instante.</p>
+  </div>
+
+  <div class="legal">
+    <div class="legal-label">AVISO</div>
+    <div class="legal-text">Información de referencia, sujeta a cambios. Confirma con recepción.</div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabTexto">💬 Texto</button>
+    <button class="mode-tab" id="tabLlamada">📞 Voz</button>
+  </div>
+
+  <div class="chat-shell" id="chatShell">
+    <div class="chat-header">
+      <div class="avatar">
+        <svg width="18" height="18" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="22" cy="39" rx="9" ry="3" fill="#FFFFFF"/>
+          <path d="M22 38L22 11" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+          <path d="M18 38L10 18" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+          <path d="M26 38L34 18" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <!-- 🎨 PERSONALIZAR AQUÍ #4 — Nombre del agente (repetido aquí, en el chat) -->
+        <div class="name">Coral</div>
+        <div class="status">● Asistente del hotel</div>
+      </div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="input-row">
+      <input id="userInput" type="text" placeholder="Escribe tu pregunta...">
+      <button class="send" id="sendBtn">➤</button>
+    </div>
+  </div>
+
+  <div class="call-shell" id="callShell">
+    <div class="orb" id="orb"></div>
+    <div class="call-status" id="callStatus">Toca para iniciar la llamada</div>
+    <button class="call-btn start" id="callBtn">📞 Iniciar llamada con Coral</button>
+    <p>Habla con naturalidad, como si llamaras a recepción.</p>
+  </div>
+
+  <!-- 🎨 PERSONALIZAR AQUÍ #5 — Pie de página -->
+  <div class="footer">Demo interno MOON Digital · Información actualizada: 1 sep 2026 · Datos ficticios</div>
+</div>
+
+<script type="module">
+// ---------- Modo de llamada — interfaz propia usando el SDK de ElevenLabs ----------
+// (sin el widget prediseñado de ElevenLabs, para tener control total del diseño)
+import { Conversation } from 'https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm';
+
+// 🎨 PERSONALIZAR AQUÍ #8 — ID del agente de ElevenLabs configurado para este hotel
+const AGENT_ID = 'agent_8401m1swb1z6fkhsnxepfxcf4dc0';
+
+const orb = document.getElementById('orb');
+const callStatus = document.getElementById('callStatus');
+const callBtn = document.getElementById('callBtn');
+let conversation = null;
+
+async function startCall(){
+  callBtn.disabled = true;
+  callStatus.textContent = 'Conectando...';
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    conversation = await Conversation.startSession({
+      agentId: AGENT_ID,
+      connectionType: 'webrtc',
+      onConnect: () => {
+        callStatus.textContent = 'Llamada en curso';
+        callBtn.textContent = 'Terminar llamada';
+        callBtn.className = 'call-btn end';
+        callBtn.disabled = false;
+        orb.classList.add('listening');
+      },
+      onDisconnect: () => {
+        resetCallUI();
+      },
+      onModeChange: (mode) => {
+        if (mode.mode === 'speaking') {
+          orb.classList.add('speaking');
+          orb.classList.remove('listening');
+          callStatus.textContent = 'Coral está hablando...';
+        } else {
+          orb.classList.remove('speaking');
+          orb.classList.add('listening');
+          callStatus.textContent = 'Escuchando...';
+        }
+      },
+      onError: (err) => {
+        console.error('Error de llamada:', err);
+        callStatus.textContent = 'Hubo un problema con la llamada. Intenta de nuevo.';
+        resetCallUI();
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    callStatus.textContent = 'No se pudo acceder al micrófono.';
+    callBtn.disabled = false;
+  }
+}
+
+async function endCall(){
+  if (conversation) {
+    await conversation.endSession();
+    conversation = null;
+  }
+  resetCallUI();
+}
+
+function resetCallUI(){
+  orb.classList.remove('listening', 'speaking');
+  callStatus.textContent = 'Toca para iniciar la llamada';
+  callBtn.textContent = '📞 Iniciar llamada con Coral';
+  callBtn.className = 'call-btn start';
+  callBtn.disabled = false;
+}
+
+callBtn.addEventListener('click', () => {
+  if (conversation) {
+    endCall();
+  } else {
+    startCall();
+  }
+});
+</script>
+
+<script>
+// ---------- Alternar entre modo Texto y modo Llamada ----------
+const tabTexto = document.getElementById('tabTexto');
+const tabLlamada = document.getElementById('tabLlamada');
+const chatShell = document.getElementById('chatShell');
+const callShell = document.getElementById('callShell');
+
+tabTexto.addEventListener('click', () => {
+  tabTexto.classList.add('active');
+  tabLlamada.classList.remove('active');
+  chatShell.classList.remove('hidden');
+  callShell.classList.remove('active');
+});
+
+tabLlamada.addEventListener('click', () => {
+  tabLlamada.classList.add('active');
+  tabTexto.classList.remove('active');
+  chatShell.classList.add('hidden');
+  callShell.classList.add('active');
+});
+
+// ---------- Lógica del chat ----------
+
+const messagesEl = document.getElementById('messages');
+const input = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+let history = [];
+let greeted = false;
+
+function scrollPageToBottom(){
+  requestAnimationFrame(() => {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+}
+
+function addMessage(text, sender){
+  const el = document.createElement('div');
+  el.className = 'msg ' + sender;
+  el.textContent = text;
+  messagesEl.appendChild(el);
+  scrollPageToBottom();
+  return el;
+}
+
+function showTyping(){
+  const el = document.createElement('div');
+  el.className = 'msg typing';
+  el.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  messagesEl.appendChild(el);
+  scrollPageToBottom();
+  return el;
+}
+
+async function callBackend(retriesLeft = 2){
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ history })
+  });
+  // Si Vercel mata la función por tardar demasiado (504) o hay saturación momentánea,
+  // el cuerpo de la respuesta puede no ser JSON válido — reintentamos antes de rendirnos.
+  let data;
+  try {
+    data = await response.json();
+  } catch (parseErr) {
+    if (retriesLeft > 0) {
+      await new Promise(r => setTimeout(r, 1200));
+      return callBackend(retriesLeft - 1);
+    }
+    throw parseErr;
+  }
+  if (data.error && retriesLeft > 0 && (data.error.toLowerCase().includes('overloaded') || data.error.toLowerCase().includes('timeout'))) {
+    await new Promise(r => setTimeout(r, 1200));
+    return callBackend(retriesLeft - 1);
+  }
+  return data;
+}
+
+async function sendToAgent(userText){
+  history.push({ role: "user", content: userText });
+  const typingEl = showTyping();
+  sendBtn.disabled = true;
+
+  try {
+    const data = await callBackend();
+
+    typingEl.remove();
+    if (data.error) {
+      addMessage("Estamos experimentando alta demanda o un problema técnico. Intenta de nuevo en unos segundos 🙏", 'bot');
+      history.pop();
+    } else {
+      addMessage(data.reply, 'bot');
+      history.push({ role: "assistant", content: data.reply });
+    }
+  } catch (err) {
+    typingEl.remove();
+    addMessage("Hubo un problema de conexión. Intenta de nuevo.", 'bot');
+    console.error(err);
+    history.pop();
+  }
+  sendBtn.disabled = false;
+}
+
+function handleSend(){
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(text, 'user');
+  input.value = '';
+  sendToAgent(text);
+}
+
+sendBtn.addEventListener('click', handleSend);
+input.addEventListener('keydown', e => { if (e.key === 'Enter') handleSend(); });
+// Saludo inicial (se muestra en pantalla Y se registra en el historial que ve el modelo,
+// para que nunca vuelva a presentarse en turnos posteriores). La API requiere que el
+// historial empiece con un turno de "user", así que agregamos uno silencioso antes del saludo.
+if (!greeted) {
+  greeted = true;
+  // 🎨 PERSONALIZAR AQUÍ #6 — Mensaje de saludo inicial (nombre del agente + hotel)
+  const saludo = "¡Hola! 🌴 Soy Coral, el asistente virtual del Hotel Paraíso Cancún. ¿En qué puedo ayudarte hoy?";
+  addMessage(saludo, 'bot');
+  history.push({ role: "user", content: "(El huésped acaba de escanear el código QR y abrir el chat)" });
+  history.push({ role: "assistant", content: saludo });
+}
+</script>
+</body>
+</html>
