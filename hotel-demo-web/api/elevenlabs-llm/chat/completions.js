@@ -8,6 +8,12 @@ const SYSTEM_PROMPT = require('../../systemPrompt.js');
 // Soporta modo normal (una respuesta completa) y modo "streaming" (respuesta en
 // pedacitos) porque los agentes de voz en tiempo real casi siempre piden streaming
 // para poder empezar a hablar antes de que termine de generarse todo el texto.
+//
+// También soporta "tool calling": cuando ElevenLabs tiene herramientas del sistema
+// activadas (ej. "Terminar conversación"), las manda en el campo `tools` de la
+// petición en formato OpenAI. Si no las convertimos al formato de Anthropic y se las
+// pasamos a Claude, Claude nunca sabe que existen — y aunque el system prompt le diga
+// "cuelga la llamada", no tiene ningún mecanismo real para hacerlo.
 
 function fixAlternatingRoles(messages) {
   // Anthropic exige que los turnos alternen estrictamente user/assistant.
@@ -25,6 +31,21 @@ function fixAlternatingRoles(messages) {
     fixed.unshift({ role: 'user', content: '(inicio de llamada)' });
   }
   return fixed;
+}
+
+// Convierte las herramientas que manda ElevenLabs (formato OpenAI: { type: 'function',
+// function: { name, description, parameters } }) al formato que espera Anthropic
+// ({ name, description, input_schema }).
+function toAnthropicTools(openAiTools) {
+  if (!Array.isArray(openAiTools) || openAiTools.length === 0) return undefined;
+  return openAiTools.map(t => {
+    const fn = t.function || t;
+    return {
+      name: fn.name,
+      description: fn.description || '',
+      input_schema: fn.parameters || { type: 'object', properties: {} }
+    };
+  });
 }
 
 module.exports = async function handler(req, res) {
@@ -53,6 +74,7 @@ module.exports = async function handler(req, res) {
   const body = req.body || {};
   const incomingMessages = body.messages || [];
   const wantsStream = body.stream === true;
+  const anthropicTools = toAnthropicTools(body.tools);
 
   const conversationMessages = fixAlternatingRoles(
     incomingMessages
@@ -62,6 +84,15 @@ module.exports = async function handler(req, res) {
 
   const id = 'chatcmpl-' + Date.now();
   const created = Math.floor(Date.now() / 1000);
+
+  const anthropicRequestBody = {
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
+    cache_control: { type: 'ephemeral' },
+    system: SYSTEM_PROMPT,
+    messages: conversationMessages,
+    ...(anthropicTools ? { tools: anthropicTools } : {})
+  };
 
   if (wantsStream) {
     // ---------- Streaming REAL desde Anthropic ----------
@@ -79,20 +110,14 @@ module.exports = async function handler(req, res) {
           'x-api-key': apiKey,
           'anthropic-version': '2023-06-01'
         },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          cache_control: { type: 'ephemeral' },
-          system: SYSTEM_PROMPT,
-          messages: conversationMessages,
-          stream: true
-        })
+        body: JSON.stringify({ ...anthropicRequestBody, stream: true })
       });
 
       const reader = anthropicResponse.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let isFirstChunk = true;
+      let usedToolCall = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -108,7 +133,31 @@ module.exports = async function handler(req, res) {
           let evt;
           try { evt = JSON.parse(jsonStr); } catch { continue; }
 
-          if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
+          if (evt.type === 'content_block_start' && evt.content_block && evt.content_block.type === 'tool_use') {
+            // Claude decidió usar una herramienta (ej. terminar la llamada). Avisamos
+            // a ElevenLabs con el formato de "tool_calls" que su cliente OpenAI espera.
+            usedToolCall = true;
+            const chunk = {
+              id, object: 'chat.completion.chunk', created, model: 'coral-hotel-paraiso',
+              choices: [{
+                index: 0,
+                delta: { tool_calls: [{ index: evt.index, id: evt.content_block.id, type: 'function', function: { name: evt.content_block.name, arguments: '' } }] },
+                finish_reason: null
+              }]
+            };
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          } else if (evt.type === 'content_block_delta' && evt.delta && evt.delta.type === 'input_json_delta') {
+            // Argumentos de la herramienta llegando en pedacitos (JSON parcial).
+            const chunk = {
+              id, object: 'chat.completion.chunk', created, model: 'coral-hotel-paraiso',
+              choices: [{
+                index: 0,
+                delta: { tool_calls: [{ index: evt.index, function: { arguments: evt.delta.partial_json || '' } }] },
+                finish_reason: null
+              }]
+            };
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          } else if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
             // El primer fragmento debe incluir role:'assistant' para que el
             // cliente OpenAI-compatible de ElevenLabs abra el mensaje correctamente.
             const delta = isFirstChunk
@@ -127,7 +176,7 @@ module.exports = async function handler(req, res) {
 
       const stopChunk = {
         id, object: 'chat.completion.chunk', created, model: 'coral-hotel-paraiso',
-        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+        choices: [{ index: 0, delta: {}, finish_reason: usedToolCall ? 'tool_calls' : 'stop' }]
       };
       res.write(`data: ${JSON.stringify(stopChunk)}\n\n`);
       res.write('data: [DONE]\n\n');
@@ -149,13 +198,7 @@ module.exports = async function handler(req, res) {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        cache_control: { type: 'ephemeral' },
-        system: SYSTEM_PROMPT,
-        messages: conversationMessages
-      })
+      body: JSON.stringify(anthropicRequestBody)
     });
 
     const data = await anthropicResponse.json();
@@ -164,12 +207,30 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    const toolUseBlocks = (data.content || []).filter(b => b.type === 'tool_use');
     const textBlock = (data.content || []).find(b => b.type === 'text');
-    const replyText = textBlock ? textBlock.text : 'Disculpa, ¿puedes repetir tu pregunta?';
+
+    let message;
+    let finishReason;
+    if (toolUseBlocks.length > 0) {
+      message = {
+        role: 'assistant',
+        content: textBlock ? textBlock.text : null,
+        tool_calls: toolUseBlocks.map(b => ({
+          id: b.id,
+          type: 'function',
+          function: { name: b.name, arguments: JSON.stringify(b.input || {}) }
+        }))
+      };
+      finishReason = 'tool_calls';
+    } else {
+      message = { role: 'assistant', content: textBlock ? textBlock.text : 'Disculpa, ¿puedes repetir tu pregunta?' };
+      finishReason = 'stop';
+    }
 
     res.status(200).json({
       id, object: 'chat.completion', created, model: 'coral-hotel-paraiso',
-      choices: [{ index: 0, message: { role: 'assistant', content: replyText }, finish_reason: 'stop' }],
+      choices: [{ index: 0, message, finish_reason: finishReason }],
       usage: {
         prompt_tokens: data.usage?.input_tokens || 0,
         completion_tokens: data.usage?.output_tokens || 0,
