@@ -1,15 +1,20 @@
 const SYSTEM_PROMPT = require('../../systemPrompt.js');
 
 // Este endpoint traduce entre el formato que espera ElevenLabs (compatible con OpenAI)
-// y la API de Anthropic. Cuando ElevenLabs pide streaming (modo voz), hacemos streaming
-// REAL desde Anthropic — reenviamos cada pedacito de texto en cuanto Claude lo genera,
-// en vez de esperar la respuesta completa. Esto reduce mucho la espera percibida en
-// llamadas de voz, porque ElevenLabs puede empezar a convertir a audio antes.
+// y la API de Anthropic — así el "cerebro" del agente (system prompt + base de
+// conocimiento) vive únicamente en este repositorio, nunca duplicado dentro de
+// ElevenLabs. En su dashboard, este endpoint se configura como "Custom LLM".
+//
+// Soporta modo normal (una respuesta completa) y modo "streaming" (respuesta en
+// pedacitos) porque los agentes de voz en tiempo real casi siempre piden streaming
+// para poder empezar a hablar antes de que termine de generarse todo el texto.
 
 function fixAlternatingRoles(messages) {
-  const nonEmpty = messages.filter(m => m.content && m.content.trim().length > 0);
+  // Anthropic exige que los turnos alternen estrictamente user/assistant.
+  // Si vienen dos seguidos del mismo rol (común en agentes de voz que arrastran
+  // transcripciones parciales), los combinamos en uno solo.
   const fixed = [];
-  for (const m of nonEmpty) {
+  for (const m of messages) {
     if (fixed.length > 0 && fixed[fixed.length - 1].role === m.role) {
       fixed[fixed.length - 1].content += '\n' + m.content;
     } else {
@@ -28,15 +33,19 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Verifica que la llamada venga realmente de tu agente de ElevenLabs, no de cualquiera
+  // que descubra esta URL. ElevenLabs manda el secreto en el header "Authorization".
   const sharedSecret = process.env.ELEVENLABS_SHARED_SECRET;
   const authHeader = req.headers['authorization'] || '';
   if (sharedSecret && authHeader !== `Bearer ${sharedSecret}`) {
+    console.error('Rechazado por autenticación. Header recibido:', authHeader ? authHeader.slice(0, 15) + '...' : '(vacío)');
     res.status(401).json({ error: 'No autorizado' });
     return;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error('Falta ANTHROPIC_API_KEY en las variables de entorno');
     res.status(500).json({ error: 'Falta configurar ANTHROPIC_API_KEY en Vercel' });
     return;
   }
@@ -44,6 +53,7 @@ module.exports = async function handler(req, res) {
   const body = req.body || {};
   const incomingMessages = body.messages || [];
   const wantsStream = body.stream === true;
+
   const conversationMessages = fixAlternatingRoles(
     incomingMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
@@ -71,7 +81,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 300,
+          max_tokens: 1000,
           cache_control: { type: 'ephemeral' },
           system: SYSTEM_PROMPT,
           messages: conversationMessages,
@@ -133,7 +143,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 300,
+        max_tokens: 1000,
         cache_control: { type: 'ephemeral' },
         system: SYSTEM_PROMPT,
         messages: conversationMessages
