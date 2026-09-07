@@ -92,6 +92,7 @@ module.exports = async function handler(req, res) {
       const reader = anthropicResponse.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let isFirstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -108,9 +109,16 @@ module.exports = async function handler(req, res) {
           try { evt = JSON.parse(jsonStr); } catch { continue; }
 
           if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
+            // El primer fragmento debe incluir role:'assistant' para que el
+            // cliente OpenAI-compatible de ElevenLabs abra el mensaje correctamente.
+            const delta = isFirstChunk
+              ? { role: 'assistant', content: evt.delta.text }
+              : { content: evt.delta.text };
+            isFirstChunk = false;
+
             const chunk = {
               id, object: 'chat.completion.chunk', created, model: 'coral-hotel-paraiso',
-              choices: [{ index: 0, delta: { content: evt.delta.text }, finish_reason: null }]
+              choices: [{ index: 0, delta, finish_reason: null }]
             };
             res.write(`data: ${JSON.stringify(chunk)}\n\n`);
           }
