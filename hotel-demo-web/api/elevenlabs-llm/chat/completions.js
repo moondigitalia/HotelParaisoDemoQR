@@ -36,6 +36,23 @@ function fixAlternatingRoles(messages) {
 // Convierte las herramientas que manda ElevenLabs (formato OpenAI: { type: 'function',
 // function: { name, description, parameters } }) al formato que espera Anthropic
 // ({ name, description, input_schema }).
+// Calcula la fecha y hora actual en Cancún (UTC-5 todo el año, no aplica horario de
+// verano) para que Coral sepa qué día es "hoy" — sin esto, no tiene forma de saber si
+// hoy es el día del buffet temático, una promoción, etc. Se calcula fresco en cada
+// llamada (no se guarda en el documento estático) para que nunca quede desactualizado.
+function getFechaHoraCancun() {
+  const fecha = new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Cancun', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  }).format(new Date());
+  const hora = new Intl.DateTimeFormat('es-MX', {
+    timeZone: 'America/Cancun', hour: 'numeric', minute: '2-digit', hour12: true
+  }).format(new Date());
+  return `CONTEXTO DE FECHA Y HORA ACTUAL: hoy es ${fecha}, son las ${hora} (hora de Cancún, UTC-5). ` +
+    `Usa este dato para responder cualquier pregunta sobre "hoy", "este fin de semana", el día de la semana, ` +
+    `o promociones/menús que cambian según el día (ej. el buffet temático de la sección 4). Esta fecha es real ` +
+    `y viene del sistema — nunca digas que no sabes qué día es ni la contradigas.`;
+}
+
 function toAnthropicTools(openAiTools) {
   if (!Array.isArray(openAiTools) || openAiTools.length === 0) return undefined;
   return openAiTools.map(t => {
@@ -88,8 +105,15 @@ module.exports = async function handler(req, res) {
   const anthropicRequestBody = {
     model: 'claude-sonnet-4-6',
     max_tokens: 1000,
-    cache_control: { type: 'ephemeral' },
-    system: SYSTEM_PROMPT,
+    // El documento grande va en su propio bloque con cache_control explícito, para
+    // que siga aprovechando el caché normalmente. El bloque de fecha/hora va DESPUÉS,
+    // sin cache_control — cambia en cada llamada, pero al no tener cache_control no
+    // rompe el caché del bloque anterior (el caché se busca por prefijo, y el prefijo
+    // hasta el primer bloque sigue siendo idéntico).
+    system: [
+      { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: getFechaHoraCancun() }
+    ],
     messages: conversationMessages,
     ...(anthropicTools ? { tools: anthropicTools } : {})
   };
