@@ -27,7 +27,13 @@ module.exports = async function handler(req, res) {
         conversation_name: 'Coral - Hotel Paraíso Cancún',
         // Sin esto, Coral se queda callada esperando a que el huésped hable primero — el
         // huésped no tiene forma de saber si la llamada ya empezó o no.
-        custom_greeting: '¡Hola! Soy Coral, el asistente virtual del Hotel Paraíso Cancún. ¿En qué puedo ayudarte hoy?'
+        custom_greeting: '¡Hola! Soy Coral, el asistente virtual del Hotel Paraíso Cancún. ¿En qué puedo ayudarte hoy?',
+        // Sin especificar el idioma, Tavus puede seguir asumiendo inglés en partes del
+        // sistema (reconocimiento de voz, pronunciación) aunque la voz sea multilenguaje —
+        // esto es lo que probablemente causaba el acento raro al hablar español.
+        properties: {
+          language: 'spanish'
+        }
       })
     });
 
