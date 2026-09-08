@@ -88,6 +88,16 @@ module.exports = async function handler(req, res) {
   const wantsStream = body.stream === true;
   const anthropicTools = toAnthropicTools(body.tools);
 
+  // Diagnóstico temporal: Tavus dice que "end_call" está disponible siempre sin
+  // necesidad de activarlo, pero no está confirmado que lo mande en el campo `tools`
+  // a un Custom LLM como el nuestro. Esto lo confirma con datos reales en el próximo
+  // llamada de prueba — revisar en Vercel → Logs después de probar el avatar.
+  if (body.tools && body.tools.length > 0) {
+    console.log('Tavus mandó estas herramientas:', JSON.stringify(body.tools));
+  } else {
+    console.log('Tavus NO mandó ninguna herramienta en esta petición.');
+  }
+
   const conversationMessages = fixAlternatingRoles(
     incomingMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
