@@ -108,7 +108,11 @@ module.exports = async function handler(req, res) {
   const created = Math.floor(Date.now() / 1000);
 
   const anthropicRequestBody = {
-    model: 'claude-sonnet-4-6',
+    // Modelo más rápido que el de texto/voz (claude-sonnet-4-6) — el avatar necesita
+    // respuestas mucho más veloces para que el video se sienta natural (5-6 segundos de
+    // espera se nota muchísimo en una videollamada). Como ya le pedimos respuestas cortas
+    // de 2-3 frases, un modelo más ligero es de sobra para este caso de uso.
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 1000,
     // El documento grande va en su propio bloque con cache_control explícito, para
     // que siga aprovechando el caché normalmente. El bloque de fecha/hora va DESPUÉS,
