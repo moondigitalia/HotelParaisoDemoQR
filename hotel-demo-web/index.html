@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -45,13 +45,14 @@
   .legal-text{white-space:normal;}
 
   /* MODE TABS */
-  .mode-tabs{display:flex;gap:6px;margin:10px 20px 0;}
-  .mode-tab{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  .mode-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 20px 0;}
+  .mode-tab{flex:1 1 calc(50% - 3px);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
     text-align:center;padding:8px 4px;border-radius:10px;border:1px solid var(--line);
     background:transparent;color:rgba(243,236,218,0.6);font-family:'Karla',sans-serif;font-size:12.5px;
     font-weight:600;cursor:pointer;transition:.15s;}
   .mode-tab.active{background:var(--gold);border-color:var(--gold);color:var(--navy);}
   .mode-tab:not(.active):hover{border-color:var(--gold);color:var(--gold);}
+  .mode-tab:nth-child(3){flex-basis:100%;}
 
   /* CALL MODE y AVATAR MODE comparten el mismo layout de "shell" centrado */
   .call-shell, .avatar-shell{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -323,6 +324,18 @@ async function startAvatarCall(){
       console.error('Error de avatar:', err);
       avatarStatus.textContent = 'Hubo un problema con el avatar. Intenta de nuevo.';
       resetAvatarUI();
+    });
+
+    // Tavus no reenvía su propia herramienta de "colgar" a un Custom LLM como el nuestro,
+    // así que creamos la nuestra ("terminar_llamada") y la escuchamos aquí: quien la
+    // "dispara" es Coral (decidida por Claude), y Tavus nos avisa por este canal de
+    // mensajes de la app — no por nuestro servidor.
+    callObject.on('app-message', (event) => {
+      const data = event && event.data;
+      if (data && data.event_type === 'conversation.tool_call' && data.properties
+          && data.properties.name === 'terminar_llamada') {
+        endAvatarCall();
+      }
     });
 
     // videoSource:false porque el huésped no necesita prender su cámara — solo habla
