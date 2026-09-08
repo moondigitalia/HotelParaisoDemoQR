@@ -334,7 +334,11 @@ async function startAvatarCall(){
       const data = event && event.data;
       if (data && data.event_type === 'conversation.tool_call' && data.properties
           && data.properties.name === 'terminar_llamada') {
-        endAvatarCall();
+        // No colgamos de inmediato: Coral ya decidió despedirse, pero su voz todavía
+        // tarda unos segundos en generarse y reproducirse. Si cortamos ya, se corta la
+        // despedida a medias — le damos margen para que alcance a terminar de hablar.
+        avatarStatus.textContent = 'Despidiéndose...';
+        setTimeout(() => { endAvatarCall(); }, 4500);
       }
     });
 
