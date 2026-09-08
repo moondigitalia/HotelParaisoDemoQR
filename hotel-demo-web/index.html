@@ -54,11 +54,14 @@
   .mode-tab:not(.active):hover{border-color:var(--gold);color:var(--gold);}
   .mode-tab:nth-child(3){flex-basis:100%;}
 
-  /* CALL MODE y AVATAR MODE comparten el mismo layout de "shell" centrado */
+  /* CALL MODE y AVATAR MODE comparten el layout centrado, pero con distinto padding —
+     el avatar necesita más espacio vertical libre para el video. */
   .call-shell, .avatar-shell{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;
-    padding:30px 20px;text-align:center;}
+    text-align:center;}
+  .call-shell{padding:30px 20px;}
+  .avatar-shell{padding:14px 20px;}
   .call-shell.active, .avatar-shell.active{display:flex;}
-  .call-shell p, .avatar-shell p{font-size:13px;color:rgba(243,236,218,0.6);margin-top:20px;max-width:280px;}
+  .call-shell p, .avatar-shell p{font-size:13px;color:rgba(243,236,218,0.6);margin-top:14px;max-width:280px;}
 
   .orb{width:160px;height:160px;border-radius:50%;position:relative;margin-bottom:26px;
     background:radial-gradient(circle at 35% 30%, var(--seafoam), var(--teal) 70%);
@@ -73,15 +76,19 @@
 
   .call-status{font-size:13px;color:var(--seafoam);margin-bottom:22px;letter-spacing:.02em;}
 
-  /* Círculo de video del avatar — nuestra propia "burbuja", sin ninguna interfaz de Tavus/Daily.
-     Mismo tamaño y mismo patrón de "esfera con luz" que el orb de voz, pero en dorado en vez de
-     verde-agua, para distinguirse sin perder la elegancia del degradado original. */
-  .avatar-frame{width:160px;height:160px;border-radius:50%;overflow:hidden;margin-bottom:26px;
-    position:relative;background:radial-gradient(circle at 35% 30%, var(--gold), var(--teal) 70%);
-    border:3px solid transparent;transition:.3s;}
+  /* Rectángulo de video del avatar — nuestra propia "tarjeta de video", sin ninguna interfaz
+     de Tavus/Daily. Ancho completo (igual que los botones de pestañas), con un tope de alto
+     relativo a la pantalla (no un valor fijo) para que siempre quepa completo sin scroll,
+     sin importar el tamaño del celular. Se ve así de grande desde antes de conectar (con el
+     degradado) y en cuanto arranca la llamada, ahí mismo aparece el video — sin saltos. */
+  .avatar-frame{width:100%;aspect-ratio:3/4;max-height:40vh;border-radius:22px;overflow:hidden;
+    margin-bottom:16px;position:relative;
+    background:radial-gradient(circle at 35% 30%, var(--gold), var(--teal) 70%);
+    border:3px solid transparent;transition:.3s;
+    box-shadow:0 8px 30px rgba(0,0,0,0.25);}
   .avatar-frame.live{border-color:var(--gold);}
   .avatar-frame video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
-    border-radius:50%;display:block;border:none;margin:0;padding:0;background:transparent;}
+    border-radius:19px;display:block;border:none;margin:0;padding:0;background:transparent;}
 
   .call-btn{padding:14px 28px;border-radius:26px;border:none;font-family:'Karla',sans-serif;
     font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
