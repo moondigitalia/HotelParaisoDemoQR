@@ -24,7 +24,10 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         pal_id: palId,
-        conversation_name: 'Coral - Hotel Paraíso Cancún'
+        conversation_name: 'Coral - Hotel Paraíso Cancún',
+        // Sin esto, Coral se queda callada esperando a que el huésped hable primero — el
+        // huésped no tiene forma de saber si la llamada ya empezó o no.
+        custom_greeting: '¡Hola! Soy Coral, el asistente virtual del Hotel Paraíso Cancún. ¿En qué puedo ayudarte hoy?'
       })
     });
 
