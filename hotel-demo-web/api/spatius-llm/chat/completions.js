@@ -119,7 +119,7 @@ module.exports = async function handler(req, res) {
     // hasta el primer bloque sigue siendo idéntico).
     system: [
       { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: getFechaHoraCancun() }
+      { type: 'text', text: getFechaHoraCancun() }, { type: 'text', text: "RECORDATORIO CRITICO DE FORMATO DE VOZ: nunca digas 'am' ni 'pm' en tus respuestas, ni en ingles ni mezclado. Siempre di la hora en espanol natural (ej. 'ocho de la noche', 'nueve de la manana', 'mediodia', 'medianoche'), como ya indica el documento base." }
     ],
     messages: conversationMessages,
     ...(anthropicTools ? { tools: anthropicTools } : {})
