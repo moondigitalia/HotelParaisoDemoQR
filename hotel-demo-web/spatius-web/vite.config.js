@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { avatarkitVitePlugin } from '@spatius/avatarkit/vite'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 function ensureAssetsDir() {
   return {
@@ -11,8 +12,22 @@ function ensureAssetsDir() {
   }
 }
 
+function copyWasmToRoot() {
+  return {
+    name: 'copy-wasm-to-dist-root',
+    closeBundle() {
+      const dir = 'dist/assets'
+      if (existsSync(dir)) {
+        for (const f of readdirSync(dir)) {
+          copyFileSync(join(dir, f), join('dist', f))
+        }
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [ensureAssetsDir(), avatarkitVitePlugin()],
+  plugins: [ensureAssetsDir(), avatarkitVitePlugin(), copyWasmToRoot()],
   build: {
     lib: {
       entry: 'src/spatius-tab.js',
