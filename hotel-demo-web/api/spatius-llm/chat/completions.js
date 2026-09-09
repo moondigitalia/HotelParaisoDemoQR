@@ -96,7 +96,16 @@ module.exports = async function handler(req, res) {
     console.log('Tavus NO mandó ninguna herramienta en esta petición.');
   }
 
-  const conversationMessages = fixAlternatingRoles(
+  // El agente de LiveKit manda las instrucciones de generate_reply() (ej. el saludo
+      // inicial) como un mensaje de rol "system" dentro de messages -- antes se perdian
+      // porque el filtro de abajo solo dejaba pasar 'user'/'assistant'. Las rescatamos
+      // aqui para mandarlas a Claude como bloque de sistema adicional.
+      const clientSystemMessages = incomingMessages
+              .filter(m => m.role === 'system' && m.content)
+              .map(m => m.content)
+              .join('\n\n');
+  
+      const conversationMessages = fixAlternatingRoles(
     incomingMessages
       .filter(m => m.role === 'user' || m.role === 'assistant')
       .map(m => ({ role: m.role, content: m.content }))
@@ -119,7 +128,8 @@ module.exports = async function handler(req, res) {
     // hasta el primer bloque sigue siendo idéntico).
     system: [
       { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: getFechaHoraCancun() }, { type: 'text', text: "RECORDATORIO CRITICO DE FORMATO DE VOZ: nunca digas 'am' ni 'pm' en tus respuestas, ni en ingles ni mezclado. Siempre di la hora en espanol natural (ej. 'ocho de la noche', 'nueve de la manana', 'mediodia', 'medianoche'), como ya indica el documento base." }
+      { type: 'text', text: getFechaHoraCancun() }, { type: 'text', text: "RECORDATORIO CRITICO DE FORMATO DE VOZ: nunca digas 'am' ni 'pm' en tus respuestas, ni en ingles ni mezclado. Siempre di la hora en espanol natural (ej. 'ocho de la noche', 'nueve de la manana', 'mediodia', 'medianoche'), como ya indica el documento base." },
+            ...(clientSystemMessages ? [{ type: 'text', text: clientSystemMessages }] : [])
     ],
     messages: conversationMessages,
     ...(anthropicTools ? { tools: anthropicTools } : {})
