@@ -27,6 +27,18 @@ async function startAvatar(container, statusEl, startBtn, frameEl) {
     const provider = new LiveKitProvider()
     const player = new AvatarPlayer(provider, avatarView)
     await player.connect({ url, token, roomName })
+    // El SDK de Spatius no documenta un evento propio para detectar cuando la
+          // llamada se corta (ej. cuando el agente cuelga sola al despedirse). Por
+          // debajo SI usa LiveKit normal (bien documentado), asi que enganchamos
+          // directo ahi: si la sala se desconecta por cualquier razon, reseteamos
+          // el boton solos -- si no, se queda "vivo" para siempre en la pantalla.
+          const rtcRoom = provider.room || provider._room || null
+          if (rtcRoom && typeof rtcRoom.on === 'function') {
+                    rtcRoom.on('disconnected', () => {
+                                stopAvatar(statusEl, startBtn, frameEl)
+                    })
+          }
+    
     await player.startPublishing()
     session = {
       player,
@@ -49,7 +61,11 @@ async function startAvatar(container, statusEl, startBtn, frameEl) {
 }
 async function stopAvatar(statusEl, startBtn, frameEl) {
   if (session) {
-    await session.dispose()
+    try {
+              await session.dispose()
+    } catch (err) {
+              console.warn('La sesion del avatar ya estaba desconectada:', err)
+    }
     session = null
   }
   statusEl.textContent = 'Toca para hablar con Coral'
