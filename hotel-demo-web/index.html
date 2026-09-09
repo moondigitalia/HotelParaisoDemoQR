@@ -52,7 +52,6 @@
     font-weight:600;cursor:pointer;transition:.15s;}
   .mode-tab.active{background:var(--gold);border-color:var(--gold);color:var(--navy);}
   .mode-tab:not(.active):hover{border-color:var(--gold);color:var(--gold);}
-  .mode-tab:nth-child(3){flex-basis:100%;}
 
   /* CALL MODE y AVATAR MODE comparten el layout centrado, pero con distinto padding —
      el avatar necesita más espacio vertical libre para el video. */
@@ -89,6 +88,10 @@
   .avatar-frame.live{border-color:var(--gold);}
   .avatar-frame video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
     border-radius:19px;display:block;border:none;margin:0;padding:0;background:transparent;}
+  /* Igual que .avatar-frame video, pero para el <div> donde AvatarKit (Spatius) dibuja
+     su propio canvas — el SDK rellena este contenedor, no le pasamos un <video>. */
+  .avatar-frame .spatius-avatar-container{position:absolute;top:0;left:0;width:100%;height:100%;
+    border-radius:19px;overflow:hidden;}
 
   .call-btn{padding:14px 28px;border-radius:26px;border:none;font-family:'Karla',sans-serif;
     font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
@@ -161,6 +164,7 @@
     <button class="mode-tab active" id="tabTexto">💬 Texto</button>
     <button class="mode-tab" id="tabLlamada">📞 Voz</button>
     <button class="mode-tab" id="tabAvatar">🎥 Avatar</button>
+    <button class="mode-tab" id="tabSpatius">🧪 Avatar 2</button>
   </div>
 
   <div class="chat-shell" id="chatShell">
@@ -202,6 +206,15 @@
     <div class="call-status" id="avatarStatus">Toca para hablar con Coral</div>
     <button class="call-btn start" id="avatarBtn">🎥 Iniciar videollamada</button>
     <p>Habla con naturalidad, viendo a Coral en pantalla.</p>
+  </div>
+
+  <div class="avatar-shell" id="spatiusShell">
+    <div class="avatar-frame" id="spatiusFrame">
+      <div class="spatius-avatar-container" id="spatiusContainer"></div>
+    </div>
+    <div class="call-status" id="spatiusStatus">Toca para hablar con Coral</div>
+    <button class="call-btn start" id="spatiusBtn">🎥 Iniciar videollamada</button>
+    <p>Piloto interno — avatar renderizado en tu propio celular (Spatius).</p>
   </div>
 
   <!-- 🎨 PERSONALIZAR AQUÍ #5 — Pie de página -->
@@ -401,19 +414,36 @@ avatarBtn.addEventListener('click', () => {
 });
 </script>
 
+<script type="module">
+// ---------- Modo Avatar 2 (piloto) — Spatius, renderizado en el propio celular ----------
+// A diferencia de Tavus (arriba), aquí no llega un video ya hecho: el navegador dibuja
+// la cara localmente a partir de datos de movimiento que llegan por LiveKit.
+import { mountSpatiusTab } from '/spatius-dist/spatius-tab.js';
+
+mountSpatiusTab({
+  container: document.getElementById('spatiusContainer'),
+  frameEl: document.getElementById('spatiusFrame'),
+  startBtn: document.getElementById('spatiusBtn'),
+  statusEl: document.getElementById('spatiusStatus'),
+});
+</script>
+
 <script>
 // ---------- Alternar entre modo Texto, Llamada y Avatar ----------
 const tabTexto = document.getElementById('tabTexto');
 const tabLlamada = document.getElementById('tabLlamada');
 const tabAvatar = document.getElementById('tabAvatar');
+const tabSpatius = document.getElementById('tabSpatius');
 const chatShell = document.getElementById('chatShell');
 const callShell = document.getElementById('callShell');
 const avatarShell = document.getElementById('avatarShell');
+const spatiusShell = document.getElementById('spatiusShell');
 
 const tabs = [
   { btn: tabTexto, shell: chatShell, hiddenClass: 'hidden' },
   { btn: tabLlamada, shell: callShell, hiddenClass: null },
-  { btn: tabAvatar, shell: avatarShell, hiddenClass: null }
+  { btn: tabAvatar, shell: avatarShell, hiddenClass: null },
+  { btn: tabSpatius, shell: spatiusShell, hiddenClass: null }
 ];
 
 function activateTab(activeBtn){
@@ -431,6 +461,7 @@ function activateTab(activeBtn){
 tabTexto.addEventListener('click', () => activateTab(tabTexto));
 tabLlamada.addEventListener('click', () => activateTab(tabLlamada));
 tabAvatar.addEventListener('click', () => activateTab(tabAvatar));
+tabSpatius.addEventListener('click', () => activateTab(tabSpatius));
 
 // ---------- Lógica del chat ----------
 
