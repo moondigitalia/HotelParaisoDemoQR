@@ -45,13 +45,13 @@
   .legal-text{white-space:normal;}
 
   /* MODE TABS */
-  .mode-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 20px 0;}
-  .mode-tab{flex:1 1 calc(50% - 3px);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
-    text-align:center;padding:8px 4px;border-radius:10px;border:1px solid var(--line);
-    background:transparent;color:rgba(243,236,218,0.6);font-family:'Karla',sans-serif;font-size:12.5px;
-    font-weight:600;cursor:pointer;transition:.15s;}
-  .mode-tab.active{background:var(--gold);border-color:var(--gold);color:var(--navy);}
-  .mode-tab:not(.active):hover{border-color:var(--gold);color:var(--gold);}
+  .mode-tabs{display:flex;justify-content:space-between;gap:8px;margin:8px 20px 0;}
+  .mode-tab{display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:none;padding:0;color:rgba(243,236,218,0.6);font-family:'Karla',sans-serif;cursor:pointer;transition:.15s;} .mode-tab .circle{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:1px solid var(--line);background:transparent;transition:.15s;} .mode-tab .label{font-size:9.5px;font-weight:600;letter-spacing:.01em;} .mode-tab.active .circle{background:var(--gold);border-color:var(--gold);} .mode-tab.active .label{color:var(--gold);} .mode-tab:not(.active):hover .circle{border-color:var(--gold);} .mode-tab:not(.active):hover .label{color:var(--gold);}
+    
+    
+    
+  
+  
 
   /* CALL MODE y AVATAR MODE comparten el layout centrado, pero con distinto padding —
      el avatar necesita más espacio vertical libre para el video. */
@@ -161,10 +161,10 @@
   </div>
 
   <div class="mode-tabs">
-    <button class="mode-tab active" id="tabTexto">💬 Texto</button>
-    <button class="mode-tab" id="tabLlamada">📞 Voz</button>
-    <button class="mode-tab" id="tabAvatar">🎥 Avatar</button>
-    <button class="mode-tab" id="tabSpatius">🧪 Avatar 2</button>
+    <button class="mode-tab active" id="tabTexto"><span class="circle">💬</span><span class="label">Texto</span></button>
+    <button class="mode-tab" id="tabLlamada"><span class="circle">📞</span><span class="label">Voz</span></button>
+    <button class="mode-tab" id="tabAvatar"><span class="circle">🎥</span><span class="label">Avatar</span></button>
+    <button class="mode-tab" id="tabSpatius"><span class="circle">🧪</span><span class="label">Avatar 2</span></button>
   </div>
 
   <div class="chat-shell" id="chatShell">
