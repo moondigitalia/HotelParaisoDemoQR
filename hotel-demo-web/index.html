@@ -163,8 +163,7 @@
   <div class="mode-tabs">
     <button class="mode-tab active" id="tabTexto"><span class="circle">💬</span><span class="label">Texto</span></button>
     <button class="mode-tab" id="tabLlamada"><span class="circle">📞</span><span class="label">Voz</span></button>
-    <button class="mode-tab" id="tabAvatar"><span class="circle">🎥</span><span class="label">Avatar</span></button>
-    <button class="mode-tab" id="tabSpatius"><span class="circle">🧪</span><span class="label">Avatar 2</span></button>
+    <button class="mode-tab" id="tabSpatius"><span class="circle"🎥🧪</span><span class="label">Avatar</span></button>
   </div>
 
   <div class="chat-shell" id="chatShell">
@@ -199,22 +198,13 @@
     <p>Habla con naturalidad, como si llamaras a recepción.</p>
   </div>
 
-  <div class="avatar-shell" id="avatarShell">
-    <div class="avatar-frame" id="avatarFrame">
-      <video id="avatarVideo" autoplay playsinline></video>
-    </div>
-    <div class="call-status" id="avatarStatus">Toca para hablar con Coral</div>
-    <button class="call-btn start" id="avatarBtn">🎥 Iniciar videollamada</button>
-    <p>Habla con naturalidad, viendo a Coral en pantalla.</p>
-  </div>
-
   <div class="avatar-shell" id="spatiusShell">
     <div class="avatar-frame" id="spatiusFrame">
       <div class="spatius-avatar-container" id="spatiusContainer"></div>
     </div>
     <div class="call-status" id="spatiusStatus">Toca para hablar con Coral</div>
     <button class="call-btn start" id="spatiusBtn">🎥 Iniciar videollamada</button>
-    <p>Piloto interno (Spatius).</p>
+          <p>Habla con naturalidad, viendo a Coral en pantalla.</p>
   </div>
 
   <!-- 🎨 PERSONALIZAR AQUÍ #5 — Pie de página -->
@@ -303,118 +293,6 @@ callBtn.addEventListener('click', () => {
 </script>
 
 <script type="module">
-// ---------- Modo Avatar — interfaz propia usando la librería de Daily ----------
-// (Tavus usa Daily por debajo para el video; igual que con ElevenLabs, no usamos
-// ningún widget prediseñado — solo la librería "sin cara" para dibujar nosotros
-// mismos el círculo de video, sin ninguna marca de Tavus/Daily visible.)
-import DailyIframe from 'https://cdn.jsdelivr.net/npm/@daily-co/daily-js/+esm';
-
-const avatarFrame = document.getElementById('avatarFrame');
-const avatarVideo = document.getElementById('avatarVideo');
-const avatarStatus = document.getElementById('avatarStatus');
-const avatarBtn = document.getElementById('avatarBtn');
-let callObject = null;
-let currentConversationId = null;
-let remoteStream = null;
-
-async function startAvatarCall(){
-  avatarBtn.disabled = true;
-  avatarStatus.textContent = 'Conectando...';
-  try {
-    const res = await fetch('/api/tavus/create-conversation', { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok || !data.conversation_url) {
-      throw new Error(data.error || 'No se pudo iniciar el avatar');
-    }
-    currentConversationId = data.conversation_id;
-
-    remoteStream = new MediaStream();
-    avatarVideo.srcObject = remoteStream;
-
-    callObject = DailyIframe.createCallObject();
-
-    callObject.on('track-started', (event) => {
-      if (event.participant && !event.participant.local) {
-        remoteStream.addTrack(event.track);
-        avatarVideo.play().catch(() => {});
-      }
-    });
-    callObject.on('left-meeting', resetAvatarUI);
-    callObject.on('error', (err) => {
-      console.error('Error de avatar:', err);
-      avatarStatus.textContent = 'Hubo un problema con el avatar. Intenta de nuevo.';
-      resetAvatarUI();
-    });
-
-    // Tavus no reenvía su propia herramienta de "colgar" a un Custom LLM como el nuestro,
-    // así que creamos la nuestra ("terminar_llamada") y la escuchamos aquí: quien la
-    // "dispara" es Coral (decidida por Claude), y Tavus nos avisa por este canal de
-    // mensajes de la app — no por nuestro servidor.
-    callObject.on('app-message', (event) => {
-      const data = event && event.data;
-      if (data && data.event_type === 'conversation.tool_call' && data.properties
-          && data.properties.name === 'terminar_llamada') {
-        // No colgamos de inmediato: Coral ya decidió despedirse, pero su voz todavía
-        // tarda unos segundos en generarse y reproducirse. Si cortamos ya, se corta la
-        // despedida a medias — le damos margen para que alcance a terminar de hablar.
-        avatarStatus.textContent = 'Despidiéndose...';
-        setTimeout(() => { endAvatarCall(); }, 4500);
-      }
-    });
-
-    // videoSource:false porque el huésped no necesita prender su cámara — solo habla
-    // y ve a Coral, igual de simple que la pestaña de Voz.
-    await callObject.join({ url: data.conversation_url, videoSource: false });
-
-    avatarStatus.textContent = 'Conversación en curso';
-    avatarBtn.textContent = 'Terminar';
-    avatarBtn.className = 'call-btn end';
-    avatarBtn.disabled = false;
-    avatarFrame.classList.add('live');
-  } catch (err) {
-    console.error(err);
-    avatarStatus.textContent = 'No se pudo conectar con el avatar.';
-    avatarBtn.disabled = false;
-  }
-}
-
-async function endAvatarCall(){
-  if (callObject) {
-    try { await callObject.leave(); } catch {}
-    try { await callObject.destroy(); } catch {}
-    callObject = null;
-  }
-  if (currentConversationId) {
-    fetch('/api/tavus/end-conversation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversation_id: currentConversationId })
-    }).catch(() => {});
-    currentConversationId = null;
-  }
-  resetAvatarUI();
-}
-
-function resetAvatarUI(){
-  avatarStatus.textContent = 'Toca para hablar con Coral';
-  avatarBtn.textContent = '🎥 Iniciar videollamada';
-  avatarBtn.className = 'call-btn start';
-  avatarBtn.disabled = false;
-  avatarFrame.classList.remove('live');
-  avatarVideo.srcObject = null;
-  remoteStream = null;
-}
-
-avatarBtn.addEventListener('click', () => {
-  if (callObject) {
-    endAvatarCall();
-  } else {
-    startAvatarCall();
-  }
-});
-</script>
-
-<script type="module">
 // ---------- Modo Avatar 2 (piloto) — Spatius, renderizado en el propio celular ----------
 // A diferencia de Tavus (arriba), aquí no llega un video ya hecho: el navegador dibuja
 // la cara localmente a partir de datos de movimiento que llegan por LiveKit.
@@ -432,17 +310,14 @@ mountSpatiusTab({
 // ---------- Alternar entre modo Texto, Llamada y Avatar ----------
 const tabTexto = document.getElementById('tabTexto');
 const tabLlamada = document.getElementById('tabLlamada');
-const tabAvatar = document.getElementById('tabAvatar');
 const tabSpatius = document.getElementById('tabSpatius');
 const chatShell = document.getElementById('chatShell');
 const callShell = document.getElementById('callShell');
-const avatarShell = document.getElementById('avatarShell');
 const spatiusShell = document.getElementById('spatiusShell');
 
 const tabs = [
   { btn: tabTexto, shell: chatShell, hiddenClass: 'hidden' },
   { btn: tabLlamada, shell: callShell, hiddenClass: null },
-  { btn: tabAvatar, shell: avatarShell, hiddenClass: null },
   { btn: tabSpatius, shell: spatiusShell, hiddenClass: null }
 ];
 
@@ -460,7 +335,6 @@ function activateTab(activeBtn){
 
 tabTexto.addEventListener('click', () => activateTab(tabTexto));
 tabLlamada.addEventListener('click', () => activateTab(tabLlamada));
-tabAvatar.addEventListener('click', () => activateTab(tabAvatar));
 tabSpatius.addEventListener('click', () => activateTab(tabSpatius));
 
 // ---------- Lógica del chat ----------
