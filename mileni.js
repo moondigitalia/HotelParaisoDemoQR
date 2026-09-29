@@ -128,7 +128,21 @@ function registrarProspecto(p) {
     `<div class="lead-f">Folio ${folio} · Un asesor te escribe por WhatsApp</div>`);
   return 'Prospecto registrado con folio ' + folio + '. Confírmale a la persona que un asesor le escribirá por WhatsApp.';
 }
-const clientTools = { registrar_prospecto: registrarProspecto };
+// Herramienta "mostrar_radar": tarjeta con botón al test vocacional (también dentro de la llamada).
+let radarShown = false;
+function mostrarRadar() {
+  if (!radarShown) {
+    radarShown = true;
+    add('radar', null,
+      '<div class="radar-k">Test vocacional · gratis</div>' +
+      '<b>Radar de Carrera U3M</b>' +
+      '<p>7 preguntas rápidas, unos 2 minutos. Te mandamos por WhatsApp las carreras que más van contigo.</p>' +
+      '<a class="radar-btn" href="radar" target="_blank" rel="noopener">Hacer el Radar →</a>');
+  }
+  const vr = document.getElementById('v-radar'); if (vr) vr.hidden = false;
+  return 'Listo, el botón del Radar de Carrera ya está en la pantalla de la persona.';
+}
+const clientTools = { registrar_prospecto: registrarProspecto, mostrar_radar: mostrarRadar };
 
 // En celular: el chat ocupa exactamente el espacio visible arriba del teclado.
 const vv = window.visualViewport;
@@ -223,6 +237,7 @@ async function startVoice() {
   chat.classList.add('in-voice'); voice.hidden = false;
   muted = false; vMute.setAttribute('aria-pressed', 'false'); vMute.textContent = 'Silenciar';
   vTime.textContent = '';
+  const vr0 = document.getElementById('v-radar'); if (vr0) vr0.hidden = true;
   vState('connecting', 'Conectando con Mileni…');
   setStatus('● Llamada de voz', true);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
