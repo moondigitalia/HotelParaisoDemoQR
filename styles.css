@@ -270,7 +270,7 @@ button{font-family:inherit;cursor:pointer}
 .chat .quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 10px;background:#F7F6F2}
 .chat .quick button{padding:7px 12px;border-radius:999px;border:1.5px solid var(--blue);color:var(--blue);background:#fff;font-size:13px;font-weight:700}
 .chat form{display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
-.chat form .input{height:46px}
+.chat form .input{height:46px;font-size:16px}
 .chat form button{width:46px;height:46px;flex-shrink:0;border:0;border-radius:10px;background:var(--lime);color:var(--navy);display:flex;align-items:center;justify-content:center}
 .chat form button:disabled{opacity:.5}
 .chat .foot-note{font-size:11px;color:var(--gray-2);text-align:center;padding:0 14px 10px}
@@ -383,7 +383,17 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .launcher .bubble,.launcher.show-bubble .bubble{display:none}
   .mileni-btn{width:66px;height:82px}.mileni-btn .clip{left:3px;width:60px;height:82px;border-radius:0 0 30px 30px}
   .mileni-btn .disc{width:60px;height:60px}.mileni-btn img{width:66px;left:-3px;bottom:-16px}.mileni-btn .dot{width:14px;height:14px;right:3px;bottom:3px}
-  .chat{inset:0;width:auto;height:auto;border-radius:0}
+  .chat{left:0;right:0;top:0;bottom:auto;width:100%;height:100vh;height:100dvh;border-radius:0;animation:none!important}
+  .chat .ch{padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))}
+  .chat .ch img{width:40px;height:40px}
+  .chat .ch .who{min-width:0}.chat .ch .who b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat .msgs{padding:14px}
+  .chat .quick{flex-wrap:nowrap;overflow-x:auto;padding:0 14px 8px}
+  .chat .quick button{flex-shrink:0}
+  .chat .foot-note{display:none}
+  .chat form{padding:8px 10px;padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+  .chat form .input{font-size:17px;height:44px}
+  body.chat-open{overflow:hidden}
   .wa-fab{display:flex;position:fixed;left:14px;bottom:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(18,35,59,.3)}
   .promo{font-size:13px;padding:8px 12px;gap:4px}
   .promo .pl{display:none}

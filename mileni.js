@@ -97,14 +97,29 @@ async function sendText(q) {
   try { await connect(); } catch (e) { pending = []; }
 }
 
+// En celular: el chat ocupa exactamente el espacio visible arriba del teclado.
+const vv = window.visualViewport;
+function fitChat() {
+  if (!chat.classList.contains('open') || window.innerWidth > 640 || !vv) { chat.style.height = ''; chat.style.transform = ''; return; }
+  chat.style.height = vv.height + 'px';
+  chat.style.transform = 'translateY(' + vv.offsetTop + 'px)';
+  msgs.scrollTop = msgs.scrollHeight;
+}
+if (vv) { vv.addEventListener('resize', fitChat); vv.addEventListener('scroll', fitChat); }
+input.addEventListener('focus', () => setTimeout(fitChat, 300));
+
 function open(q) {
   chat.classList.add('open');
+  document.body.classList.add('chat-open');
+  fitChat();
   launcher.style.display = 'none';
   if (!msgs.children.length) connect().catch(() => {});
-  if (q) sendText(q); else setTimeout(() => input.focus(), 50);
+  if (q) sendText(q); else if (window.innerWidth > 640) setTimeout(() => input.focus(), 50);
 }
 function close() {
   chat.classList.remove('open');
+  document.body.classList.remove('chat-open');
+  chat.style.height = ''; chat.style.transform = '';
   launcher.style.display = '';
   const b = document.getElementById('bubble'); if (b) b.remove();
 }
