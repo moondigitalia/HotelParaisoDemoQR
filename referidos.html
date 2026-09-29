@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recomienda y gana $500 · U3M</title>
+<meta name="description" content="Registra a tus amigos que quieran estudiar en la Universidad Tercer Milenio y gana $500 por cada uno que se inscriba. Sin límite.">
+<meta name="theme-color" content="#12233B">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="landing.css">
+<style>
+.big500{display:flex;align-items:flex-end;gap:14px;margin-top:10px}
+.big500 b{font-family:var(--display);font-stretch:120%;font-weight:900;font-size:clamp(72px,18vw,120px);line-height:.85;letter-spacing:-3px;color:var(--lime)}
+.big500 span{font-size:17px;font-weight:700;line-height:1.3;color:#DDE5EE;padding-bottom:6px}
+.steps3{margin-top:22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.steps3 div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-size:14px;line-height:1.35;color:#DDE5EE}
+.steps3 b{display:flex;width:30px;height:30px;border-radius:9px;background:var(--lime);color:var(--navy);align-items:center;justify-content:center;margin-bottom:8px}
+.sub-h{margin:6px 0 0;font-size:13px;font-weight:800;letter-spacing:2px;color:var(--lime-d)}
+.friend{border:1.5px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative}
+.friend .fh{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px}
+.friend .rm{background:transparent;border:0;color:var(--gray);font-size:14px;font-weight:700;padding:6px}
+.add{height:48px;border:1.5px dashed var(--blue);border-radius:12px;background:#F4F8FD;color:var(--blue);font-weight:800;font-size:15px}
+.rules{margin-top:22px;background:rgba(255,255,255,.06);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.55;color:#C9D2DC}
+.rules b{color:#fff}
+.ok-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.ok-list li{display:flex;gap:10px;align-items:center;background:var(--paper);border-radius:10px;padding:10px 12px;font-weight:700}
+.ok-list li i{width:24px;height:24px;border-radius:50%;background:var(--lime);color:var(--navy);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;flex-shrink:0}
+.folio{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:1px;color:var(--blue)}
+@media (max-width:480px){.steps3{grid-template-columns:1fr}.steps3 div{display:flex;gap:12px;align-items:center}.steps3 b{margin:0;flex-shrink:0}}
+</style>
+</head>
+<body>
+<div class="rd">
+  <header class="rd-top">
+    <a class="logo light" href="/" aria-label="Universidad Tercer Milenio, inicio"><span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span><span class="t"><b>U3M</b><span>TERCER<strong>MILENIO</strong></span></span></a>
+    <span class="tag">RECOMIENDA Y GANA</span>
+  </header>
+  <main class="rd-main">
+    <section class="screen on" id="s-form">
+      <h1>Trae a tus amigos a U3M <span>y gana</span></h1>
+      <div class="big500"><b>$500</b><span>por cada amigo que se inscriba.<br>Sin límite.</span></div>
+      <div class="steps3">
+        <div><b>1</b>Registra aquí a tus amigos antes de que se inscriban.</div>
+        <div><b>2</b>Un asesor de Admisiones los contacta por WhatsApp.</div>
+        <div><b>3</b>Si se inscriben, ganas $500 por cada uno.</div>
+      </div>
+
+      <form class="card-w" id="ref" novalidate style="margin-top:22px">
+        <p class="sub-h">TUS DATOS</p>
+        <div class="field"><label for="y-nombre">Tu nombre completo</label><input class="input" id="y-nombre" autocomplete="name" placeholder="Ej. Andrea López"></div>
+        <div class="field"><label for="y-wa">Tu WhatsApp (10 dígitos)</label><input class="input" id="y-wa" type="tel" inputmode="numeric" autocomplete="tel" placeholder="229 000 0000"></div>
+        <div class="field"><span class="lbl">Soy</span>
+          <div class="opts3" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+            <label><input type="radio" name="soy" value="Alumno U3M" checked>Alumno U3M</label>
+            <label><input type="radio" name="soy" value="Egresado U3M">Egresado</label>
+            <label><input type="radio" name="soy" value="Papá, mamá o familiar">Familiar</label>
+            <label><input type="radio" name="soy" value="Amigo de U3M">Otro</label>
+          </div>
+        </div>
+        <p class="sub-h" style="margin-top:8px">TUS REFERIDOS <span style="color:var(--gray);letter-spacing:0;font-weight:600">· hasta 3</span></p>
+        <div id="friends" style="display:flex;flex-direction:column;gap:12px"></div>
+        <button class="add" type="button" id="add">+ Agregar otro amigo</button>
+        <datalist id="carreras-list"></datalist>
+        <label class="check"><input type="checkbox" id="y-ok"><span>Confirmo que mis amigos están de acuerdo en que U3M los contacte por WhatsApp y acepto el <a href="#" onclick="return false">aviso de privacidad</a>.</span></label>
+        <p id="y-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
+        <button class="cta-big" type="submit">REGISTRAR A MIS REFERIDOS</button>
+        <span class="micro">Registro en menos de 1 minuto</span>
+      </form>
+
+      <div class="rules"><b>Importante:</b> tus referidos deben quedar registrados <b>antes</b> de inscribirse para que cuenten. Mientras más recomiendas, más ganas: no hay límite. Promoción sujeta a las condiciones de Admisiones U3M.</div>
+    </section>
+
+    <section class="screen" id="s-ok">
+      <div class="done-top"><img src="img/mileni-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">REFERIDOS REGISTRADOS</span><h2 class="q-title" style="margin:6px 0 0" id="ok-title">¡Listo!</h2></div></div>
+      <div class="wa-card">
+        <span style="font-size:13px;font-weight:700;color:var(--gray)">TU FOLIO</span>
+        <span class="folio" id="folio"></span>
+        <ul class="ok-list" id="ok-list"></ul>
+        <p style="margin:0;font-size:15px;line-height:1.5;color:var(--ink)" id="ok-text"></p>
+      </div>
+      <div class="next">
+        <a class="btn btn-wa" id="share" href="#" target="_blank" rel="noopener" style="justify-content:center">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>Avisarles a mis amigos por WhatsApp</a>
+        <button class="btn btn-ghost" type="button" id="again" style="justify-content:center">Registrar más amigos</button>
+        <a class="btn btn-ghost" href="/" style="justify-content:center">Volver al sitio de U3M</a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+$('#carreras-list').innerHTML=(window.U3M_CARRERAS||[]).map(function(c){return '<option value="'+c.name+'">'}).join('');
+var box=$('#friends'),n=0;
+function addFriend(){
+  if(box.children.length>=3)return;
+  n++;var i=box.children.length+1;
+  var d=document.createElement('div');d.className='friend';
+  d.innerHTML='<div class="fh"><span>Amigo '+i+'</span>'+(i>1?'<button type="button" class="rm">Quitar</button>':'')+'</div>'+
+   '<input class="input f-n" placeholder="Nombre de tu amigo" aria-label="Nombre del amigo '+i+'">'+
+   '<input class="input f-w" type="tel" inputmode="numeric" placeholder="WhatsApp (10 dígitos)" aria-label="WhatsApp del amigo '+i+'">'+
+   '<input class="input f-c" list="carreras-list" placeholder="Carrera que le interesa (opcional)" aria-label="Carrera de interés del amigo '+i+'">';
+  box.appendChild(d);refresh();
+}
+function refresh(){
+  [].forEach.call(box.children,function(f,k){f.querySelector('.fh span').textContent='Amigo '+(k+1)});
+  $('#add').style.display=box.children.length>=3?'none':'';
+}
+box.addEventListener('click',function(e){if(e.target.classList.contains('rm')){e.target.closest('.friend').remove();refresh()}});
+$('#add').addEventListener('click',addFriend);
+addFriend();
+
+$('#ref').addEventListener('submit',function(e){
+  e.preventDefault();
+  var err=$('#y-err'),name=$('#y-nombre').value.trim(),wa=$('#y-wa').value.replace(/\D/g,'');
+  var fr=[].map.call(box.children,function(f){return{n:f.querySelector('.f-n').value.trim(),w:f.querySelector('.f-w').value.replace(/\D/g,''),c:f.querySelector('.f-c').value.trim()}}).filter(function(f){return f.n||f.w});
+  var bad=fr.filter(function(f){return !f.n||f.w.length!==10});
+  var msg=!name?'Escribe tu nombre.':wa.length!==10?'Tu WhatsApp debe tener 10 dígitos.':!fr.length?'Agrega al menos a un amigo.':bad.length?'Revisa el nombre y WhatsApp (10 dígitos) de cada amigo.':fr.some(function(f){return f.w===wa})?'El WhatsApp de tu amigo no puede ser el mismo que el tuyo.':!$('#y-ok').checked?'Confirma que tus amigos aceptan ser contactados.':'';
+  if(msg){err.textContent=msg;err.style.display='block';return}
+  err.style.display='none';
+  // DEMO: aquí cada referido se enviaría a Escala como prospecto nuevo, ligado a quien lo recomendó.
+  var folio='REF-'+Date.now().toString(36).slice(-5).toUpperCase();
+  $('#ok-title').textContent='¡Gracias, '+name.split(' ')[0]+'!';
+  $('#folio').textContent=folio;
+  $('#ok-list').innerHTML=fr.map(function(f){return '<li><i>✓</i>'+esc(f.n)+(f.c?' · <span style="font-weight:500;color:var(--gray)">'+esc(f.c)+'</span>':'')+'</li>'}).join('');
+  $('#ok-text').innerHTML='Registramos a <b>'+fr.length+' '+(fr.length===1?'amigo':'amigos')+'</b>. Un asesor de Admisiones los contactará por WhatsApp. Te avisaremos al '+wa.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3')+' cuando se inscriban y ganes tus $500 por cada uno.';
+  var share='¡Hola! Te recomendé en la Universidad Tercer Milenio (U3M) en Boca del Río: 14 carreras con validez SEP, te gradúas en 3 años y hay becas de hasta 50%. Un asesor te va a escribir por WhatsApp. Si quieres, haz su Radar de Carrera (3 minutos): '+location.origin+'/radar';
+  $('#share').href='https://wa.me/?text='+encodeURIComponent(share);
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-ok')});window.scrollTo(0,0);
+});
+$('#again').addEventListener('click',function(){
+  box.innerHTML='';addFriend();$('#y-ok').checked=false;
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-form')});window.scrollTo(0,0);
+});
+})();
+</script>
+</body>
+</html>

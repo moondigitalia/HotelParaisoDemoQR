@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Radar de Carrera U3M · Descubre tus rutas en 3 minutos</title>
 <meta name="description" content="7 preguntas, menos de 3 minutos. Descubre qué rutas profesionales vale la pena explorar según lo que te gusta y cómo te imaginas trabajando.">
 <meta name="theme-color" content="#12233B">
@@ -11,92 +11,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<style>
-body{background:var(--navy);min-height:100vh;padding-bottom:0}
-.rd{min-height:100vh;display:flex;flex-direction:column}
-.rd-top{display:flex;align-items:center;justify-content:space-between;padding:18px var(--pad);max-width:720px;width:100%;margin:0 auto}
-.rd-top .tag{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--lime);border:1.5px solid rgba(156,196,60,.5);padding:6px 12px;border-radius:999px}
-.rd-main{flex:1;width:100%;max-width:720px;margin:0 auto;padding:8px var(--pad) 40px;color:#fff}
-.screen{display:none;animation:pop .35s ease both}.screen.on{display:block}
-.rd h1{margin:14px 0 0;font-family:var(--display);font-stretch:112%;font-weight:800;font-size:clamp(34px,7vw,54px);line-height:1;letter-spacing:-1px}
-.rd h1 span{color:var(--lime)}
-.proof{margin:18px 0 0;display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px}
-.proof b{font-family:var(--display);font-size:34px;color:var(--lime);line-height:1}
-.proof span{font-size:15px;line-height:1.35;color:#DDE5EE}
-.promise{margin:16px 0 0;font-size:18px;line-height:1.5;color:#C9D2DC}
-.card-w{margin-top:22px;background:#fff;color:var(--navy);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 50px rgba(0,0,0,.3)}
-.opts3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.opts3 label{min-height:48px;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;border:1.5px solid var(--line-2);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;line-height:1.2}
-.opts3 input{position:absolute;opacity:0;pointer-events:none}
-.opts3 label:has(input:checked){border-color:var(--blue);background:#EEF5FC;color:var(--blue-d)}
-.cta-big{height:58px;border:0;border-radius:14px;background:var(--lime);color:var(--navy);font-size:17px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:10px}
-.micro{text-align:center;font-size:13px;color:var(--gray);font-weight:600}
-.box-note{margin-top:22px;font-size:15px;line-height:1.5;color:#C9D2DC;border-left:0;background:rgba(255,255,255,.06);border-radius:14px;padding:16px}
-.box-note b{color:#fff}
-.src{margin-top:14px;font-size:12px;line-height:1.5;color:#8E9CAB}
-/* preguntas */
-.prog{display:flex;align-items:center;gap:12px;margin:6px 0 22px}
-.prog .bar{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden}
-.prog .bar i{display:block;height:100%;background:var(--lime);border-radius:999px;transition:width .35s ease}
-.prog span{font-size:13px;font-weight:700;color:#C9D2DC;white-space:nowrap}
-.q-title{margin:0 0 20px;font-family:var(--display);font-stretch:108%;font-weight:800;font-size:clamp(26px,5.4vw,38px);line-height:1.1}
-.answers{display:flex;flex-direction:column;gap:10px}
-.ans{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:12px 16px;border-radius:14px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;font-size:17px;font-weight:600;text-align:left;transition:background .15s,border-color .15s,transform .1s}
-.ans:hover{border-color:var(--lime);background:rgba(156,196,60,.1)}
-.ans:active{transform:scale(.99)}
-.ans .l{width:34px;height:34px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
-.ans.sel{border-color:var(--lime);background:var(--lime);color:var(--navy)}.ans.sel .l{background:rgba(18,35,59,.15)}
-.back{margin-top:18px;background:transparent;border:0;color:#C9D2DC;font-size:15px;font-weight:700;padding:8px 0}
-/* analizando */
-.an{text-align:center;padding-top:10px}
-.an-fig{width:190px;height:220px;margin:0 auto;position:relative}
-.an-fig .ring{position:absolute;left:5px;bottom:0;width:180px;height:180px;border-radius:50%;border:3px solid rgba(156,196,60,.35);animation:pulse 1.6s ease-out infinite}
-.an-fig .disc{position:absolute;left:15px;bottom:10px;width:160px;height:160px;border-radius:50%;background:#DCEAF7}
-.an-fig img{position:absolute;left:10px;bottom:10px;width:170px;animation:bob 2.2s ease-in-out infinite}
-.an h2{margin:22px 0 8px;font-family:var(--display);font-stretch:110%;font-size:30px;line-height:1.1}
-.an p{margin:0;color:#C9D2DC;font-size:16px}
-.checks{margin:26px auto 0;max-width:380px;display:flex;flex-direction:column;gap:12px;text-align:left}
-.checks div{display:flex;gap:12px;align-items:center;font-size:16px;color:#8E9CAB;transition:color .3s}
-.checks div i{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;font-weight:900}
-.checks div.ok{color:#fff}.checks div.ok i{background:var(--lime);border-color:var(--lime);color:var(--navy)}
-.checks div.ok i::after{content:"✓"}
-/* listo */
-.done-top{display:flex;gap:16px;align-items:center}
-.done-top img{width:86px;height:86px;border-radius:50%;background:#EAF6FB;border:3px solid var(--lime);object-fit:cover;flex-shrink:0}
-.wa-card{margin-top:22px;background:#fff;color:var(--navy);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px}
-.wa-card .row{display:flex;gap:12px;align-items:center}
-.wa-card .ic{width:46px;height:46px;border-radius:50%;background:#E3F5EA;color:var(--wa);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.next{margin-top:22px;display:flex;flex-direction:column;gap:10px}
-.next a,.next button{justify-content:flex-start;height:auto;min-height:56px;padding:14px 18px;border-radius:14px;font-size:16px;white-space:normal;text-align:left}
-.tutor{margin-top:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
-.tutor .input{background:#fff}
-.demo-link{margin-top:26px;text-align:center}
-.demo-link button{background:transparent;border:1px dashed rgba(255,255,255,.35);color:#A9B6C4;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700}
-/* mock WhatsApp */
-.phone{position:fixed;inset:0;z-index:95;background:rgba(5,12,22,.7);display:none;align-items:center;justify-content:center;padding:16px}
-.phone.open{display:flex}
-.ph-box{width:min(380px,100%);max-height:92vh;display:flex;flex-direction:column;border-radius:26px;overflow:hidden;background:#ECE5DD;box-shadow:0 30px 70px rgba(0,0,0,.5)}
-.ph-head{background:#075E54;color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px}
-.ph-head img{width:40px;height:40px;border-radius:50%;background:#EAF6FB}
-.ph-head b{display:block;font-size:15px}.ph-head span{font-size:12px;opacity:.8}
-.ph-head button{margin-left:auto;background:transparent;border:0;color:#fff;font-size:22px;width:36px;height:36px}
-.ph-body{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
-.ph-msg{background:#fff;border-radius:0 12px 12px 12px;padding:10px 12px;font-size:14.5px;line-height:1.45;color:#111;white-space:pre-wrap;box-shadow:0 1px 1px rgba(0,0,0,.1);max-width:92%}
-.ph-msg small{display:block;text-align:right;color:#888;font-size:11px;margin-top:4px}
-.ph-btns{display:flex;flex-direction:column;gap:6px;max-width:92%}
-.ph-btns span{background:#fff;border-radius:10px;padding:9px;text-align:center;color:#128C7E;font-weight:700;font-size:14px}
-.ph-cap{background:#FFF3C4;color:#6B5200;font-size:12px;text-align:center;padding:6px;border-radius:8px;align-self:center}
-@keyframes pulse{0%{transform:scale(.9);opacity:1}100%{transform:scale(1.25);opacity:0}}
-@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@media (max-width:480px){.card-w{padding:18px}.opts3{grid-template-columns:1fr}.opts3 label{justify-content:flex-start;padding:10px 14px}}
-</style>
+<link rel="stylesheet" href="landing.css">
 </head>
 <body>
 <div class="rd">
-  <div class="rd-top">
+  <header class="rd-top">
     <a class="logo light" href="/" aria-label="Universidad Tercer Milenio"><span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span><span class="t"><b>U3M</b><span>TERCER<strong>MILENIO</strong></span></span></a>
     <span class="tag">RADAR DE CARRERA</span>
-  </div>
+  </header>
   <main class="rd-main">
 
     <!-- 1 · Registro -->
@@ -117,7 +39,7 @@ body{background:var(--navy);min-height:100vh;padding-bottom:0}
         <div class="field" id="f-a" hidden><label for="r-a">¿Cuál es tu opción principal?</label><input class="input" id="r-a" list="carreras-list" placeholder="Escribe o elige una carrera"></div>
         <div class="field" id="f-b" hidden><label for="r-b">¿Y tu segunda opción?</label><input class="input" id="r-b" list="carreras-list" placeholder="Opcional"></div>
         <datalist id="carreras-list"></datalist>
-        <label class="check"><input type="checkbox" id="r-ok">Acepto que U3M me contacte por WhatsApp y el <a href="#" onclick="return false">aviso de privacidad</a>.</label>
+        <label class="check"><input type="checkbox" id="r-ok"><span>Acepto que U3M me contacte por WhatsApp y el <a href="#" onclick="return false">aviso de privacidad</a>.</span></label>
         <p id="r-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
         <button class="cta-big" type="submit">DESCUBRIR MIS RUTAS <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         <span class="micro">7 preguntas · Menos de 3 minutos · Resultado en tu WhatsApp</span>
