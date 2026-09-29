@@ -419,7 +419,12 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .chat form .input{font-size:17px;height:44px}
   .chat form{gap:8px}.chat form button{width:44px;height:44px}
   .voice{padding-bottom:calc(22px + env(safe-area-inset-bottom))}
-  body.chat-open{overflow:hidden}
+  html.chat-lock,html.chat-lock body{overflow:hidden;background:#fff;overscroll-behavior:none}
+  html.chat-lock body{position:fixed;left:0;right:0;width:100%}
+  body.chat-open > :not(#chat){visibility:hidden}
+  .chat .msgs{overscroll-behavior:contain}
+  .chat .ch,.chat .voice,.chat form{touch-action:none}
+  .chat form .input{touch-action:manipulation}
   .wa-fab{display:flex;position:fixed;left:14px;bottom:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(18,35,59,.3)}
   .promo{font-size:13px;padding:8px 12px;gap:4px}
   .promo .pl{display:none}

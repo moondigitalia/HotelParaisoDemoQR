@@ -103,6 +103,7 @@ async function sendText(q) {
 const vv = window.visualViewport;
 function fitChat() {
   if (!chat.classList.contains('open') || window.innerWidth > 640 || !vv) { chat.style.height = ''; chat.style.transform = ''; return; }
+  if (vv.height > window.innerHeight - 40 && vv.offsetTop < 2) { chat.style.height = ''; chat.style.transform = ''; return; }
   chat.style.height = vv.height + 'px';
   chat.style.transform = 'translateY(' + vv.offsetTop + 'px)';
   msgs.scrollTop = msgs.scrollHeight;
@@ -110,9 +111,32 @@ function fitChat() {
 if (vv) { vv.addEventListener('resize', fitChat); vv.addEventListener('scroll', fitChat); }
 input.addEventListener('focus', () => setTimeout(fitChat, 300));
 
+// En celular bloqueamos la página de atrás: no se ve ni se puede scrollear mientras el chat está abierto.
+let lockY = 0;
+function lockPage() {
+  if (window.innerWidth > 640 || document.documentElement.classList.contains('chat-lock')) return;
+  lockY = window.scrollY;
+  document.body.style.top = -lockY + 'px';
+  document.documentElement.classList.add('chat-lock');
+}
+function unlockPage() {
+  if (!document.documentElement.classList.contains('chat-lock')) return;
+  document.documentElement.classList.remove('chat-lock');
+  document.body.style.top = '';
+  window.scrollTo({ top: lockY, behavior: 'instant' });
+}
+// iOS ignora a veces overflow:hidden; frenamos el arrastre fuera de la lista de mensajes.
+chat.addEventListener('touchmove', (e) => {
+  if (window.innerWidth > 640) return;
+  const sc = e.target.closest('.msgs, .quick');
+  if (!sc) { e.preventDefault(); return; }
+  if (sc.classList.contains('msgs') && sc.scrollHeight <= sc.clientHeight) e.preventDefault();
+}, { passive: false });
+
 function open(q) {
   chat.classList.add('open');
   document.body.classList.add('chat-open');
+  lockPage();
   fitChat();
   launcher.style.display = 'none';
   if (!msgs.children.length) connect().catch(() => {});
@@ -121,6 +145,7 @@ function open(q) {
 function close() {
   chat.classList.remove('open');
   document.body.classList.remove('chat-open');
+  unlockPage();
   chat.style.height = ''; chat.style.transform = '';
   launcher.style.display = '';
   const b = document.getElementById('bubble'); if (b) b.remove();
@@ -177,6 +202,9 @@ async function startVoice() {
       agentId: AGENT_ID,
       connectionType: 'webrtc',
       dynamicVariables: { modo: 'voz' },
+      overrides: { agent: { firstMessage: msgs.querySelector('.msg.me')
+        ? '¡Aquí estoy! Ahora platicamos por voz. ¿Qué más quieres saber?'
+        : '¡Hola! Soy Mileni, de la Universidad Tercer Milenio. ¿En qué te puedo ayudar?' } },
       onConnect: () => {
         vState('listening', 'Te escucho…');
         vLeft = VOICE_MAX; vTime.textContent = 'Tiempo restante ' + fmt(vLeft);
