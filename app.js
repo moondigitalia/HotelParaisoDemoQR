@@ -47,7 +47,6 @@
       setTimeout(function () { drops.remove(); document.body.classList.remove('shake'); }, 2200);
     };
     setTimeout(end, 3500);
-    $('#ola-skip').addEventListener('click', function () { drops.remove(); document.body.classList.remove('shake'); end(); });
   })();
 
   /* ---------- Menú móvil ---------- */

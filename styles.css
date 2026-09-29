@@ -36,7 +36,7 @@ button{font-family:inherit;cursor:pointer}
 .util b{color:var(--lime);letter-spacing:1.5px}
 
 /* promo referidos */
-.promo{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;background:var(--lime);color:var(--navy);text-decoration:none;font-size:14px;padding:9px 16px;text-align:center;line-height:1.3}
+.promo{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;background:var(--lime);color:var(--navy);text-decoration:none;font-size:14px;padding:9px 16px;text-align:center;line-height:1.3}
 .promo b{font-weight:800}.promo u{font-weight:800;text-underline-offset:3px;margin-left:6px}
 .promo:hover u{text-decoration-thickness:2px}
 /* nav */
@@ -277,11 +277,10 @@ button{font-family:inherit;cursor:pointer}
 @keyframes pop{from{opacity:0;transform:scale(.85) translateY(10px)}to{opacity:1;transform:none}}
 @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
 
-.mbar{display:none}
+.wa-fab{display:none}
 
 /* ---------- intro ola ---------- */
 .ola{position:fixed;inset:0;z-index:200;overflow:hidden;pointer-events:none}
-.ola .skip{pointer-events:auto;position:absolute;right:20px;top:20px;z-index:5;height:40px;padding:0 16px;border-radius:999px;border:1.5px solid rgba(255,255,255,.6);background:rgba(10,37,64,.35);color:#fff;font-size:14px;font-weight:700;animation:fadeout 3.6s both}
 .ola-telon{position:absolute;inset:0;background:var(--navy-2);animation:telon 3.6s linear both}
 .ola-lema{position:absolute;left:0;right:0;top:38%;padding:0 20px;text-align:center;color:#fff;font-family:var(--display);font-stretch:115%;font-weight:800;font-size:clamp(34px,5vw,64px);letter-spacing:-1px;line-height:1.05;animation:lema 3.6s ease both}
 .ola-lema small{display:block;font-family:var(--body);font-size:14px;font-weight:700;letter-spacing:4px;color:var(--lime);margin-bottom:14px}
@@ -292,7 +291,6 @@ button{font-family:inherit;cursor:pointer}
 .ola-gota{position:absolute;border-radius:50%;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.95) 0 9%,rgba(255,255,255,.18) 28%,rgba(170,215,240,.22) 62%,rgba(255,255,255,.55) 100%);box-shadow:0 3px 6px rgba(10,37,64,.25),inset 0 -2px 3px rgba(10,37,64,.2);animation:gota 5.2s ease-in both}
 body.shake .page{animation:sacudida 3.6s linear both}
 @keyframes telon{0%,46%{opacity:1}52%,100%{opacity:0}}
-@keyframes fadeout{0%,60%{opacity:1}75%,100%{opacity:0;visibility:hidden}}
 @keyframes lema{0%{opacity:0;transform:translateY(20px)}12%,34%{opacity:1;transform:none}46%,100%{opacity:0;transform:translateY(-30px) scale(.96)}}
 @keyframes muro{0%{transform:translateY(96vh) scale(1)}20%{transform:translateY(66vh) scale(1.03)}42%{transform:translateY(18vh) scale(1.12)}50%{transform:translateY(-13vh) scale(1.25)}62%{transform:translateY(-13vh) scale(1.25);opacity:1}82%{transform:translateY(78vh) scale(1.25);opacity:.6}100%{transform:translateY(110vh) scale(1.25);opacity:0}}
 @keyframes flash{0%,47%{opacity:0}51%{opacity:.96}60%{opacity:.85}78%,100%{opacity:0}}
@@ -348,7 +346,8 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .plan{grid-template-columns:repeat(2,minmax(0,1fr))}
   .modal .two{grid-template-columns:1fr}
 }
-@media (max-width:360px){.mbar .btn{font-size:13px;padding:0 6px}.mbar{gap:8px;padding-left:8px;padding-right:8px}.hero h1{font-size:40px}}
+@media (max-width:420px){.promo .pl2{display:none}}
+@media (max-width:360px){.hero h1{font-size:40px}.promo{font-size:12.5px}}
 @media (max-width:640px){
   .util{display:none}
   .nav .wrap{height:66px}
@@ -380,13 +379,13 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .plan{grid-template-columns:1fr}
   .modal{padding:0;align-items:flex-end}.modal .box{border-radius:22px 22px 0 0;max-height:92vh}
   .modal .mh,.modal .mb{padding:24px 20px}.modal .mf{padding:0 20px 24px}
-  .launcher{right:12px;bottom:84px}
+  .launcher{right:12px;bottom:14px}
   .launcher .bubble,.launcher.show-bubble .bubble{display:none}
   .mileni-btn{width:66px;height:82px}.mileni-btn .clip{left:3px;width:60px;height:82px;border-radius:0 0 30px 30px}
   .mileni-btn .disc{width:60px;height:60px}.mileni-btn img{width:66px;left:-3px;bottom:-16px}.mileni-btn .dot{width:14px;height:14px;right:3px;bottom:3px}
   .chat{inset:0;width:auto;height:auto;border-radius:0}
-  .mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 20px rgba(18,35,59,.08)}
-  .mbar .btn{flex:1;min-width:0;height:50px;font-size:15px;padding:0 10px}
-  .promo span{display:none}
-  body{padding-bottom:72px}
+  .wa-fab{display:flex;position:fixed;left:14px;bottom:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(18,35,59,.3)}
+  .promo{font-size:13px;padding:8px 12px;gap:4px}
+  .promo .pl{display:none}
+  .promo u{margin-left:4px}
 }
