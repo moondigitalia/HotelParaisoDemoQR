@@ -132,7 +132,7 @@ $('#ref').addEventListener('submit',function(e){
   $('#folio').textContent=folio;
   $('#ok-list').innerHTML=fr.map(function(f){return '<li><i>✓</i>'+esc(f.n)+(f.c?' · <span style="font-weight:500;color:var(--gray)">'+esc(f.c)+'</span>':'')+'</li>'}).join('');
   $('#ok-text').innerHTML='Registramos a <b>'+fr.length+' '+(fr.length===1?'amigo':'amigos')+'</b>. Un asesor de Admisiones los contactará por WhatsApp. Te avisaremos al '+wa.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3')+' cuando se inscriban y ganes tus $500 por cada uno.';
-  var share='¡Hola! Te recomendé en la Universidad Tercer Milenio (U3M) en Boca del Río: 14 carreras con validez SEP, te gradúas en 3 años y hay becas de hasta 50%. Un asesor te va a escribir por WhatsApp. Si quieres, haz su Radar de Carrera (3 minutos): '+location.origin+'/radar';
+  var share='¡Hola! Te recomendé en la Universidad Tercer Milenio (U3M) en Boca del Río: 13 carreras con validez SEP, te gradúas en 3 años y hay becas de hasta 50%. Un asesor te va a escribir por WhatsApp. Si quieres, haz su Radar de Carrera (3 minutos): '+location.origin+'/radar';
   $('#share').href='https://wa.me/?text='+encodeURIComponent(share);
   document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-ok')});window.scrollTo(0,0);
 });
