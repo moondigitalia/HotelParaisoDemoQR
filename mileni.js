@@ -161,7 +161,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.cla
 // Sesión WebRTC aparte de la de texto. Mileni "respira" (halo azul marino) y el halo
 // crece con el volumen de su voz o de la tuya. Límite de 3 minutos por llamada (demo).
 const VOICE_MAX = 180;
-const voice = $('#voice'), orb = $('#orb'), vStatus = $('#v-status'), vLine = $('#v-line'),
+const voice = $('#voice'), orb = $('#orb'), vStatus = $('#v-status'),
   vTime = $('#v-time'), vMute = $('#v-mute'), mic = $('#chat-mic');
 let voiceConv = null, voiceStarting = false, vMode = 'listening', raf = 0, lvl = 0, vTimer = 0, vLeft = 0, muted = false;
 
@@ -191,7 +191,7 @@ async function startVoice() {
   if (conv) { const c = conv; conv = null; connecting = null; gotFirst = false; try { await c.endSession(); } catch (e) {} }
   chat.classList.add('in-voice'); voice.hidden = false;
   muted = false; vMute.setAttribute('aria-pressed', 'false'); vMute.textContent = 'Silenciar';
-  vLine.textContent = ''; vTime.textContent = '';
+  vTime.textContent = '';
   vState('connecting', 'Conectando con Mileni…');
   setStatus('● Llamada de voz', true);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -224,8 +224,8 @@ async function startVoice() {
       },
       onMessage: ({ message, source }) => {
         if (!message) return;
-        if (source === 'user') { add('me', message); vLine.textContent = '“' + message + '”'; }
-        else { add('ai', null, md(message)); vLine.textContent = message; }
+        // la transcripción no se muestra en la pantalla de llamada; queda en el chat al colgar
+        if (source === 'user') add('me', message); else add('ai', null, md(message));
         quick.style.display = 'none';
       },
     });

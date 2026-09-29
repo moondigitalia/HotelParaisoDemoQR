@@ -290,7 +290,6 @@ button{font-family:inherit;cursor:pointer}
 .voice.speaking .orb{animation-duration:2.6s}
 @keyframes breathe{0%,100%{transform:scale(.94)}50%{transform:scale(1.06)}}
 .v-status{margin:0;font-family:var(--display);font-weight:800;font-size:20px;color:var(--navy)}
-.v-line{margin:0;min-height:44px;max-width:320px;font-size:15px;line-height:1.45;color:var(--gray);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .v-actions{display:flex;gap:10px;margin-top:6px}
 .v-actions button{height:46px;padding:0 20px;white-space:nowrap;border-radius:999px;font-size:15px;font-weight:700;border:2px solid var(--navy)}
 .v-mute{background:#fff;color:var(--navy)}
