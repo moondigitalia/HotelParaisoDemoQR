@@ -321,8 +321,22 @@
   <form id="chat-form" autocomplete="off">
     <label for="chat-in" class="sr">Escribe tu pregunta</label>
     <input class="input" id="chat-in" placeholder="Escribe tu pregunta…" maxlength="500">
+    <button type="button" id="chat-mic" aria-label="Hablar con Mileni por voz"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" id="chat-send" aria-label="Enviar"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </form>
+  <div class="voice" id="voice" hidden>
+    <div class="orb" id="orb">
+      <span class="ring r3"></span><span class="ring r2"></span><span class="ring r1"></span>
+      <img src="img/mileni-avatar.webp" alt="">
+    </div>
+    <p class="v-status" id="v-status" role="status">Conectando…</p>
+    <p class="v-line" id="v-line"></p>
+    <div class="v-actions">
+      <button type="button" class="v-mute" id="v-mute" aria-pressed="false">Silenciar</button>
+      <button type="button" class="v-end" id="v-end" aria-label="Terminar llamada">Terminar</button>
+    </div>
+    <small class="v-time" id="v-time"></small>
+  </div>
   <div class="foot-note">Mileni es un asistente virtual. Para confirmar datos, escribe a Admisiones al 229 909 6832.</div>
 </section>
 
