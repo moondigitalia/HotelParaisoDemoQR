@@ -448,3 +448,5 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .promo .pl{display:none}
   .promo u{margin-left:4px}
 }
+
+.beca-note{display:block;font-size:13px;font-weight:700;color:var(--navy);background:#EEF1F5;border-left:3px solid var(--blue);border-radius:8px;padding:8px 12px;line-height:1.4}

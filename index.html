@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260929e">
+<link rel="stylesheet" href="styles.css?v=20260929f">
 </head>
 <body>
 
@@ -178,20 +178,21 @@
     <div class="left">
       <span class="eyebrow on-dark">Becas y costos</span>
       <h2 class="h2">Becas de hasta el <span style="color:var(--lime)">50%</span> por tu promedio</h2>
-      <p class="lead">Calcula tu colegiatura en segundos. Cupos limitados.</p>
+      <p class="lead">Calcula una referencia de tu colegiatura mensual en segundos. Toda beca la autoriza tu asesor de admisiones.</p>
       <div class="grp"><span>1 · Elige tu carrera</span><div class="chips" id="plans"></div><span class="plan-sub" id="plan-sub"></span></div>
       <div class="grp"><span>2 · Tu promedio de bachillerato</span><div class="proms" id="proms"></div></div>
     </div>
     <div class="result" aria-live="polite">
       <div class="row"><span style="font-size:15px;font-weight:700;color:var(--gray)" id="r-plan"></span><span class="badge" id="r-pct"></span></div>
-      <div><span style="font-size:15px;color:var(--gray)">Tu colegiatura con beca</span>
+      <div><span style="font-size:15px;color:var(--gray)">Tu colegiatura mensual con beca (referencia)</span>
         <div class="price"><b id="r-price"></b><s id="r-normal"></s></div>
         <span class="save" id="r-save"></span></div>
       <div style="height:1px;background:var(--line)"></div>
       <div class="fees"><div><span>INSCRIPCIÓN</span><b>$2,015</b></div><div><span>GASTOS ADMINISTRATIVOS</span><b>+ $545</b></div></div>
       <span style="font-size:13px;color:var(--gray);line-height:1.45;margin-top:-6px">Incluye seguro escolar, registro escolar y constancia de trámite de beca.</span>
+      <span class="beca-note">Monto de referencia. La beca final la autoriza tu asesor de admisiones.</span>
       <a class="btn btn-blue" id="r-wa" href="https://wa.me/522299096832" target="_blank" rel="noopener" style="margin-top:auto;border-radius:12px">
-        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>Apartar mi beca por WhatsApp</a>
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>Validar mi beca con un asesor</a>
     </div>
   </div>
 </section>
@@ -251,7 +252,7 @@
       <div class="ph"><img src="img/mileni-avatar.webp" alt="" style="width:52px;height:52px;border-radius:50%;background:#EAF6FB;border:2px solid var(--lime)"><div style="display:flex;flex-direction:column;gap:2px"><b>Mileni · Asesor virtual U3M</b><span style="font-size:13px;color:var(--lime)">● En línea</span></div></div>
       <div class="pb">
         <div class="msg me">¿Cuánto pagaría en Diseño Gráfico si tengo 9.2 de promedio?</div>
-        <div class="msg ai">Con 9.2 tienes <b>40% de beca</b>: tu colegiatura queda en <b>$2,433</b> en lugar de $4,055. La inscripción es de $2,015 + $545 de gastos administrativos. ¿Quieres que un asesor te escriba por WhatsApp?</div>
+        <div class="msg ai">Te comparto la referencia; recuerda que toda beca la autoriza tu asesor. Con 9.2 aplicarías a <b>40% de beca</b>: tu colegiatura quedaría en <b>$2,433 al mes</b> en lugar de $4,055. ¿Quieres que un asesor te escriba para confirmarla?</div>
       </div>
       <div class="pf"><button class="btn btn-blue" type="button" data-open-chat style="width:100%;height:50px;border-radius:12px;font-size:16px">Chatear con Mileni</button></div>
     </div>
@@ -340,8 +341,8 @@
 
 <a class="wa-fab" href="https://wa.me/522299096832" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp al 229 909 6832"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 2.6a9.4 9.4 0 0 0-8.1 14.2L2.6 21.4l4.7-1.2A9.4 9.4 0 1 0 12 2.6zm0 2a7.4 7.4 0 1 1-3.9 13.7l-.3-.2-2.4.6.6-2.3-.2-.3A7.4 7.4 0 0 1 12 4.6z"/></svg><span>WhatsApp</span></a>
 
-<script src="data.js?v=20260929e"></script>
-<script src="app.js?v=20260929e"></script>
-<script type="module" src="mileni.js?v=20260929e"></script>
+<script src="data.js?v=20260929f"></script>
+<script src="app.js?v=20260929f"></script>
+<script type="module" src="mileni.js?v=20260929f"></script>
 </body>
 </html>

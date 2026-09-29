@@ -7,6 +7,10 @@ const chat = $('#chat'), msgs = $('#msgs'), form = $('#chat-form'), input = $('#
   send = $('#chat-send'), statusEl = $('#chat-status'), launcher = $('#launcher'), quick = $('#quick');
 
 let conv = null, connecting = null, typingEl = null, pending = [], gotFirst = false, sdk = null, skipGreeting = false;
+// Nombre de la persona: Mileni lo guarda con la herramienta guardar_nombre y lo recuerda en texto y voz.
+let userName = '';
+try { userName = localStorage.getItem('u3m_nombre') || ''; } catch (e) {}
+const nameVar = () => userName || 'sin nombre';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 function md(text) {
@@ -53,7 +57,9 @@ async function connect() {
       agentId: AGENT_ID,
       connectionType: 'websocket',
       textOnly: true,
-      overrides: { conversation: { textOnly: true } },
+      dynamicVariables: { modo: 'texto', nombre: nameVar() },
+      overrides: Object.assign({ conversation: { textOnly: true } },
+        userName ? { agent: { firstMessage: '¡Hola de nuevo, ' + userName + '! Soy Mileni. ¿En qué te ayudo hoy?' } } : {}),
       clientTools,
       onConnect: () => setStatus('● En línea'),
       onDisconnect: (d) => {
@@ -142,7 +148,14 @@ function mostrarRadar() {
   const vr = document.getElementById('v-radar'); if (vr) vr.hidden = false;
   return 'Listo, el botón del Radar de Carrera ya está en la pantalla de la persona.';
 }
-const clientTools = { registrar_prospecto: registrarProspecto, mostrar_radar: mostrarRadar };
+function guardarNombre(p) {
+  const n = String((p && p.nombre) || '').trim().split(/\s+/)[0] || '';
+  if (!n) return 'No recibí el nombre.';
+  userName = n.charAt(0).toUpperCase() + n.slice(1);
+  try { localStorage.setItem('u3m_nombre', userName); } catch (e) {}
+  return 'Nombre guardado: ' + userName + '. Salúdala por su nombre y continúa.';
+}
+const clientTools = { registrar_prospecto: registrarProspecto, mostrar_radar: mostrarRadar, guardar_nombre: guardarNombre };
 
 // En celular: el chat ocupa exactamente el espacio visible arriba del teclado.
 const vv = window.visualViewport;
@@ -208,7 +221,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.cla
 const VOICE_MAX = 180;
 const voice = $('#voice'), orb = $('#orb'), vStatus = $('#v-status'),
   vTime = $('#v-time'), vMute = $('#v-mute'), mic = $('#chat-mic');
-let voiceConv = null, voiceStarting = false, vMode = 'listening', raf = 0, lvl = 0, vTimer = 0, vLeft = 0, muted = false;
+let voiceSeq = 0, voiceEnding = null, voiceConv = null, voiceStarting = false, vMode = 'listening', raf = 0, lvl = 0, vTimer = 0, vLeft = 0, muted = false;
 
 function vState(cls, text) {
   voice.className = 'voice ' + cls;
@@ -231,6 +244,8 @@ const fmt = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 async function startVoice() {
   if (voiceConv || voiceStarting) return;
   voiceStarting = true;
+  const my = ++voiceSeq; // cada llamada tiene su número: los avisos tardíos de una llamada anterior se ignoran
+  if (voiceEnding) { try { await voiceEnding; } catch (e) {} voiceEnding = null; }
   // cerramos la sesión de texto para no tener dos conversaciones abiertas
   typing(false); pending = [];
   if (conv) { const c = conv; conv = null; connecting = null; gotFirst = false; try { await c.endSession(); } catch (e) {} }
@@ -243,54 +258,68 @@ async function startVoice() {
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
   try {
     const { Conversation } = await loadSdk();
-    if (!voiceStarting) return; // el usuario colgó mientras cargaba
+    if (!voiceStarting || my !== voiceSeq) return; // el usuario colgó mientras cargaba
     const c = await Conversation.startSession({
       agentId: AGENT_ID,
       connectionType: 'webrtc',
-      dynamicVariables: { modo: 'voz' },
+      dynamicVariables: { modo: 'voz', nombre: nameVar() },
       clientTools,
-      overrides: { agent: { firstMessage: msgs.querySelector('.msg.me')
-        ? '¡Aquí estoy! Ahora platicamos por voz. ¿Qué más quieres saber?'
-        : '¡Hola! Soy Mileni, de la Universidad Tercer Milenio. ¿En qué te puedo ayudar?' } },
+      overrides: { agent: { firstMessage: userName
+        ? '¡Hola, ' + userName + '! Aquí Mileni. ¿En qué te ayudo?'
+        : msgs.querySelector('.msg.me')
+          ? '¡Aquí estoy! Ahora platicamos por voz. Antes, ¿cómo te llamas?'
+          : '¡Hola! Soy Mileni, de la Universidad Tercer Milenio. ¿Cómo te llamas?' } },
       onConnect: () => {
+        if (my !== voiceSeq) return;
         vState('listening', 'Te escucho…');
         vLeft = VOICE_MAX; vTime.textContent = 'Tiempo restante ' + fmt(vLeft);
         clearInterval(vTimer);
         vTimer = setInterval(() => {
-          vLeft--; vTime.textContent = 'Tiempo restante ' + fmt(Math.max(0, vLeft));
-          if (vLeft <= 0) stopVoice('Las llamadas de voz duran hasta 3 minutos. Puedes seguir escribiendo o volver a llamar a Mileni.');
+          vLeft--; vTime.textContent = vLeft > 0 ? 'Tiempo restante ' + fmt(vLeft) : 'Mileni se está despidiendo…';
+          // a 15 s del límite le pedimos a Mileni que se despida y cuelgue ella misma
+          if (vLeft === 15 && voiceConv) { try { voiceConv.sendContextualUpdate('Aviso del sistema: se terminó el tiempo de la llamada. Despídete ahora en una sola frase, dile que puede seguir escribiéndote en el chat o volver a llamar, y usa end_call.'); } catch (e) {} }
+          // respaldo: si no colgó, cortamos 15 s después del límite
+          if (vLeft <= -15) stopVoice('Las llamadas de voz duran hasta 3 minutos. Puedes seguir escribiendo o volver a llamar a Mileni.');
         }, 1000);
       },
-      onDisconnect: () => { if (voiceConv) stopVoice(); },
+      onDisconnect: (d) => {
+        if (my !== voiceSeq || !voiceConv) return;
+        const byAgent = d && d.reason === 'agent';
+        voiceConv = null; // ya está cerrada, no hace falta volver a cerrarla
+        stopVoice(byAgent ? 'Mileni terminó la llamada. Puedes seguir escribiendo aquí o volver a llamarla cuando quieras.' : undefined);
+      },
       onError: (m) => console.warn('[Mileni voz]', m),
       onModeChange: ({ mode }) => {
+        if (my !== voiceSeq) return;
         vMode = mode;
         if (!voiceConv) return;
         if (mode === 'speaking') vState('speaking', 'Mileni está hablando…');
         else vState('listening', muted ? 'Micrófono silenciado' : 'Te escucho…');
       },
       onMessage: ({ message, source }) => {
-        if (!message) return;
+        if (!message || my !== voiceSeq) return;
         // la transcripción no se muestra en la pantalla de llamada; queda en el chat al colgar
         if (source === 'user') add('me', message); else add('ai', null, md(message));
         quick.style.display = 'none';
       },
     });
-    if (!voiceStarting) { try { await c.endSession(); } catch (e) {} return; }
+    if (!voiceStarting || my !== voiceSeq) { try { await c.endSession(); } catch (e) {} return; }
     voiceConv = c;
   } catch (e) {
     console.error('[Mileni voz] no se pudo iniciar', e);
+    if (my !== voiceSeq) return;
     const denied = e && (e.name === 'NotAllowedError' || /permission|denied/i.test(e.message || ''));
     stopVoice(denied
       ? 'Para hablar con Mileni necesitas permitir el micrófono en tu navegador. También puedes escribirle aquí abajo.'
       : 'No pude iniciar la llamada de voz. Puedes escribirle a Mileni aquí abajo o mandar WhatsApp al <a href="' + WA_URL + '" target="_blank" rel="noopener">229 909 6832</a>.');
-  } finally { voiceStarting = false; }
+  } finally { if (my === voiceSeq) voiceStarting = false; }
 }
 
 function stopVoice(note) {
   const c = voiceConv; voiceConv = null; voiceStarting = false;
+  voiceSeq++; // invalida cualquier aviso pendiente de esta llamada
   clearInterval(vTimer); cancelAnimationFrame(raf); lvl = 0; orb.style.setProperty('--lvl', 0);
-  if (c) { try { c.endSession(); } catch (e) {} }
+  if (c) { voiceEnding = Promise.resolve().then(() => c.endSession()).catch(() => {}); }
   chat.classList.remove('in-voice'); voice.hidden = true;
   setStatus('● En línea');
   const html = note || 'Llamada de voz terminada. Puedes seguir escribiendo aquí.';

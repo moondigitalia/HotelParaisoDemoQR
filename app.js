@@ -151,7 +151,7 @@
     $('#r-price').textContent = money(price);
     $('#r-normal').textContent = money(p.n);
     $('#r-save').textContent = 'Ahorras ' + money(p.n - price) + ' en cada colegiatura';
-    $('#r-wa').href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola, quiero apartar mi beca del ' + pct + '% para ' + p.label + ' en U3M.');
+    $('#r-wa').href = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('Hola, calculé una beca de referencia del ' + pct + '% para ' + p.label + ' en U3M. ¿Me ayudan a validarla?');
   }
   $('#plans').addEventListener('click', function (e) { var b = e.target.closest('[data-plan]'); if (b) { bs.plan = b.dataset.plan; renderBeca(); } });
   $('#proms').addEventListener('click', function (e) { var b = e.target.closest('[data-prom]'); if (b) { bs.prom = +b.dataset.prom; renderBeca(); } });
