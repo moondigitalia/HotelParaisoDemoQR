@@ -264,6 +264,16 @@ button{font-family:inherit;cursor:pointer}
 .msg.me{align-self:flex-end;background:var(--blue);color:#fff;border-radius:16px 16px 4px 16px}
 .msg.sys{align-self:center;background:transparent;color:var(--gray);font-size:13px;text-align:center}
 .msg a{color:inherit;font-weight:700}
+.msg.lead{align-self:stretch;max-width:none;white-space:normal;background:#fff;border:2px solid var(--lime);border-radius:16px;padding:14px 16px}
+.lead-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.lead-h b{font-size:15px;color:var(--navy)}
+.lead-h b::before{content:"";display:inline-block;width:18px;height:18px;margin:-3px 8px 0 0;vertical-align:middle;border-radius:50%;background:var(--lime) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2312233B' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat}
+.lead-lvl{flex-shrink:0;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:#EEF1F5;color:var(--navy)}
+.lead-lvl.alto{background:#E4F2CF;color:#35560A}
+.msg.lead dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}
+.msg.lead dt{color:var(--gray-2);font-weight:600}
+.msg.lead dd{margin:0;color:var(--navy);font-weight:600;word-break:break-word}
+.lead-f{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--gray-2)}
 .typing{align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:16px 16px 16px 4px;padding:14px 16px;display:flex;gap:5px}
 .typing i{width:7px;height:7px;border-radius:50%;background:var(--gray-2);animation:blink 1.2s infinite}
 .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
@@ -300,7 +310,9 @@ button{font-family:inherit;cursor:pointer}
 @keyframes pop{from{opacity:0;transform:scale(.85) translateY(10px)}to{opacity:1;transform:none}}
 @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
 
-.wa-fab{display:none}
+.wa-fab{position:fixed;left:24px;bottom:24px;z-index:60;display:flex;align-items:center;gap:8px;height:52px;padding:0 20px 0 16px;border-radius:999px;background:#25D366;color:#07361C;font-weight:800;font-size:16px;text-decoration:none;box-shadow:0 10px 24px rgba(18,35,59,.3);transition:transform .18s ease}
+.wa-fab:hover{transform:translateY(-2px)}
+body.chat-open .wa-fab{display:none}
 
 /* ---------- intro ola ---------- */
 .ola{position:fixed;inset:0;z-index:200;overflow:hidden;pointer-events:none}
@@ -424,7 +436,7 @@ body.shake .page{animation:sacudida 3.6s linear both}
   .chat .msgs{overscroll-behavior:contain}
   .chat .ch,.chat .voice,.chat form{touch-action:none}
   .chat form .input{touch-action:manipulation}
-  .wa-fab{display:flex;position:fixed;left:14px;bottom:18px;z-index:60;width:54px;height:54px;border-radius:50%;background:var(--wa);color:#fff;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(18,35,59,.3)}
+  .wa-fab{left:12px;bottom:16px;height:48px;padding:0 16px 0 13px;font-size:15px}
   .promo{font-size:13px;padding:8px 12px;gap:4px}
   .promo .pl{display:none}
   .promo u{margin-left:4px}

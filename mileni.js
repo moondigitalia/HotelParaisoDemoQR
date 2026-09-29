@@ -54,6 +54,7 @@ async function connect() {
       connectionType: 'websocket',
       textOnly: true,
       overrides: { conversation: { textOnly: true } },
+      clientTools,
       onConnect: () => setStatus('● En línea'),
       onDisconnect: (d) => {
         const hadPending = !!typingEl; typing(false);
@@ -98,6 +99,36 @@ async function sendText(q) {
   pending.push(q);
   try { await connect(); } catch (e) { pending = []; }
 }
+
+
+// ───────── Prospectos ─────────
+// Herramienta de cliente "registrar_prospecto": Mileni la llama cuando tiene nombre + WhatsApp.
+// Demo: muestra la ficha en el chat y la guarda en este navegador. En producción se envía a Escala.
+const INTERES = { alto: 'Interés alto', medio: 'Interés medio', bajo: 'Explorando' };
+const QUIEN = { aspirante: 'Aspirante', papa_mama: 'Papá / mamá', otro: 'Otro' };
+function fmtTel(t) {
+  const d = String(t || '').replace(/\D/g, '').slice(-10);
+  return d.length === 10 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : (t || '');
+}
+function registrarProspecto(p) {
+  p = p || {};
+  const tel = String(p.whatsapp || '').replace(/\D/g, '');
+  if (!p.nombre || tel.length < 10) return 'Faltan datos: pide el nombre y un WhatsApp de 10 dígitos antes de registrar.';
+  const folio = 'U3M-' + Date.now().toString(36).slice(-5).toUpperCase();
+  const lead = { folio, fecha: new Date().toISOString(), canal: voiceConv || voiceStarting ? 'voz' : 'texto', ...p, whatsapp: tel.slice(-10) };
+  try { const k = 'u3m_prospectos'; const arr = JSON.parse(localStorage.getItem(k) || '[]'); arr.push(lead); localStorage.setItem(k, JSON.stringify(arr)); } catch (e) {}
+  const rows = [
+    ['Nombre', p.nombre], ['WhatsApp', fmtTel(tel)], ['Carrera', p.carrera], ['Promedio', p.promedio],
+    ['Modalidad', p.modalidad], ['Quién', QUIEN[p.quien]], ['Notas', p.notas],
+  ].filter((r) => r[1]);
+  const lvl = INTERES[p.interes] ? `<span class="lead-lvl ${esc(p.interes)}">${INTERES[p.interes]}</span>` : '';
+  add('lead', null,
+    `<div class="lead-h"><b>Ficha enviada a Admisiones</b>${lvl}</div>` +
+    `<dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` +
+    `<div class="lead-f">Folio ${folio} · Un asesor te escribe por WhatsApp</div>`);
+  return 'Prospecto registrado con folio ' + folio + '. Confírmale a la persona que un asesor le escribirá por WhatsApp.';
+}
+const clientTools = { registrar_prospecto: registrarProspecto };
 
 // En celular: el chat ocupa exactamente el espacio visible arriba del teclado.
 const vv = window.visualViewport;
@@ -202,6 +233,7 @@ async function startVoice() {
       agentId: AGENT_ID,
       connectionType: 'webrtc',
       dynamicVariables: { modo: 'voz' },
+      clientTools,
       overrides: { agent: { firstMessage: msgs.querySelector('.msg.me')
         ? '¡Aquí estoy! Ahora platicamos por voz. ¿Qué más quieres saber?'
         : '¡Hola! Soy Mileni, de la Universidad Tercer Milenio. ¿En qué te puedo ayudar?' } },
