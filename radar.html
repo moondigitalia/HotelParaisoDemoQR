@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de Carrera U3M · Descubre tus rutas en 3 minutos</title>
+<meta name="description" content="7 preguntas, menos de 3 minutos. Descubre qué rutas profesionales vale la pena explorar según lo que te gusta y cómo te imaginas trabajando.">
+<meta name="theme-color" content="#12233B">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+body{background:var(--navy);min-height:100vh;padding-bottom:0}
+.rd{min-height:100vh;display:flex;flex-direction:column}
+.rd-top{display:flex;align-items:center;justify-content:space-between;padding:18px var(--pad);max-width:720px;width:100%;margin:0 auto}
+.rd-top .tag{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--lime);border:1.5px solid rgba(156,196,60,.5);padding:6px 12px;border-radius:999px}
+.rd-main{flex:1;width:100%;max-width:720px;margin:0 auto;padding:8px var(--pad) 40px;color:#fff}
+.screen{display:none;animation:pop .35s ease both}.screen.on{display:block}
+.rd h1{margin:14px 0 0;font-family:var(--display);font-stretch:112%;font-weight:800;font-size:clamp(34px,7vw,54px);line-height:1;letter-spacing:-1px}
+.rd h1 span{color:var(--lime)}
+.proof{margin:18px 0 0;display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px}
+.proof b{font-family:var(--display);font-size:34px;color:var(--lime);line-height:1}
+.proof span{font-size:15px;line-height:1.35;color:#DDE5EE}
+.promise{margin:16px 0 0;font-size:18px;line-height:1.5;color:#C9D2DC}
+.card-w{margin-top:22px;background:#fff;color:var(--navy);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 50px rgba(0,0,0,.3)}
+.opts3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opts3 label{min-height:48px;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;border:1.5px solid var(--line-2);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;line-height:1.2}
+.opts3 input{position:absolute;opacity:0;pointer-events:none}
+.opts3 label:has(input:checked){border-color:var(--blue);background:#EEF5FC;color:var(--blue-d)}
+.cta-big{height:58px;border:0;border-radius:14px;background:var(--lime);color:var(--navy);font-size:17px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:10px}
+.micro{text-align:center;font-size:13px;color:var(--gray);font-weight:600}
+.box-note{margin-top:22px;font-size:15px;line-height:1.5;color:#C9D2DC;border-left:0;background:rgba(255,255,255,.06);border-radius:14px;padding:16px}
+.box-note b{color:#fff}
+.src{margin-top:14px;font-size:12px;line-height:1.5;color:#8E9CAB}
+/* preguntas */
+.prog{display:flex;align-items:center;gap:12px;margin:6px 0 22px}
+.prog .bar{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--lime);border-radius:999px;transition:width .35s ease}
+.prog span{font-size:13px;font-weight:700;color:#C9D2DC;white-space:nowrap}
+.q-title{margin:0 0 20px;font-family:var(--display);font-stretch:108%;font-weight:800;font-size:clamp(26px,5.4vw,38px);line-height:1.1}
+.answers{display:flex;flex-direction:column;gap:10px}
+.ans{display:flex;align-items:center;gap:14px;width:100%;min-height:62px;padding:12px 16px;border-radius:14px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;font-size:17px;font-weight:600;text-align:left;transition:background .15s,border-color .15s,transform .1s}
+.ans:hover{border-color:var(--lime);background:rgba(156,196,60,.1)}
+.ans:active{transform:scale(.99)}
+.ans .l{width:34px;height:34px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.ans.sel{border-color:var(--lime);background:var(--lime);color:var(--navy)}.ans.sel .l{background:rgba(18,35,59,.15)}
+.back{margin-top:18px;background:transparent;border:0;color:#C9D2DC;font-size:15px;font-weight:700;padding:8px 0}
+/* analizando */
+.an{text-align:center;padding-top:10px}
+.an-fig{width:190px;height:220px;margin:0 auto;position:relative}
+.an-fig .ring{position:absolute;left:5px;bottom:0;width:180px;height:180px;border-radius:50%;border:3px solid rgba(156,196,60,.35);animation:pulse 1.6s ease-out infinite}
+.an-fig .disc{position:absolute;left:15px;bottom:10px;width:160px;height:160px;border-radius:50%;background:#DCEAF7}
+.an-fig img{position:absolute;left:10px;bottom:10px;width:170px;animation:bob 2.2s ease-in-out infinite}
+.an h2{margin:22px 0 8px;font-family:var(--display);font-stretch:110%;font-size:30px;line-height:1.1}
+.an p{margin:0;color:#C9D2DC;font-size:16px}
+.checks{margin:26px auto 0;max-width:380px;display:flex;flex-direction:column;gap:12px;text-align:left}
+.checks div{display:flex;gap:12px;align-items:center;font-size:16px;color:#8E9CAB;transition:color .3s}
+.checks div i{width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:14px;font-weight:900}
+.checks div.ok{color:#fff}.checks div.ok i{background:var(--lime);border-color:var(--lime);color:var(--navy)}
+.checks div.ok i::after{content:"✓"}
+/* listo */
+.done-top{display:flex;gap:16px;align-items:center}
+.done-top img{width:86px;height:86px;border-radius:50%;background:#EAF6FB;border:3px solid var(--lime);object-fit:cover;flex-shrink:0}
+.wa-card{margin-top:22px;background:#fff;color:var(--navy);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.wa-card .row{display:flex;gap:12px;align-items:center}
+.wa-card .ic{width:46px;height:46px;border-radius:50%;background:#E3F5EA;color:var(--wa);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.next{margin-top:22px;display:flex;flex-direction:column;gap:10px}
+.next a,.next button{justify-content:flex-start;height:auto;min-height:56px;padding:14px 18px;border-radius:14px;font-size:16px;white-space:normal;text-align:left}
+.tutor{margin-top:22px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.tutor .input{background:#fff}
+.demo-link{margin-top:26px;text-align:center}
+.demo-link button{background:transparent;border:1px dashed rgba(255,255,255,.35);color:#A9B6C4;border-radius:999px;padding:8px 16px;font-size:13px;font-weight:700}
+/* mock WhatsApp */
+.phone{position:fixed;inset:0;z-index:95;background:rgba(5,12,22,.7);display:none;align-items:center;justify-content:center;padding:16px}
+.phone.open{display:flex}
+.ph-box{width:min(380px,100%);max-height:92vh;display:flex;flex-direction:column;border-radius:26px;overflow:hidden;background:#ECE5DD;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.ph-head{background:#075E54;color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.ph-head img{width:40px;height:40px;border-radius:50%;background:#EAF6FB}
+.ph-head b{display:block;font-size:15px}.ph-head span{font-size:12px;opacity:.8}
+.ph-head button{margin-left:auto;background:transparent;border:0;color:#fff;font-size:22px;width:36px;height:36px}
+.ph-body{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.ph-msg{background:#fff;border-radius:0 12px 12px 12px;padding:10px 12px;font-size:14.5px;line-height:1.45;color:#111;white-space:pre-wrap;box-shadow:0 1px 1px rgba(0,0,0,.1);max-width:92%}
+.ph-msg small{display:block;text-align:right;color:#888;font-size:11px;margin-top:4px}
+.ph-btns{display:flex;flex-direction:column;gap:6px;max-width:92%}
+.ph-btns span{background:#fff;border-radius:10px;padding:9px;text-align:center;color:#128C7E;font-weight:700;font-size:14px}
+.ph-cap{background:#FFF3C4;color:#6B5200;font-size:12px;text-align:center;padding:6px;border-radius:8px;align-self:center}
+@keyframes pulse{0%{transform:scale(.9);opacity:1}100%{transform:scale(1.25);opacity:0}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media (max-width:480px){.card-w{padding:18px}.opts3{grid-template-columns:1fr}.opts3 label{justify-content:flex-start;padding:10px 14px}}
+</style>
+</head>
+<body>
+<div class="rd">
+  <div class="rd-top">
+    <a class="logo light" href="/" aria-label="Universidad Tercer Milenio"><span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span><span class="t"><b>U3M</b><span>TERCER<strong>MILENIO</strong></span></span></a>
+    <span class="tag">RADAR DE CARRERA</span>
+  </div>
+  <main class="rd-main">
+
+    <!-- 1 · Registro -->
+    <section class="screen on" id="s-reg">
+      <h1>¿Y si la carrera que estás pensando <span>no es la mejor para ti?</span></h1>
+      <div class="proof"><b>4/10</b><span>jóvenes en México eligen mal su carrera.*</span></div>
+      <p class="promise">En menos de 3 minutos, descubre 2 o 3 rutas profesionales que vale la pena explorar antes de tomar una decisión.</p>
+      <form class="card-w" id="reg" novalidate>
+        <div class="field"><label for="r-nombre">Nombre y primer apellido</label><input class="input" id="r-nombre" autocomplete="name" placeholder="Ej. Andrea López" required></div>
+        <div class="field"><label for="r-wa">WhatsApp (10 dígitos)</label><input class="input" id="r-wa" type="tel" inputmode="numeric" autocomplete="tel" placeholder="229 000 0000" required></div>
+        <div class="field"><span class="lbl">¿Ya tienes una carrera en mente?</span>
+          <div class="opts3" id="mente">
+            <label><input type="radio" name="mente" value="si">Sí</label>
+            <label><input type="radio" name="mente" value="varias">Tengo 2–3 opciones</label>
+            <label><input type="radio" name="mente" value="no">Aún no sé</label>
+          </div>
+        </div>
+        <div class="field" id="f-a" hidden><label for="r-a">¿Cuál es tu opción principal?</label><input class="input" id="r-a" list="carreras-list" placeholder="Escribe o elige una carrera"></div>
+        <div class="field" id="f-b" hidden><label for="r-b">¿Y tu segunda opción?</label><input class="input" id="r-b" list="carreras-list" placeholder="Opcional"></div>
+        <datalist id="carreras-list"></datalist>
+        <label class="check"><input type="checkbox" id="r-ok">Acepto que U3M me contacte por WhatsApp y el <a href="#" onclick="return false">aviso de privacidad</a>.</label>
+        <p id="r-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
+        <button class="cta-big" type="submit">DESCUBRIR MIS RUTAS <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <span class="micro">7 preguntas · Menos de 3 minutos · Resultado en tu WhatsApp</span>
+      </form>
+      <div class="box-note"><b>No elijas una carrera sólo porque "suena bien".</b> Tu Radar te ayuda a explorar opciones según lo que te gusta, los problemas que disfrutas resolver y cómo te imaginas trabajando.</div>
+      <p class="src">Desarrollado con base en el modelo RIASEC de Holland y en el O*NET Interest Profiler del Departamento de Trabajo de EE. UU., referentes internacionales para explorar intereses vocacionales.<br>* Estimación citada por la Universidad Autónoma Metropolitana (Boletín 242, 2017) y por SENDA (UNAM). No corresponde a una estadística oficial nacional ni mide el efecto del Radar U3M.</p>
+    </section>
+
+    <!-- 2 · Preguntas -->
+    <section class="screen" id="s-q">
+      <div class="prog"><div class="bar"><i id="bar"></i></div><span id="step"></span></div>
+      <h2 class="q-title" id="q-title"></h2>
+      <div class="answers" id="answers"></div>
+      <button class="back" type="button" id="back">← Anterior</button>
+    </section>
+
+    <!-- 3 · Analizando -->
+    <section class="screen an" id="s-an">
+      <div class="an-fig"><div class="ring"></div><div class="disc"></div><img src="img/mileni.webp" alt="Mileni revisando tus respuestas"></div>
+      <h2>Estamos revisando tus respuestas…</h2>
+      <p>Mileni está preparando tu Radar de Carrera.</p>
+      <div class="checks" id="checks">
+        <div><i></i>Analizando lo que te gusta hacer</div>
+        <div><i></i>Identificando tus rutas con más afinidad</div>
+        <div><i></i>Relacionándolas con carreras de U3M</div>
+        <div><i></i>Preparando tu mensaje de WhatsApp</div>
+      </div>
+    </section>
+
+    <!-- 4 · Listo -->
+    <section class="screen" id="s-done">
+      <div class="done-top"><img src="img/mileni-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">RADAR COMPLETADO</span><h2 class="q-title" style="margin:6px 0 0" id="d-title">¡Listo!</h2></div></div>
+      <div class="wa-card">
+        <div class="row"><span class="ic"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg></span>
+          <div><b style="font-size:17px">Tu Radar va en camino a tu WhatsApp</b><div style="font-size:14px;color:var(--gray);margin-top:2px" id="d-num"></div></div></div>
+        <p style="margin:0;font-size:15px;line-height:1.5;color:var(--ink)">En unos minutos recibirás tus rutas con más afinidad y las carreras de U3M que vale la pena explorar. Guarda nuestro número para que no se te pierda: <b>229 909 6832</b>.</p>
+      </div>
+      <div class="tutor" id="tutor">
+        <b style="font-size:16px">¿Quieres que también le mandemos tu resultado a tu mamá, papá o tutor?</b>
+        <div id="tutor-f" style="display:none;flex-direction:column;gap:10px">
+          <input class="input" id="t-nombre" placeholder="Nombre de tu mamá, papá o tutor" aria-label="Nombre del tutor">
+          <input class="input" id="t-wa" type="tel" inputmode="numeric" placeholder="WhatsApp (10 dígitos)" aria-label="WhatsApp del tutor">
+          <button class="btn btn-lime" type="button" id="t-send" style="height:48px;font-size:15px;border-radius:12px">Enviar también a mi tutor</button>
+        </div>
+        <div style="display:flex;gap:10px" id="tutor-q"><button class="btn btn-ghost" type="button" id="t-si" style="height:44px;font-size:15px;flex:1">Sí, claro</button><button class="btn btn-ghost" type="button" id="t-no" style="height:44px;font-size:15px;flex:1">Ahora no</button></div>
+      </div>
+      <div class="next">
+        <span style="font-size:15px;font-weight:700;color:#C9D2DC">Mientras llega, ¿qué quieres hacer?</span>
+        <a class="btn btn-lime" href="/#carreras">Quiero ver mis opciones de carrera</a>
+        <a class="btn btn-ghost" id="n-explica" href="#" target="_blank" rel="noopener">Quiero que me expliquen mi resultado</a>
+        <a class="btn btn-ghost" id="n-mente" href="#" target="_blank" rel="noopener">Ya tengo una carrera en mente</a>
+      </div>
+      <div class="demo-link"><button type="button" id="demo">Ver el mensaje que recibe el alumno (solo demo)</button></div>
+    </section>
+  </main>
+</div>
+
+<div class="phone" id="phone" role="dialog" aria-modal="true" aria-label="Vista previa del mensaje de WhatsApp">
+  <div class="ph-box">
+    <div class="ph-head"><img src="img/mileni-avatar.webp" alt=""><div><b>U3M · Admisiones</b><span>Cuenta de empresa</span></div><button type="button" id="ph-x" aria-label="Cerrar">✕</button></div>
+    <div class="ph-body">
+      <span class="ph-cap">Vista previa del mensaje automático · Demo</span>
+      <div class="ph-msg" id="ph-msg"></div>
+      <div class="ph-btns"><span>Quiero ver mis opciones</span><span>Explícame mi resultado</span><span>Ya tengo una carrera en mente</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var WA='522299096832';
+var params=new URLSearchParams(location.search);
+var evento=params.get('evento')||params.get('utm_campaign')||'';
+var CARRERAS=(window.U3M_CARRERAS||[]).map(function(c){return c.name});
+$('#carreras-list').innerHTML=CARRERAS.map(function(n){return '<option value="'+n+'">'}).join('');
+
+var Q=[
+ ['Cuando tienes que elegir una actividad, ¿qué te atrae más?',['Ayudar o escuchar a alguien','Organizar, liderar o negociar','Crear, comunicar o contar algo','Resolver cómo hacer algo mejor','Diseñar, construir o visualizar algo']],
+ ['¿Qué tipo de problema disfrutas más resolver?',['Personas, decisiones o conflictos','Negocio, ventas o dinero','Mensajes, ideas o marcas','Procesos, datos o tecnología','Espacios, proyectos u objetos']],
+ ['Si pensaras en tu trabajo ideal, ¿qué te gustaría que tuviera?',['Contacto e impacto en personas','Decisiones y liderazgo','Creatividad y expresión','Análisis, orden y mejora','Proyectos visibles que puedas construir o transformar']],
+ ['¿Cuál de estas actividades te aburriría menos?',['Escuchar un caso y entender qué pasa','Organizar un proyecto o vender una idea','Crear contenido, una campaña o una pieza visual','Revisar números, procesos o encontrar errores','Imaginar un espacio, estructura o solución física']],
+ ['¿Qué frase se parece más a ti?',['Me gusta ayudar, orientar o defender','Me gusta tomar iniciativa y mover proyectos','Me gusta expresar ideas y crear','Me gusta entender cómo funciona algo y mejorarlo','Me gusta convertir ideas en algo tangible']],
+ ['¿En qué entorno te imaginas más fácilmente?',['Personas, escuela, comunidad o atención profesional','Empresa, negocio, ventas o emprendimiento','Medios, marca, contenido o comunicación','Industria, logística, operación, finanzas o tecnología','Diseño, obra, espacios o proyectos constructivos']],
+ ['Después de responder el Radar, ¿cómo ves la carrera que anotaste al registrarte?',['Sigue siendo mi primera opción','Quiero compararla con otra','Ya no estoy tan seguro','No había anotado ninguna carrera']]
+];
+var RUTAS={
+ A:{n:'Personas e impacto',v:'escuchar, orientar y generar un impacto directo en la vida de otras personas',c:['Psicología','Educación','Derecho y Argumentación Jurídica']},
+ B:{n:'Negocios y liderazgo',v:'organizar, tomar decisiones, negociar y mover proyectos',c:['Administración de Empresas','Administración de Empresas Turísticas','Mercadotecnia Estratégica','Comercio y Negocios Internacionales','Contaduría y Auditoría','Ingeniería en Gestión Empresarial']},
+ C:{n:'Creatividad y comunicación',v:'crear, comunicar ideas y construir mensajes y marcas',c:['Comunicación','Diseño Gráfico','Mercadotecnia Estratégica']},
+ D:{n:'Tecnología y operaciones',v:'analizar datos, entender cómo funcionan las cosas y mejorar procesos',c:['Ingeniería Industrial y de Sistemas','Ingeniería en Gestión Empresarial','Contaduría y Auditoría']},
+ E:{n:'Diseño, espacios y construcción',v:'diseñar, visualizar y convertir ideas en algo tangible',c:['Arquitectura y Administración de la Empresa Constructora','Diseño Gráfico','Ingeniería Industrial y de Sistemas']}
+};
+var L='ABCDE';
+var st={nombre:'',wa:'',mente:'',a:'',b:'',ans:[],i:0};
+
+function show(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id===id)});window.scrollTo(0,0)}
+
+// registro
+document.querySelectorAll('input[name=mente]').forEach(function(r){r.addEventListener('change',function(){
+  var v=r.value; $('#f-a').hidden=(v==='no'); $('#f-b').hidden=(v!=='varias');
+})});
+$('#reg').addEventListener('submit',function(e){
+  e.preventDefault();
+  var n=$('#r-nombre').value.trim(),w=$('#r-wa').value.replace(/\D/g,''),m=(document.querySelector('input[name=mente]:checked')||{}).value,err=$('#r-err');
+  var msg=!n?'Escribe tu nombre.':w.length!==10?'Tu WhatsApp debe tener 10 dígitos.':!m?'Dinos si ya tienes una carrera en mente.':!$('#r-ok').checked?'Acepta el contacto por WhatsApp para recibir tu Radar.':'';
+  if(msg){err.textContent=msg;err.style.display='block';return}
+  err.style.display='none';
+  st.nombre=n;st.wa=w;st.mente=m;st.a=m==='no'?'':$('#r-a').value.trim();st.b=m==='varias'?$('#r-b').value.trim():'';
+  // DEMO: aquí se enviaría el registro mínimo a Escala (con evento/UTM) antes de iniciar el Radar.
+  st.i=0;st.ans=[];renderQ();show('s-q');
+});
+
+// preguntas
+function total(){return (st.mente==='no'||!st.a)?6:7}
+function renderQ(){
+  var q=Q[st.i],t=total();
+  $('#bar').style.width=((st.i)/t*100)+'%';
+  $('#step').textContent='Pregunta '+(st.i+1)+' de '+t;
+  $('#q-title').textContent=q[0];
+  $('#answers').innerHTML=q[1].map(function(o,k){return '<button type="button" class="ans'+(st.ans[st.i]===k?' sel':'')+'" data-k="'+k+'"><span class="l">'+L[k]+'</span>'+o+'</button>'}).join('');
+  $('#back').style.visibility=st.i?'visible':'hidden';
+}
+$('#answers').addEventListener('click',function(e){
+  var b=e.target.closest('.ans');if(!b)return;
+  st.ans[st.i]=+b.dataset.k;b.classList.add('sel');
+  setTimeout(function(){
+    if(st.i+1<total()){st.i++;renderQ()}else{$('#bar').style.width='100%';analyze()}
+  },220);
+});
+$('#back').addEventListener('click',function(){if(st.i>0){st.i--;renderQ()}});
+
+// resultado (se calcula, no se muestra al alumno)
+function scoreRoutes(){
+  var s={A:0,B:0,C:0,D:0,E:0};
+  for(var i=0;i<6;i++){if(st.ans[i]!=null)s[L[st.ans[i]]]++}
+  var order=Object.keys(s).sort(function(x,y){return s[y]-s[x]||L.indexOf(x)-L.indexOf(y)});
+  var top=order.slice(0,2);
+  if(s[order[2]]>0&&s[order[1]]-s[order[2]]<=1)top.push(order[2]);
+  return top;
+}
+function uniq(a){return a.filter(function(x,i){return a.indexOf(x)===i})}
+function buildMessage(){
+  var top=scoreRoutes(),first=st.nombre.split(' ')[0];
+  var names=top.map(function(k){return RUTAS[k].n});
+  var carreras=uniq([].concat.apply([],top.slice(0,2).map(function(k){return RUTAS[k].c.slice(0,2)})));
+  var extra=top[2]?' '+RUTAS[top[2]].c[0]+' también puede interesarte si te atrae la ruta de '+RUTAS[top[2]].n+'.':'';
+  var txt='¡Hola, '+first+'! Soy Mileni, de la Universidad Tercer Milenio.\n\nYa revisamos tu Radar de Carrera. Por tus respuestas, tus rutas más fuertes son *'+names.slice(0,2).join('* + *')+'*'+(top[2]?' (y muy cerca, *'+names[2]+'*)':'')+'.\n\n';
+  txt+='Eso significa que vale la pena que explores opciones donde puedas '+RUTAS[top[0]].v+', y también '+RUTAS[top[1]].v+'.\n\n';
+  txt+='En U3M podrías revisar: '+carreras.join(', ')+'.'+extra+'\n\n';
+  var a=st.a;
+  if(a){
+    var esU3M=CARRERAS.some(function(n){return n.toLowerCase()===a.toLowerCase()});
+    txt+=esU3M?'Nos contaste que tienes en mente '+a+'; es buena idea compararla con estas rutas para confirmar que va contigo.\n\n'
+              :'Nos contaste que tienes en mente '+a+'. Nos encantaría platicar qué te atrae de ella y ver si alguna de estas rutas se le parece.\n\n';
+  }
+  txt+='Ojo: esto no quiere decir que una sea "tu carrera ideal"; son opciones que vale la pena comparar.\n\n¿Qué quieres revisar primero?';
+  return txt;
+}
+function analyze(){
+  show('s-an');
+  var items=document.querySelectorAll('#checks div'),k=0;
+  items.forEach(function(d){d.classList.remove('ok')});
+  var t=setInterval(function(){
+    if(k<items.length){items[k].classList.add('ok');k++}
+    else{clearInterval(t);setTimeout(done,500)}
+  },1100);
+}
+function done(){
+  var first=st.nombre.split(' ')[0];
+  $('#d-title').textContent='¡Gracias, '+first+'!';
+  $('#d-num').textContent='Lo enviaremos al '+st.wa.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3');
+  // DEMO: aquí se enviarían respuestas y rutas a Escala, que dispara el WhatsApp automático.
+  $('#n-explica').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, soy '+st.nombre+'. Acabo de hacer el Radar de Carrera y quiero que me expliquen mi resultado.');
+  $('#n-mente').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, soy '+st.nombre+'. Hice el Radar de Carrera y ya tengo una carrera en mente'+(st.a?': '+st.a:'')+'.');
+  $('#ph-msg').innerHTML=buildMessage().replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}).replace(/\*(.+?)\*/g,'<b>$1</b>')+'<small>'+new Date().toTimeString().slice(0,5)+'</small>';
+  show('s-done');
+}
+
+// tutor
+$('#t-si').addEventListener('click',function(){$('#tutor-q').style.display='none';$('#tutor-f').style.display='flex'});
+$('#t-no').addEventListener('click',function(){$('#tutor').style.display='none'});
+$('#t-send').addEventListener('click',function(){
+  var w=$('#t-wa').value.replace(/\D/g,'');
+  if(!$('#t-nombre').value.trim()||w.length!==10){$('#t-wa').focus();return}
+  $('#tutor').innerHTML='<b style="font-size:16px">¡Perfecto! También se lo enviaremos a '+$('#t-nombre').value.trim().split(' ')[0].replace(/[<>&]/g,'')+'.</b>';
+});
+
+// vista previa demo
+$('#demo').addEventListener('click',function(){$('#phone').classList.add('open')});
+$('#ph-x').addEventListener('click',function(){$('#phone').classList.remove('open')});
+$('#phone').addEventListener('click',function(e){if(e.target.id==='phone')$('#phone').classList.remove('open')});
+})();
+</script>
+</body>
+</html>

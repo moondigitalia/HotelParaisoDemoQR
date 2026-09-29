@@ -22,7 +22,7 @@ button{font-family:inherit;cursor:pointer}
 .btn-lime{background:var(--lime);color:var(--navy)}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-navy{background:var(--navy);color:#fff}
-.btn-ghost{border:1.5px solid rgba(255,255,255,.5);color:#fff}
+.btn-ghost{border:1.5px solid rgba(255,255,255,.5);color:#fff;background:transparent}
 .btn-wa{background:var(--wa);color:#fff}
 .ico{width:20px;height:20px;flex-shrink:0}
 
