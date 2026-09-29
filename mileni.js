@@ -54,7 +54,12 @@ async function connect() {
       textOnly: true,
       overrides: { conversation: { textOnly: true } },
       onConnect: () => setStatus('● En línea'),
-      onDisconnect: () => { conv = null; connecting = null; gotFirst = false; setStatus('● En línea'); },
+      onDisconnect: (d) => {
+        const hadPending = !!typingEl; typing(false);
+        conv = null; connecting = null; gotFirst = false; setStatus('● En línea');
+        if (hadPending) add('sys', null, 'Mileni no está disponible en este momento. Escríbenos por <a href="' + WA_URL + '" target="_blank" rel="noopener">WhatsApp al 229 909 6832</a> y un asesor te atiende.');
+        console.warn('[Mileni] desconectado', d);
+      },
       onError: (m) => { console.warn('[Mileni]', m); },
       onMessage: ({ message, source }) => {
         if (source === 'user') return;
