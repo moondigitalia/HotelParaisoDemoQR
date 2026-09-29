@@ -218,7 +218,9 @@ function stopVoice(note) {
   if (c) { try { c.endSession(); } catch (e) {} }
   chat.classList.remove('in-voice'); voice.hidden = true;
   setStatus('● En línea');
-  add('sys', null, note || 'Llamada de voz terminada. Puedes seguir escribiendo aquí.');
+  const html = note || 'Llamada de voz terminada. Puedes seguir escribiendo aquí.';
+  const last = msgs.lastElementChild;
+  if (!(last && last.classList.contains('sys') && last.innerHTML === html)) add('sys', null, html);
 }
 
 mic.addEventListener('click', startVoice);
