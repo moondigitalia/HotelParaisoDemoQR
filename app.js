@@ -165,6 +165,28 @@
     var o = e.target.closest('[data-open-chat]'); if (o) { e.preventDefault(); ask(''); }
   });
   $('#bubble-x').addEventListener('click', function (e) { e.stopPropagation(); $('#bubble').remove(); });
-  var launcher = $('#launcher'), heroEnd = function () { var h = $('.mosaic'); return h ? h.getBoundingClientRect().top + window.scrollY : 800; };
+  var launcher = $('#launcher'), heroEnd = function () { var h = $('.stats'); return h ? h.getBoundingClientRect().top + window.scrollY : 800; };
   window.addEventListener('scroll', function () { if (window.scrollY > heroEnd() - 200) launcher.classList.add('show-bubble'); }, { passive: true });
 })();
+
+/* ---------- Video de portada: versión según pantalla, siempre en silencio y en loop ---------- */
+(function () {
+  var v = document.getElementById('hero-video'); if (!v) return;
+  var mq = window.matchMedia('(max-width: 980px)');
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  function pick() {
+    var mobile = mq.matches;
+    var src = mobile ? v.dataset.mobile : v.dataset.desktop;
+    v.poster = mobile ? v.dataset.posterMobile : v.dataset.posterDesktop;
+    if (calm || saveData) return; // solo la imagen de portada
+    if (v.getAttribute('src') !== src) { v.setAttribute('src', src); v.load(); }
+    v.muted = true;
+    var pr = v.play(); if (pr && pr.catch) pr.catch(function () {});
+  }
+  pick();
+  if (mq.addEventListener) mq.addEventListener('change', pick); else mq.addListener(pick);
+  // si la pestaña vuelve a estar visible, que siga corriendo
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && v.src) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); } });
+})();
+
