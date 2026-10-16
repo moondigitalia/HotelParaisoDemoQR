@@ -130,7 +130,7 @@ function registrarProspecto(p) {
   }
   try { const k = 'u3m_prospectos'; const arr = JSON.parse(localStorage.getItem(k) || '[]'); arr.push(lead); localStorage.setItem(k, JSON.stringify(arr)); } catch (e) {}
   const rows = [
-    ['Nombre', p.nombre], ['WhatsApp', fmtTel(tel)], ['Carrera', p.carrera], ['Promedio', p.promedio],
+    ['Nombre', p.nombre], ['WhatsApp', fmtTel(tel)], ['Correo', p.email], ['Carrera', p.carrera], ['Promedio', p.promedio],
     ['Modalidad', p.modalidad], ['Quién', QUIEN[p.quien]], ['Notas', p.notas],
   ].filter((r) => r[1]);
   const lvl = INTERES[p.interes] ? `<span class="lead-lvl ${esc(p.interes)}">${INTERES[p.interes]}</span>` : '';
