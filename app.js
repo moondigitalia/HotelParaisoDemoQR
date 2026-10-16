@@ -12,9 +12,8 @@
   (function intro() {
     var ola = $('#ola');
     if (!ola) return;
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var params = new URLSearchParams(location.search);
-    if (reduce || params.has('sinola')) { ola.remove(); return; }
+    if (params.has('sinola')) { ola.remove(); return; }
     var fx = $('#ola-fx');
     var W = window.innerWidth, H = window.innerHeight, k = Math.max(W / 1440, H / 900);
     var rnd = function (a, b) { return a + Math.random() * (b - a); };
@@ -176,13 +175,10 @@
 (function () {
   var v = document.getElementById('hero-video'); if (!v) return;
   var mq = window.matchMedia('(max-width: 980px)');
-  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var saveData = navigator.connection && navigator.connection.saveData;
   function pick() {
     var mobile = mq.matches;
     var src = mobile ? v.dataset.mobile : v.dataset.desktop;
     v.poster = mobile ? v.dataset.posterMobile : v.dataset.posterDesktop;
-    if (calm || saveData) return; // solo la imagen de portada
     if (v.getAttribute('src') !== src) { v.setAttribute('src', src); v.load(); }
     v.muted = true;
     var pr = v.play(); if (pr && pr.catch) pr.catch(function () {});

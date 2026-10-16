@@ -116,12 +116,12 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .tutor .opts3 label:has(input:checked){border-color:var(--lime);background:var(--lime);color:var(--navy)}
 @media (max-width:480px){.res-alts{grid-template-columns:1fr}.tutor .opts3{grid-template-columns:repeat(3,minmax(0,1fr))}.tutor .opts3 label{justify-content:center;padding:6px}}
 /* animación al descubrir rutas: signos y lupas */
-.busca{position:fixed;inset:0;z-index:120;background:var(--navy);display:none;overflow:hidden;pointer-events:none}
+.busca{contain:strict;position:fixed;inset:0;z-index:120;background:var(--navy);display:none;overflow:hidden;pointer-events:none}
 .busca.run{display:block;animation:bz-fondo 2.6s ease both}
 .busca-lema{position:absolute;left:0;right:0;top:40%;padding:0 20px;text-align:center;color:#fff;font-family:var(--display);font-stretch:112%;font-weight:800;font-size:clamp(30px,6.4vw,52px);line-height:1.05;letter-spacing:-1px;transform:translateY(-50%);z-index:3}
 .busca.run .busca-lema{animation:bz-lema 2.6s ease both}
 .busca-lema small{display:block;font-family:var(--body);font-size:13px;font-weight:800;letter-spacing:4px;color:var(--lime);margin-bottom:12px}
-.bz{position:absolute;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:900;line-height:1;opacity:0}
+.bz{will-change:transform,opacity;position:absolute;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:900;line-height:1;opacity:0}
 .bz svg{width:100%;height:100%}
 .busca.run .bz{animation:bz-pop 1.7s cubic-bezier(.2,1.3,.4,1) both}
 .bz-lupa{left:50%;top:40%;width:120px;height:120px;margin:-60px 0 0 -60px;color:var(--lime);z-index:2}
