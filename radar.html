@@ -29,6 +29,7 @@
       <form class="card-w" id="reg" novalidate>
         <div class="field"><label for="r-nombre">Nombre y primer apellido</label><input class="input" id="r-nombre" autocomplete="name" placeholder="Ej. Andrea López" required></div>
         <div class="field"><label for="r-wa">WhatsApp (10 dígitos)</label><input class="input" id="r-wa" type="tel" inputmode="numeric" autocomplete="tel" placeholder="229 000 0000" required></div>
+        <div class="field"><label for="r-email">Correo <span style="font-weight:500;color:#6B7785">(opcional)</span></label><input class="input" id="r-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"></div>
         <div class="field"><span class="lbl">¿Ya tienes una carrera en mente?</span>
           <div class="opts3" id="mente">
             <label><input type="radio" name="mente" value="si">Sí</label>
@@ -109,6 +110,7 @@
 </div>
 
 <script src="data.js"></script>
+<script src="crm.js?v=20261016"></script>
 <script>
 (function(){
 'use strict';
@@ -148,10 +150,15 @@ $('#reg').addEventListener('submit',function(e){
   e.preventDefault();
   var n=$('#r-nombre').value.trim(),w=$('#r-wa').value.replace(/\D/g,''),m=(document.querySelector('input[name=mente]:checked')||{}).value,err=$('#r-err');
   var msg=!n?'Escribe tu nombre.':w.length!==10?'Tu WhatsApp debe tener 10 dígitos.':!m?'Dinos si ya tienes una carrera en mente.':!$('#r-ok').checked?'Acepta el contacto por WhatsApp para recibir tu Radar.':'';
+  var em=$('#r-email').value.trim();
+  if(!msg&&em&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(em))msg='Revisa tu correo (o déjalo vacío).';
   if(msg){err.textContent=msg;err.style.display='block';return}
   err.style.display='none';
+  st.email=em;
   st.nombre=n;st.wa=w;st.mente=m;st.a=m==='no'?'':$('#r-a').value.trim();st.b=m==='varias'?$('#r-b').value.trim():'';
-  // DEMO: aquí se enviaría el registro mínimo a Escala (con evento/UTM) antes de iniciar el Radar.
+  var MENTE={si:'Sí',varias:'Tiene 2–3 opciones',no:'Aún no sabe'};
+  if(window.u3mEscala)window.u3mEscala({origen:'radar',nombre:n,whatsapp:w,email:em,
+    notas:'Empezó el Radar de Carrera.\n¿Carrera en mente?: '+MENTE[m]+(st.a?'\nOpción principal: '+st.a:'')+(st.b?'\nSegunda opción: '+st.b:'')});
   st.i=0;st.ans=[];renderQ();show('s-q');
 });
 
@@ -214,7 +221,9 @@ function done(){
   var first=st.nombre.split(' ')[0];
   $('#d-title').textContent='¡Gracias, '+first+'!';
   $('#d-num').textContent='Lo enviaremos al '+st.wa.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3');
-  // DEMO: aquí se enviarían respuestas y rutas a Escala, que dispara el WhatsApp automático.
+  st.resultado=buildMessage().replace(/\*/g,'');
+  if(window.u3mEscala)window.u3mEscala({origen:'radar',nombre:st.nombre,whatsapp:st.wa,email:st.email,
+    notas:'Terminó el Radar de Carrera. Resultado que debe recibir por WhatsApp:\n\n'+st.resultado});
   $('#n-explica').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, soy '+st.nombre+'. Acabo de hacer el Radar de Carrera y quiero que me expliquen mi resultado.');
   $('#n-mente').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, soy '+st.nombre+'. Hice el Radar de Carrera y ya tengo una carrera en mente'+(st.a?': '+st.a:'')+'.');
   $('#ph-msg').innerHTML=buildMessage().replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]}).replace(/\*(.+?)\*/g,'<b>$1</b>')+'<small>'+new Date().toTimeString().slice(0,5)+'</small>';
@@ -227,6 +236,8 @@ $('#t-no').addEventListener('click',function(){$('#tutor').style.display='none'}
 $('#t-send').addEventListener('click',function(){
   var w=$('#t-wa').value.replace(/\D/g,'');
   if(!$('#t-nombre').value.trim()||w.length!==10){$('#t-wa').focus();return}
+  if(window.u3mEscala)window.u3mEscala({origen:'radar',nombre:$('#t-nombre').value.trim(),whatsapp:w,
+    notas:'Mamá, papá o tutor de '+st.nombre+' (WhatsApp '+st.wa+'), quien hizo el Radar de Carrera. Pidió que también le enviemos el resultado:\n\n'+(st.resultado||'')});
   $('#tutor').innerHTML='<b style="font-size:16px">¡Perfecto! También se lo enviaremos a '+$('#t-nombre').value.trim().split(' ')[0].replace(/[<>&]/g,'')+'.</b>';
 });
 

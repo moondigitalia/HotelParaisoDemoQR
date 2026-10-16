@@ -93,6 +93,7 @@
 </div>
 
 <script src="data.js"></script>
+<script src="crm.js?v=20261016"></script>
 <script>
 (function(){
 'use strict';
@@ -126,7 +127,9 @@ $('#ref').addEventListener('submit',function(e){
   var msg=!name?'Escribe tu nombre.':wa.length!==10?'Tu WhatsApp debe tener 10 dígitos.':!fr.length?'Agrega al menos a un amigo.':bad.length?'Revisa el nombre y WhatsApp (10 dígitos) de cada amigo.':fr.some(function(f){return f.w===wa})?'El WhatsApp de tu amigo no puede ser el mismo que el tuyo.':!$('#y-ok').checked?'Confirma que tus amigos aceptan ser contactados.':'';
   if(msg){err.textContent=msg;err.style.display='block';return}
   err.style.display='none';
-  // DEMO: aquí cada referido se enviaría a Escala como prospecto nuevo, ligado a quien lo recomendó.
+  var soy=(document.querySelector('input[name=soy]:checked')||{}).value||'';
+  if(window.u3mEscala)fr.forEach(function(f){window.u3mEscala({origen:'web',nombre:f.n,whatsapp:f.w,
+    notas:'Referido (programa Recomienda y gana).\nLo recomendó: '+name+' · '+soy+' · WhatsApp '+wa+(f.c?'\nCarrera que le interesa: '+f.c:'')})});
   var folio='REF-'+Date.now().toString(36).slice(-5).toUpperCase();
   $('#ok-title').textContent='¡Gracias, '+name.split(' ')[0]+'!';
   $('#folio').textContent=folio;

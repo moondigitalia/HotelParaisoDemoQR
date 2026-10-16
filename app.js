@@ -68,7 +68,10 @@
     if (msg) { err.textContent = msg; err.style.display = 'block'; return; }
     err.style.display = 'none';
     var carrera = sel.value || 'por definir', modalidad = ($('input[name=modalidad]:checked') || {}).value || '';
-    // DEMO: aquí se enviará el registro al CRM Escala (webhook). Por ahora solo se confirma en pantalla.
+    var email = $('#f-email').value.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) { err.textContent = 'Revisa tu correo (o déjalo vacío).'; err.style.display = 'block'; return; }
+    if (window.u3mEscala) window.u3mEscala({ origen: 'web', nombre: nombre, whatsapp: tel, email: email,
+      notas: 'Formulario "Recibe informes".\nCarrera de interés: ' + carrera + '\nModalidad: ' + modalidad });
     var first = nombre.split(' ')[0];
     $('#ok-title').textContent = '¡Listo, ' + first + '!';
     $('#ok-text').textContent = 'Un asesor de admisiones te escribirá al ' + tel.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') + ' con información de ' + carrera + '.';

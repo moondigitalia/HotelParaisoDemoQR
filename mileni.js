@@ -109,7 +109,7 @@ async function sendText(q) {
 
 // ───────── Prospectos ─────────
 // Herramienta de cliente "registrar_prospecto": Mileni la llama cuando tiene nombre + WhatsApp.
-// Demo: muestra la ficha en el chat y la guarda en este navegador. En producción se envía a Escala.
+// Muestra la ficha en el chat y la envía a Escala (etiqueta MOON_Mileni) por el puente /api/escala.
 const INTERES = { alto: 'Interés alto', medio: 'Interés medio', bajo: 'Explorando' };
 const QUIEN = { aspirante: 'Aspirante', papa_mama: 'Papá / mamá', otro: 'Otro' };
 function fmtTel(t) {
@@ -122,6 +122,12 @@ function registrarProspecto(p) {
   if (!p.nombre || tel.length < 10) return 'Faltan datos: pide el nombre y un WhatsApp de 10 dígitos antes de registrar.';
   const folio = 'U3M-' + Date.now().toString(36).slice(-5).toUpperCase();
   const lead = { folio, fecha: new Date().toISOString(), canal: voiceConv || voiceStarting ? 'voz' : 'texto', ...p, whatsapp: tel.slice(-10) };
+  if (window.u3mEscala) {
+    const det = [['Carrera de interés', p.carrera], ['Promedio', p.promedio], ['Modalidad', p.modalidad], ['Quién es', QUIEN[p.quien] || p.quien],
+      ['Nivel de interés', INTERES[p.interes] || p.interes], ['Notas de Mileni', p.notas]].filter((r) => r[1]).map((r) => r[0] + ': ' + r[1]);
+    window.u3mEscala({ origen: 'mileni', nombre: p.nombre, whatsapp: tel.slice(-10), email: p.email || '',
+      notas: 'Platicó con Mileni por ' + (lead.canal === 'voz' ? 'voz' : 'chat') + ' (folio ' + folio + ').\n' + det.join('\n') });
+  }
   try { const k = 'u3m_prospectos'; const arr = JSON.parse(localStorage.getItem(k) || '[]'); arr.push(lead); localStorage.setItem(k, JSON.stringify(arr)); } catch (e) {}
   const rows = [
     ['Nombre', p.nombre], ['WhatsApp', fmtTel(tel)], ['Carrera', p.carrera], ['Promedio', p.promedio],
