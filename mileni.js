@@ -148,7 +148,7 @@ function mostrarRadar() {
     add('radar', null,
       '<div class="radar-k">Test vocacional · gratis</div>' +
       '<b>Radar de Carrera U3M</b>' +
-      '<p>7 preguntas rápidas, unos 2 minutos. Te mandamos por WhatsApp las carreras que más van contigo.</p>' +
+      '<p>6 preguntas rápidas, unos 2 minutos. Al terminar ves en pantalla las carreras que más van contigo.</p>' +
       '<a class="radar-btn" href="radar" target="_blank" rel="noopener">Hacer el Radar →</a>');
   }
   const vr = document.getElementById('v-radar'); if (vr) vr.hidden = false;

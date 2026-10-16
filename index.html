@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260929h">
+<link rel="stylesheet" href="styles.css?v=20261016">
 </head>
 <body>
 
@@ -182,7 +182,7 @@
         <li>Horarios, modalidades y fechas de inicio</li>
       </ul>
       <div class="inf-mileni">
-        <img src="img/mileni-avatar.webp" alt="" width="56" height="56">
+        <img src="img/asesor-avatar.webp" alt="" width="56" height="56">
         <p>¿Prefieres resolver tus dudas ahora mismo? <button type="button" data-open-chat>Pregúntale a Mileni</button></p>
       </div>
     </div>
@@ -201,7 +201,7 @@
           <div class="field"><span class="lbl">Modalidad</span>
             <div class="seg"><label><input type="radio" name="modalidad" value="Escolarizada" checked>Escolarizada</label><label><input type="radio" name="modalidad" value="Sabatina">Sabatina</label></div>
           </div>
-          <label class="check"><input type="checkbox" id="f-ok" required>Acepto el aviso de privacidad y que me contacten por WhatsApp.</label>
+          <label class="check"><input type="checkbox" id="f-ok" required><span>Acepto el <a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener" style="color:var(--blue);font-weight:700">aviso de privacidad</a> y que me contacten por WhatsApp.</span></label>
           <p id="f-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
           <button class="submit" type="submit">Quiero que me contacten <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           <span class="note">Tus datos llegan directo a nuestro equipo de admisiones.</span>
@@ -256,7 +256,7 @@
 <!-- ASESOR -->
 <section class="sec asesor" id="asesor">
   <div class="wrap">
-    <div class="mileni-fig" aria-hidden="true"><div class="c1"></div><div class="c2"></div><img src="img/mileni.webp" alt=""></div>
+    <div class="mileni-fig" aria-hidden="true"><div class="c1"></div><div class="c2"></div><img class="fig-logo" src="img/asesor-avatar.webp" alt=""></div>
     <div class="txt">
       <span class="eyebrow">Asesor virtual</span>
       <h2 class="h2">¿Dudas? Pregúntale a <span>Mileni</span></h2>
@@ -268,7 +268,7 @@
       </div>
     </div>
     <div class="preview">
-      <div class="ph"><img src="img/mileni-avatar.webp" alt="" style="width:52px;height:52px;border-radius:50%;background:#EAF6FB;border:2px solid var(--lime)"><div style="display:flex;flex-direction:column;gap:2px"><b>Mileni · Asesor virtual U3M</b><span style="font-size:13px;color:var(--lime)">● En línea</span></div></div>
+      <div class="ph"><img src="img/asesor-avatar.webp" alt="" style="width:52px;height:52px;border-radius:50%;background:#EAF6FB;border:2px solid var(--lime)"><div style="display:flex;flex-direction:column;gap:2px"><b>Mileni · Asesor virtual U3M</b><span style="font-size:13px;color:var(--lime)">● En línea</span></div></div>
       <div class="pb">
         <div class="msg me">¿Cuánto pagaría en Diseño Gráfico si tengo 9.2 de promedio?</div>
         <div class="msg ai">Te comparto la referencia; recuerda que toda beca la autoriza tu asesor. Con 9.2 aplicarías a <b>40% de beca</b>: tu colegiatura quedaría en <b>$2,433 al mes</b> en lugar de $4,055. ¿Quieres que un asesor te escriba para confirmarla?</div>
@@ -297,7 +297,7 @@
       </div>
     </div>
     <iframe class="map" title="Mapa del campus U3M" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Blvd.%20Manuel%20%C3%81vila%20Camacho%203855%2C%20Costa%20Verde%2C%20Boca%20del%20R%C3%ADo%2C%20Veracruz&z=16&output=embed"></iframe>
-    <div class="bottom"><span>© 2026 Universidad Tercer Milenio · Boca del Río, Ver.</span><span>Aviso de privacidad · Todas nuestras carreras cuentan con RVOE de la SEP</span></div>
+    <div class="bottom"><span>© 2026 Universidad Tercer Milenio · Boca del Río, Ver.</span><span><a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:3px">Aviso de privacidad</a> · Todas nuestras carreras cuentan con RVOE de la SEP</span></div>
   </div>
 </footer>
 </div>
@@ -320,13 +320,13 @@
     <div class="qs"><button type="button" data-ask="¿Qué carreras tienen?">Carreras</button><button type="button" data-ask="¿Cómo funcionan las becas?">Becas</button><button type="button" data-ask="¿Cuáles son los requisitos de inscripción?">Requisitos</button></div>
   </div>
   <button class="mileni-btn" type="button" data-open-chat aria-label="Abrir chat con Mileni, asesor virtual">
-    <span class="clip"><span class="disc"></span><img src="img/mileni.webp" alt=""></span><span class="dot"></span>
+    <span class="clip"><span class="disc"></span><img class="logo-av" src="img/asesor-avatar.webp" alt=""></span><span class="dot"></span>
   </button>
 </div>
 
 <section class="chat" id="chat" aria-label="Chat con Mileni">
   <div class="ch">
-    <img src="img/mileni-avatar.webp" alt="">
+    <img src="img/asesor-avatar.webp" alt="">
     <div class="who"><b>Mileni · Asesor virtual U3M</b><span id="chat-status">● En línea</span></div>
     <button type="button" id="chat-close" aria-label="Cerrar chat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   </div>
@@ -345,7 +345,7 @@
   <div class="voice" id="voice" hidden>
     <div class="orb" id="orb">
       <span class="ring r3"></span><span class="ring r2"></span><span class="ring r1"></span>
-      <img src="img/mileni-avatar.webp" alt="">
+      <img src="img/asesor-avatar.webp" alt="">
     </div>
     <p class="v-status" id="v-status" role="status">Conectando…</p>
     <div class="v-actions">
@@ -362,7 +362,7 @@
 
 <script src="data.js?v=20260929h"></script>
 <script src="crm.js?v=20261016"></script>
-<script src="app.js?v=20261016"></script>
-<script type="module" src="mileni.js?v=20261016b"></script>
+<script src="app.js?v=20261016r"></script>
+<script type="module" src="mileni.js?v=20261016r"></script>
 </body>
 </html>

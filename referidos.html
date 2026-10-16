@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css?v=20260929h">
+<link rel="stylesheet" href="landing.css?v=20261016r">
 <style>
 .big500{display:flex;align-items:flex-end;gap:14px;margin-top:10px}
 .big500 b{font-family:var(--display);font-stretch:120%;font-weight:900;font-size:clamp(72px,18vw,120px);line-height:.85;letter-spacing:-3px;color:var(--lime)}
@@ -65,7 +65,7 @@
         <div id="friends" style="display:flex;flex-direction:column;gap:12px"></div>
         <button class="add" type="button" id="add">+ Agregar otro amigo</button>
         <datalist id="carreras-list"></datalist>
-        <label class="check"><input type="checkbox" id="y-ok"><span>Confirmo que mis amigos están de acuerdo en que U3M los contacte por WhatsApp y acepto el <a href="#" onclick="return false">aviso de privacidad</a>.</span></label>
+        <label class="check"><input type="checkbox" id="y-ok"><span>Confirmo que mis amigos están de acuerdo en que U3M los contacte por WhatsApp y acepto el <a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</span></label>
         <p id="y-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
         <button class="cta-big" type="submit">REGISTRAR A MIS REFERIDOS</button>
         <span class="micro">Registro en menos de 1 minuto</span>
@@ -75,7 +75,7 @@
     </section>
 
     <section class="screen" id="s-ok">
-      <div class="done-top"><img src="img/mileni-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">REFERIDOS REGISTRADOS</span><h2 class="q-title" style="margin:6px 0 0" id="ok-title">¡Listo!</h2></div></div>
+      <div class="done-top"><img src="img/asesor-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">REFERIDOS REGISTRADOS</span><h2 class="q-title" style="margin:6px 0 0" id="ok-title">¡Listo!</h2></div></div>
       <div class="wa-card">
         <span style="font-size:13px;font-weight:700;color:var(--gray)">TU FOLIO</span>
         <span class="folio" id="folio"></span>
