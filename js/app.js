@@ -18,6 +18,7 @@
   function aplicarIdioma() {
     document.documentElement.lang = lang;
     $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
+    if (typeof moverPulgar === 'function') setTimeout(moverPulgar, 30);
     pintarTablero(); pintarCatalogo(); pintarDatos();
   }
 
@@ -64,12 +65,33 @@
       if (otraVez) { otraVez = false; dibujar(); }
     });
   }
+  var ORDEN_VISTA = { front: 0, back: 1, manga: 2 };
+  var antes = $('#lienzo-antes'), transicion = 0;
+  function moverPulgar() {
+    var b = $('.vista.on'), p = $('#vistas-pulgar');
+    if (!b || !p) return;
+    p.style.width = b.offsetWidth + 'px';
+    p.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+  }
+  window.addEventListener('resize', moverPulgar);
   function cambiarVista(v) {
     if (v === S.vista) return;
+    var desde = S.vista;
     S.vista = v;
-    $$('.vista').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-vista') === v); b.setAttribute('aria-selected', b.getAttribute('data-vista') === v ? 'true' : 'false'); });
-    lienzo.classList.add('voltea');
-    setTimeout(function () { Kit.render(lienzo, S.d, S.vista).then(function () { lienzo.classList.remove('voltea'); }); }, 190);
+    $$('.vista').forEach(function (b) { var on = b.getAttribute('data-vista') === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    moverPulgar();
+    // la vista anterior se queda en una copia y se desvanece mientras entra la nueva
+    var g = antes.getContext('2d'); g.clearRect(0, 0, antes.width, antes.height); g.drawImage(lienzo, 0, 0);
+    var tipo = (v === 'manga' || desde === 'manga') ? 'zoom' : 'lado';
+    var dir = ORDEN_VISTA[v] > ORDEN_VISTA[desde] ? 1 : -1;
+    var mio = ++transicion;
+    Kit.render(lienzo, S.d, S.vista).then(function () {
+      if (mio !== transicion) return;
+      var wrap = $('#lienzo-wrap');
+      wrap.classList.remove('tr-lado', 'tr-zoom', 'tr-izq', 'tr-der', 'tr-sale', 'tr-ok'); void wrap.offsetWidth;
+      wrap.classList.add('tr-' + tipo, dir > 0 ? 'tr-der' : 'tr-izq', 'tr-sale');
+      requestAnimationFrame(function () { requestAnimationFrame(function () { wrap.classList.add('tr-ok'); }); });
+    });
   }
   $$('.vista').forEach(function (b) { b.addEventListener('click', function () { cambiarVista(b.getAttribute('data-vista')); }); });
   function verVistaDe(paso) {
@@ -315,9 +337,12 @@
     var lista = pasos();
     S.paso = Math.max(0, Math.min(lista.length - 1, i));
     pintarTablero(); verVistaDe(lista[S.paso]); guardarBorrador();
-    if (window.innerWidth <= 980) {
-      var e = $('#estudio').getBoundingClientRect().top + window.scrollY - 76;
-      if (Math.abs(window.scrollY - e) > 40) window.scrollTo({ top: Math.max(0, e), behavior: 'smooth' });
+    // solo se mueve si el uniforme quedó fuera de la vista, para no marear
+    var esc_ = $('#escenario').getBoundingClientRect();
+    if (esc_.bottom < 80) {
+      var cont = $('#probador').hidden ? null : $('#probador-cuerpo');
+      if (cont) cont.scrollTo({ top: 0, behavior: 'smooth' });
+      else window.scrollTo({ top: Math.max(0, esc_.top + window.scrollY - 76), behavior: 'smooth' });
     }
   }
   function enlazarComunes() {
@@ -791,7 +816,6 @@
     document.documentElement.style.overflow = 'hidden';
     var fin = false;
     function terminar() { if (fin) return; fin = true; document.documentElement.style.overflow = ''; el.remove(); }
-    $('#intro-saltar').addEventListener('click', terminar);
     setTimeout(terminar, 3400);
   }
   function lluviaDePremios(cont, n) {
@@ -811,7 +835,7 @@
     lluviaDePremios($('#fiesta-fx'), 46);
     setTimeout(function () { $('#fiesta-wa').focus(); }, 900);
   }
-  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; reiniciar(); });
+  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; cerrarProbador(); reiniciar(); });
 
   /* ---------- catálogo de la página ---------- */
   var filtro = 'todos';
@@ -845,10 +869,7 @@
     $$('[data-cat]', lista).forEach(function (b) {
       b.addEventListener('click', function () {
         var u = todos.filter(function (x) { return x.id === b.getAttribute('data-cat'); })[0];
-        if (!u) return;
-        S.modo = 'catalogo'; usarBase(u); S.paso = 0;
-        pintarTablero(); dibujar(); cambiarVista('front'); guardarBorrador();
-        $('#crear').scrollIntoView({ behavior: 'smooth' });
+        if (u) abrirProbador(u, b);
       });
     });
   }
@@ -878,11 +899,39 @@
     $$('[data-casa]', cont).forEach(function (b) {
       b.addEventListener('click', function () {
         var u = lista.filter(function (x) { return x.id === b.getAttribute('data-casa'); })[0];
-        S.modo = 'catalogo'; usarBase(u); S.paso = 0; pintarTablero(); dibujar(); cambiarVista('front'); guardarBorrador();
-        $('#crear').scrollIntoView({ behavior: 'smooth' });
+        if (u) abrirProbador(u, b);
       });
     });
   }
+
+  /* ---------- probador: el creador se abre encima, la página no se mueve ---------- */
+  var estudio = $('#estudio'), lugarEstudio = estudio.parentNode, probador = $('#probador'), hueco = document.createElement('div');
+  var ancla = null;
+  function abrirProbador(u, el) {
+    // se recuerda dónde estaba en pantalla lo que tocaste, para volver exactamente ahí
+    ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
+    S.modo = 'catalogo'; usarBase(u);
+    S.paso = Math.min(1, pasos().length - 1);
+    // se deja reservado el espacio del creador para que la página no se mueva
+    hueco.style.height = estudio.offsetHeight + 'px'; lugarEstudio.insertBefore(hueco, estudio);
+    $('#probador-cuerpo').appendChild(estudio);
+    probador.hidden = false; document.documentElement.classList.add('fijo');
+    $('#probador-cuerpo').scrollTop = 0;
+    pintarTablero(); verVistaDe(pasos()[S.paso]); dibujar(); guardarBorrador();
+  }
+  function cerrarProbador() {
+    if (probador.hidden) return;
+    var y = window.scrollY, alto0 = hueco.offsetHeight;
+    lugarEstudio.insertBefore(estudio, hueco); hueco.remove();
+    probador.hidden = true; document.documentElement.classList.remove('fijo');
+    // vuelves a ver exactamente lo mismo que antes de abrir
+    if (ancla && document.body.contains(ancla.el)) window.scrollTo({ top: window.scrollY + ancla.el.getBoundingClientRect().top - ancla.top, behavior: 'instant' });
+    else window.scrollTo({ top: y + (estudio.offsetHeight - alto0), behavior: 'instant' });
+    dibujar();
+  }
+  $('#probador-x').addEventListener('click', cerrarProbador);
+  probador.addEventListener('click', function (e) { if (e.target === probador) cerrarProbador(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarProbador(); });
 
   /* ---------- folio compartido ---------- */
   function abrirFolio(id, k) {
@@ -960,12 +1009,13 @@
   ['gesturestart', 'gesturechange'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
   document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   function iniciar() {
-    $('#marca-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
+    $('#marca-logo').insertAdjacentHTML('afterbegin', logoSVG('#1F2E7A', '#FFFFFF'));
     $('#muro-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
     intro();
     cargarBorrador();
     if (!S.modo) vitrina();
-    aplicarIdioma(); dibujar();
+    aplicarIdioma(); dibujar(); setTimeout(moverPulgar, 60);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(moverPulgar);
     cargarTienda().then(function () {
       if (!S.modo) vitrina();
       pintarCatalogo(); pintarDatos(); pintarTablero(); dibujar();

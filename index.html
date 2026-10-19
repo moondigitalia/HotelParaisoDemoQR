@@ -14,7 +14,7 @@
 <link rel="preload" href="/fonts/saira-extra-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/schibsted-grotesk-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=3">
+<link rel="stylesheet" href="/css/app.css?v=5">
 </head>
 <body>
 
@@ -27,15 +27,14 @@
     <div class="intro-lema" data-t="intro_lema">La tienda de las estrellas</div>
   </div>
   <div class="intro-cortina"></div>
-  <button class="intro-saltar" id="intro-saltar" type="button" data-t="saltar">Saltar</button>
 </div>
 
 <header class="top">
   <div class="wrap top-in">
-    <a class="marca" href="#crear" aria-label="Deportes M Sport">
-      <span class="marca-logo" id="marca-logo"></span>
+    <div class="marca" id="marca" role="img" aria-label="Deportes M Sport">
+      <span class="marca-logo" id="marca-logo"><svg class="anillo" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22"/></svg></span>
       <span class="marca-txt"><b>Deportes</b><i>M Sport</i></span>
-    </a>
+    </div>
     <nav class="menu" aria-label="Secciones">
       <a href="#crear" data-t="nav_crear">Arma tu uniforme</a>
       <a href="#catalogo" data-t="nav_cat">Catálogo</a>
@@ -60,13 +59,15 @@
 
       <div class="estudio" id="estudio">
         <div class="escenario" id="escenario">
-          <div class="lienzo-wrap" id="lienzo-wrap">
-            <canvas id="lienzo" width="1000" height="1500" aria-label="Vista del uniforme" role="img"></canvas>
-          </div>
           <div class="vistas" role="tablist" aria-label="Vista">
-            <button type="button" class="vista on" data-vista="front" data-t="v_frente">Frente</button>
-            <button type="button" class="vista" data-vista="back" data-t="v_espalda">Espalda</button>
-            <button type="button" class="vista" data-vista="manga" data-t="v_manga">Manga</button>
+            <span class="vistas-pulgar" id="vistas-pulgar" aria-hidden="true"></span>
+            <button type="button" class="vista on" data-vista="front" data-t="v_frente" role="tab" aria-selected="true">Frente</button>
+            <button type="button" class="vista" data-vista="back" data-t="v_espalda" role="tab" aria-selected="false">Espalda</button>
+            <button type="button" class="vista" data-vista="manga" data-t="v_manga" role="tab" aria-selected="false">Manga</button>
+          </div>
+          <div class="lienzo-wrap" id="lienzo-wrap">
+            <canvas id="lienzo-antes" width="1000" height="1500" aria-hidden="true"></canvas>
+            <canvas id="lienzo" width="1000" height="1500" aria-label="Vista del uniforme" role="img"></canvas>
           </div>
         </div>
 
@@ -143,7 +144,6 @@
 <footer class="pie">
   <div class="wrap pie-in">
     <span data-t="pie">Página hecha por MOON Digital</span>
-    <button type="button" class="pie-dueno" id="abrir-panel" data-t="soy_dueno">Soy el dueño</button>
   </div>
 </footer>
 
@@ -174,13 +174,21 @@
   </div>
 </div>
 
+<!-- Probador: el creador se abre encima de la página sin moverla -->
+<div class="probador" id="probador" hidden>
+  <div class="probador-card" role="dialog" aria-modal="true" aria-label="Arma tu uniforme">
+    <button type="button" class="capa-x probador-x" id="probador-x" aria-label="Cerrar">×</button>
+    <div class="probador-cuerpo" id="probador-cuerpo"></div>
+  </div>
+</div>
+
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=3"></script>
-<script src="/js/kit.js?v=3"></script>
-<script src="/js/catalogo-base.js?v=3"></script>
-<script src="/js/app.js?v=3"></script>
-<script src="/js/panel.js?v=3" defer></script>
+<script src="/js/i18n.js?v=5"></script>
+<script src="/js/kit.js?v=5"></script>
+<script src="/js/catalogo-base.js?v=5"></script>
+<script src="/js/app.js?v=5"></script>
+<script src="/js/panel.js?v=5" defer></script>
 </body>
 </html>

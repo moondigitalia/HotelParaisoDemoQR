@@ -287,7 +287,18 @@
     $$('[data-recupera]', panel).forEach(function (b) { b.addEventListener('click', function () { var u = porId(b.getAttribute('data-recupera')); delete u.borrado; pintar(); guardarCatalogo('Recuperado'); }); });
   }
 
-  $('#abrir-panel').addEventListener('click', abrir);
+  // Entrada del dueño: mantener presionado el logo 2 segundos. No es un enlace, así que el iPhone
+  // no ofrece abrirlo en otra pestaña ni muestra vista previa.
+  var marca = $('#marca'), reloj = 0;
+  function soltarMarca() { clearTimeout(reloj); marca.classList.remove('cargando'); }
+  marca.addEventListener('pointerdown', function (e) {
+    if (e.button && e.button !== 0) return;
+    marca.classList.add('cargando');
+    reloj = setTimeout(function () { soltarMarca(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { marca.addEventListener(ev, soltarMarca); });
+  marca.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  marca.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   if (location.hash === '#panel') abrir();
   window.addEventListener('hashchange', function () { if (location.hash === '#panel') abrir(); });
 })();
