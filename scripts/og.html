@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/css/fonts.css"><link rel="stylesheet" href="/css/app.css">
+<style>body{margin:0;width:1200px;height:630px;overflow:hidden;background:radial-gradient(60% 80% at 75% 50%,#22307A,#0A1033 70%)}
+.t{position:absolute;left:70px;top:120px;width:620px}.t h1{font-size:92px}.t p{color:#FFC61A;font:700 22px var(--body);letter-spacing:.2em;text-transform:uppercase;margin:0 0 18px}
+.lg{position:absolute;left:70px;top:470px;display:flex;align-items:center;gap:16px}.lg span{width:84px;height:84px;display:block}.lg i{font:400 52px Yellowtail;color:#FFC61A}
+canvas{position:absolute;right:60px;top:10px;height:610px}#fav{position:absolute;left:0;top:0;width:180px;height:180px;background:#0A1033;display:none;place-items:center}#fav span{width:150px;height:150px}</style></head><body>
+<div class="t"><p>Deportes M Sport · Cancún</p><h1>Arma tu uniforme</h1></div><div class="lg"><span id="l"></span><i>M Sport</i></div>
+<canvas id="c" width="1000" height="1500"></canvas><div id="fav"><span id="l2"></span></div>
+<script src="/js/i18n.js"></script><script src="/js/kit.js"></script><script src="/js/catalogo-base.js"></script>
+<script>
+var d=JSON.parse(JSON.stringify(CATALOGO_BASE[0].diseno));d.nombre='M SPORT';d.numero='10';
+Kit.render(document.getElementById('c'),d,'back').then(function(){document.title='listo'});
+</script></body></html>

@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="../css/fonts.css" rel="stylesheet">
+<style>body{margin:0;background:#0E1640;display:flex;gap:10px;flex-wrap:wrap}canvas{width:400px;height:600px;background:#1a2560}</style></head><body>
+<canvas id="a" width="1000" height="1500"></canvas><canvas id="b" width="1000" height="1500"></canvas><canvas id="c" width="1000" height="1500"></canvas><canvas id="e" width="1000" height="1500"></canvas>
+<script src="../js/kit.js"></script>
+<script>
+var lila={manga:'corta',relleno:{tipo:'img',src:'../assets/tela-lila.jpg'},costados:'#8B7BE0',cuello:'#FFFFFF',short:{color:'#FFFFFF'},logos:[{src:'../assets/aluxes-negro.png',pos:'pecho-izq'}],patrocinadores:['../assets/boulder-blanco.png','../assets/porfirio-blanco.png','../assets/moon-blanco.png'],nombre:'Juanpy',numero:'69',colorTexto:'#111111',numeroShort:true,sello:true,colorPatrocinadores:'#2E2763'};
+var negro={manga:'larga',relleno:{tipo:'color',color:'#141414'},cuello:'#141414',short:{color:'#141414'},logos:[{src:'../assets/aluxes-blanco.png',pos:'pecho-izq'}],patrocinadores:['../assets/boulder-blanco.png','../assets/porfirio-blanco.png','../assets/moon-blanco.png'],nombre:'Kidviniflo',numero:'619',colorTexto:'#FFFFFF',sello:true};
+document.fonts.ready.then(function(){
+Promise.all([Kit.render(a,lila,'front'),Kit.render(b,lila,'back'),Kit.render(c,negro,'front'),Kit.render(e,negro,'back')]).then(function(){document.title='ok'});});
+</script></body></html>

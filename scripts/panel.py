@@ -1,0 +1,27 @@
+from playwright.sync_api import sync_playwright
+U='/mnt/user-data/uploads/'
+out='/tmp/claude-0/p'
+with sync_playwright() as p:
+    b=p.chromium.launch()
+    pg=b.new_context(viewport={'width':1280,'height':900}, locale='es-MX').new_page()
+    errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto('http://localhost:5055/#panel'); pg.wait_for_timeout(1200)
+    pg.fill('#pn-codigo','0000'); pg.click('#pn-pin button'); pg.wait_for_timeout(800)
+    pg.screenshot(path=out+'-0.png')
+    pg.fill('#pn-codigo','4719'); pg.click('#pn-pin button'); pg.wait_for_timeout(1200)
+    pg.screenshot(path=out+'-1.png')
+    pg.click('[data-tab="uniformes"]'); pg.wait_for_timeout(900)
+    pg.screenshot(path=out+'-2.png')
+    pg.click('[data-nuevo]'); pg.wait_for_timeout(500)
+    pg.fill('#ed-nombre','Kidviniflo Olas')
+    pg.set_input_files('[data-foto="frente"]', U+'1792450375543_image.png'); pg.wait_for_timeout(2500)
+    pg.set_input_files('[data-foto="espalda"]', U+'1792450375543_image.png'); pg.wait_for_timeout(2500)
+    pg.screenshot(path=out+'-3.png')
+    pg.click('[data-publicar]'); pg.wait_for_timeout(1500)
+    pg.click('[data-tab="folios"]'); pg.wait_for_timeout(600)
+    pg.click('[data-folio="0"]'); pg.wait_for_timeout(1200); print(pg.inner_text('.pn-cuerpo')[:200])
+    pg.click('[data-est="cotizado"]'); pg.wait_for_timeout(800)
+    pg.screenshot(path=out+'-4.png')
+    pg.click('[data-tab="datos"]'); pg.wait_for_timeout(500)
+    pg.screenshot(path=out+'-5.png')
+    print('ERRS', errs); b.close()

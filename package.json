@@ -1,0 +1,10 @@
+{
+  "name": "m-sport-demo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Página y creador de uniformes de Deportes M Sport — MOON Digital",
+  "dependencies": {
+    "@vercel/blob": "2.8.0"
+  },
+  "engines": { "node": "22.x" }
+}
