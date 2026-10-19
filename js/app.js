@@ -315,7 +315,10 @@
     var lista = pasos();
     S.paso = Math.max(0, Math.min(lista.length - 1, i));
     pintarTablero(); verVistaDe(lista[S.paso]); guardarBorrador();
-    if (window.innerWidth <= 980) { var t = tablero.getBoundingClientRect().top + window.scrollY - (window.innerHeight * 0.48); if (window.scrollY > t + 10) window.scrollTo({ top: Math.max(0, t), behavior: 'smooth' }); }
+    if (window.innerWidth <= 980) {
+      var e = $('#estudio').getBoundingClientRect().top + window.scrollY - 76;
+      if (Math.abs(window.scrollY - e) > 40) window.scrollTo({ top: Math.max(0, e), behavior: 'smooth' });
+    }
   }
   function enlazarComunes() {
     $$('[data-nav]', tablero).forEach(function (b) {
@@ -831,7 +834,7 @@
     var cats = []; todos.forEach(function (u) { if (u.categoria && cats.indexOf(u.categoria) < 0) cats.push(u.categoria); });
     var orden = TIENDA.config.categorias || [];
     cats.sort(function (a, b) { return (orden.indexOf(a) + 1 || 99) - (orden.indexOf(b) + 1 || 99); });
-    fil.innerHTML = ['todos'].concat(cats).map(function (c) { return '<button type="button" class="chip' + (filtro === c ? ' on' : '') + '" data-filtro="' + esc(c) + '">' + esc(c === 'todos' ? T('nav_cat') : c) + '</button>'; }).join('');
+    fil.innerHTML = ['todos'].concat(cats).map(function (c) { return '<button type="button" class="chip' + (filtro === c ? ' on' : '') + '" data-filtro="' + esc(c) + '">' + esc(c === 'todos' ? T('todos') : c) + '</button>'; }).join('');
     var vis = todos.filter(function (u) { return filtro === 'todos' || u.categoria === filtro; });
     var obs = observar();
     lista.innerHTML = vis.map(function (u) {
@@ -851,12 +854,34 @@
   }
   function pintarDatos() {
     var c = TIENDA.config;
+    var hp = $('#historia-p'); if (hp) hp.textContent = c.historia || T('hist_p');
+    var cal = $('#cifra-cal'); if (cal) cal.textContent = c.calificacion || '4.3';
+    var op = $('#cifra-op'); if (op) op.textContent = (c.opiniones ? c.opiniones + ' ' : '') + T('hist_op');
+    pintarEquiposCasa();
     var dir = $('#dato-dir'), hor = $('#dato-hor');
     if (dir) dir.textContent = c.direccion || '';
     if (hor) hor.textContent = c.horario || '';
     var saludo = waLink('Hola M Sport, quiero información de uniformes.');
     $('#wa-top').href = saludo; $('#wa-visita').href = saludo;
     $('#mapa').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Deportes M Sport ' + (c.direccion || 'Cancún'));
+  }
+
+  function pintarEquiposCasa() {
+    var cont = $('#eq-casa'); if (!cont) return;
+    var lista = catalogoVisible().filter(function (u) { return u.destacado; }).slice(0, 4);
+    if (!lista.length) lista = catalogoVisible().slice(0, 2);
+    cont.innerHTML = lista.map(function (u) {
+      return '<button type="button" class="eq-casa-item" data-casa="' + esc(u.id) + '"><span class="cv"><canvas width="360" height="540" data-cc="' + esc(u.id) + '"></canvas></span><b>' + esc(u.nombre) + '</b><small>' + esc(T('eq_ver')) + ' →</small></button>';
+    }).join('');
+    var obs = observar();
+    $$('canvas[data-cc]', cont).forEach(function (c) { obs(c, c.getAttribute('data-cc')); });
+    $$('[data-casa]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var u = lista.filter(function (x) { return x.id === b.getAttribute('data-casa'); })[0];
+        S.modo = 'catalogo'; usarBase(u); S.paso = 0; pintarTablero(); dibujar(); cambiarVista('front'); guardarBorrador();
+        $('#crear').scrollIntoView({ behavior: 'smooth' });
+      });
+    });
   }
 
   /* ---------- folio compartido ---------- */
@@ -931,6 +956,9 @@
     S.d = !u ? clone(DISENO_LIBRE) : u.tipo === 'foto' ? { foto: clone(u.foto), colorTexto: u.colorTexto } : clone(u.diseno);
     S.d.nombre = 'M SPORT'; S.d.numero = '10';
   }
+  // pantalla fija: sin acercar ni alejar con los dedos (iPhone ignora la etiqueta del navegador)
+  ['gesturestart', 'gesturechange'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
+  document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   function iniciar() {
     $('#marca-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
     $('#muro-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');

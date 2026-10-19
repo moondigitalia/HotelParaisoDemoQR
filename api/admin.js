@@ -71,6 +71,9 @@ module.exports = async (req, res) => {
       horario: String(c.horario || '').slice(0, 140),
       direccion: String(c.direccion || '').slice(0, 140),
       lema: String(c.lema || '').slice(0, 60),
+      historia: String(c.historia || '').slice(0, 900),
+      calificacion: String(c.calificacion || '').replace(/[^0-9.]/g, '').slice(0, 3),
+      opiniones: String(c.opiniones || '').replace(/\D/g, '').slice(0, 6),
       tallas: (Array.isArray(c.tallas) ? c.tallas : []).map((t) => String(t).slice(0, 12)).filter(Boolean).slice(0, 30),
       categorias: (Array.isArray(c.categorias) ? c.categorias : []).map((t) => String(t).slice(0, 40)).filter(Boolean).slice(0, 20)
     };
