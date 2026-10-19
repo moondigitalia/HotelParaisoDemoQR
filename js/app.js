@@ -340,8 +340,8 @@
     });
   }
   function reiniciar() {
-    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {};
-    pintarTablero(); cambiarVista('front'); dibujar(); guardarBorrador();
+    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.fuente = null;
+    vitrina(); pintarTablero(); cambiarVista('front'); dibujar(); store.set('borrador', null);
   }
 
   function vistaInicio() {
@@ -745,6 +745,8 @@
       guardando = false;
       var link = location.origin + '/?folio=' + j.id + '&k=' + j.clave;
       store.set('ultimoFolio', { id: j.id, link: link });
+      // el diseño ya vive en su folio: la siguiente visita empieza limpia
+      store.set('borrador', null);
       celebrar(j.id, link);
       btn.disabled = false; btn.textContent = T('cotizar');
     }).catch(function () {
@@ -806,7 +808,7 @@
     lluviaDePremios($('#fiesta-fx'), 46);
     setTimeout(function () { $('#fiesta-wa').focus(); }, 900);
   }
-  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; });
+  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; reiniciar(); });
 
   /* ---------- catálogo de la página ---------- */
   var filtro = 'todos';
@@ -904,7 +906,7 @@
   }
   function cargarBorrador() {
     var b = store.get('borrador');
-    if (!b || !b.d) return;
+    if (!b || !b.d || !b.modo) return;
     S.modo = b.modo; S.paso = b.paso || 0; S.baseId = b.baseId; S.d = b.d; S.esEquipo = !!b.esEquipo; S.nombreEquipo = b.nombreEquipo || ''; S.jugadores = b.jugadores || [];
   }
 
