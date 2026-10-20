@@ -58,9 +58,12 @@ async function tagId(name) {
 
 // Busca si la persona ya existe: 1) por teléfono principal; 2) por nombre + teléfono guardado en el campo personalizado
 async function buscar(tel, nombre) {
-  const p = await esc('/contacts?phoneNumber=52' + tel + '&size=5', 'GET');
-  const porTel = (p.data.items || [])[0];
-  if (porTel) return porTel;
+  // Escala solo encuentra el número escrito igualito: probamos las 3 formas en que la escuela lo guarda
+  for (const v of ['52' + tel, tel, '521' + tel]) {
+    const p = await esc('/contacts?phoneNumber=' + v + '&size=5', 'GET');
+    const porTel = (p.data.items || [])[0];
+    if (porTel) return porTel;
+  }
   if (!nombre) return null;
   const n = await esc('/contacts?text=' + encodeURIComponent(nombre) + '&size=50', 'GET');
   return (n.data.items || []).find((c) => {
