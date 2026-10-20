@@ -95,7 +95,7 @@
         '<span class="bot"><span>RVOE ' + c.rvoe + '</span><span>Plan de estudios →</span></span></button>';
     }).join('');
     if (state.area === 'todas' && state.dur === 'all') {
-      h += '<a class="card cta" href="radar" style="text-decoration:none"><span class="area">¿AÚN NO DECIDES?</span><span class="name">Haz el Radar de Carrera: 6 preguntas, menos de 3 minutos</span><span class="go">Descubrir mis rutas →</span></a>';
+      h += '<a class="card cta" href="radar" style="text-decoration:none"><span class="area">¿AÚN NO DECIDES?</span><span class="name">Haz el Radar de Carrera: 7 preguntas, menos de 3 minutos</span><span class="go">Descubrir mis rutas →</span></a>';
     }
     cards.innerHTML = h;
   }

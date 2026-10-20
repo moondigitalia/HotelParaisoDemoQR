@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Radar de Carrera U3M · Descubre tus rutas en 3 minutos</title>
-<meta name="description" content="6 preguntas, menos de 3 minutos, y tu resultado al instante. Descubre qué rutas profesionales vale la pena explorar según lo que te gusta y cómo te imaginas trabajando.">
+<meta name="description" content="7 preguntas, menos de 3 minutos, y tu resultado al instante. Descubre qué rutas profesionales vale la pena explorar según lo que te gusta y cómo te imaginas trabajando.">
 <meta name="theme-color" content="#12233B">
 <link rel="icon" href="favicon.png?v=u3m3">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=u3m2">
@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css?v=20261016m">
+<link rel="stylesheet" href="landing.css?v=20261020">
 </head>
 <body>
 <div class="rd">
@@ -24,13 +24,20 @@
 
     <!-- 1 · Inicio -->
     <section class="screen on" id="s-ini">
-      <h1 class="big-stat"><span class="n">4 de cada 10</span> jóvenes en México <span>se equivocan al elegir carrera.</span></h1>
+      <h1 class="big-stat"><span class="n">4 de cada 10</span> jóvenes en México eligen mal su carrera.</h1>
       <p class="stat-src">Fuente: Observatorio Laboral de México, con base en estimaciones del IIPCS.</p>
-      <p class="promise">En menos de 3 minutos, descubre 2 o 3 rutas profesionales que vale la pena explorar antes de tomar una decisión.</p>
-      <button class="cta-big" type="button" id="go">DESCUBRIR MIS RUTAS <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      <span class="micro on-dark">6 preguntas · Menos de 3 minutos · Tu resultado al instante</span>
-      <div class="box-note"><b>No elijas una carrera sólo porque "suena bien".</b> Tu Radar te ayuda a explorar opciones según lo que te gusta, los problemas que disfrutas resolver y cómo te imaginas trabajando.</div>
-      <p class="src">Desarrollado con base en el modelo RIASEC de Holland y en el O*NET Interest Profiler del Departamento de Trabajo de EE. UU., referentes internacionales para explorar intereses vocacionales.</p>
+      <h2 class="sub-h2">Descubre qué carreras <span>van mejor contigo.</span></h2>
+      <p class="promise">En menos de 3 minutos, explora opciones según lo que te gusta y cómo te imaginas trabajando.</p>
+      <button class="cta-big" type="button" id="go">DESCUBRIR MIS CARRERAS <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      <ul class="facts">
+        <li><svg class="ico-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM8.5 11.5h7M8.5 15h7M8.5 18h4"/></svg><span>7 preguntas</span></li>
+        <li><svg class="ico-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4M18.5 6.5l1.5-1.5"/></svg><span>Menos de<br>3 minutos</span></li>
+        <li><svg class="ico-l" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-5M10 20V11M15 20V7M20 20V3"/></svg><span>Tu resultado<br>al instante</span></li>
+      </ul>
+      <div class="box-note comp">
+        <svg class="comp-ico" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="22" cy="27" r="16"/><path d="m28 21-4 9-8 3 4-9z"/><path d="M33 6l3-5M38 9l-2 2M29 4v2"/></svg>
+        <div><b>No elijas una carrera sólo porque "suena bien".</b><span>Hay opciones que quizá todavía no conoces. <em>¡Descúbrelas!</em></span></div>
+      </div>
     </section>
 
     <!-- 2 · Preguntas -->
@@ -104,7 +111,7 @@
   </main>
 </div>
 
-<div class="busca" id="busca" aria-hidden="true"><div class="busca-lema"><small>RADAR DE CARRERA</small>Vamos a descubrir<br>tus rutas</div></div>
+<div class="busca" id="busca" aria-hidden="true"><div class="busca-lema"><small>RADAR DE CARRERA</small>¡Vamos a descubrir<br>tus <span>carreras</span>!</div></div>
 
 <script src="data.js"></script>
 <script src="crm.js?v=20261016"></script>
@@ -125,8 +132,10 @@ var Q=[
  ['Si pensaras en tu trabajo ideal, ¿qué te gustaría que tuviera?',['Contacto e impacto en personas','Decisiones y liderazgo','Creatividad y expresión','Análisis, orden y mejora','Proyectos visibles que puedas construir o transformar']],
  ['¿Cuál de estas actividades te aburriría menos?',['Escuchar un caso y entender qué pasa','Organizar un proyecto o vender una idea','Crear contenido, una campaña o una pieza visual','Revisar números, procesos o encontrar errores','Imaginar un espacio, estructura o solución física']],
  ['¿Qué frase se parece más a ti?',['Me gusta ayudar, orientar o defender','Me gusta tomar iniciativa y mover proyectos','Me gusta expresar ideas y crear','Me gusta entender cómo funciona algo y mejorarlo','Me gusta convertir ideas en algo tangible']],
- ['¿En qué entorno te imaginas más fácilmente?',['Personas, escuela, comunidad o atención profesional','Empresa, negocio, ventas o emprendimiento','Medios, marca, contenido o comunicación','Industria, logística, operación, finanzas o tecnología','Diseño, obra, espacios o proyectos constructivos']]
+ ['¿En qué entorno te imaginas más fácilmente?',['Personas, escuela, comunidad o atención profesional','Empresa, negocio, ventas o emprendimiento','Medios, marca, contenido o comunicación','Industria, logística, operación, finanzas o tecnología','Diseño, obra, espacios o proyectos constructivos']],
+ ['Después de responder el Radar, ¿cómo ves la carrera que anotaste al registrarte?',['Sigue siendo mi primera opción','Quiero compararla con otra','Ya no estoy tan seguro','No había anotado ninguna carrera']]
 ];
+var PUNTUAN=6; // la pregunta 7 no suma puntos: solo compara con la carrera que la persona tiene en mente
 var RUTAS={
  A:{n:'Personas e impacto',v:'escuchar, orientar y generar un impacto directo en la vida de otras personas',c:['Psicología','Educación','Derecho y Argumentación Jurídica']},
  B:{n:'Negocios y liderazgo',v:'organizar, tomar decisiones, negociar y mover proyectos',c:['Administración de Empresas','Administración de Empresas Turísticas','Mercadotecnia Estratégica','Comercio y Negocios Internacionales','Contaduría y Auditoría','Ingeniería en Gestión Empresarial']},
@@ -183,7 +192,7 @@ $('#back').addEventListener('click',function(){if(st.i>0){st.i--;renderQ()}});
 function uniq(a){return a.filter(function(x,i){return x&&a.indexOf(x)===i})}
 function calc(){
   var s={A:0,B:0,C:0,D:0,E:0};
-  for(var i=0;i<Q.length;i++){if(st.ans[i]!=null)s[L[st.ans[i]]]++}
+  for(var i=0;i<PUNTUAN;i++){if(st.ans[i]!=null)s[L[st.ans[i]]]++}
   var order=Object.keys(s).sort(function(x,y){return s[y]-s[x]||L.indexOf(x)-L.indexOf(y)});
   var top=order[0],r1=order[1],r2=order[2];
   var car=st.car&&CARRERAS.filter(function(n){return n.toLowerCase()===st.car.toLowerCase()})[0];
@@ -196,7 +205,7 @@ function calc(){
 function texto(R){
   var t='Ruta más fuerte: '+RUTAS[R.top].n+'\nCarrera que más va con su perfil: '+R.main+'\nOtras dos para explorar: '+R.alts.map(function(a){return a.c+' ('+a.r+')'}).join(', ');
   t+='\nSiguientes rutas: '+RUTAS[R.r1].n+' y '+RUTAS[R.r2].n;
-  t+='\nPuntaje por ruta: '+L.split('').map(function(k){return RUTAS[k].n+' '+R.s[k]+'/'+Q.length}).join(' · ');
+  t+='\nPuntaje por ruta: '+L.split('').map(function(k){return RUTAS[k].n+' '+R.s[k]+'/'+PUNTUAN}).join(' · ');
   t+='\n\nSus respuestas:\n'+Q.map(function(q,i){return (i+1)+'. '+q[0]+' → '+q[1][st.ans[i]]}).join('\n');
   return t;
 }
