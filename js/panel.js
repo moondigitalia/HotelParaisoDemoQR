@@ -56,7 +56,9 @@
   }
   function enlazarMarco() { $$('[data-pn-cerrar]', panel).forEach(function (b) { b.addEventListener('click', cerrar); }); }
 
-  function pintar() {
+  // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
+  function pintar(irA) {
+    var pn0 = $('.pn', panel), antes = pn0 ? pn0.scrollTop : 0;
     var nuevos = P.folios.filter(function (f) { return f.estado === 'nuevo'; }).length;
     var vivos = P.catalogo.filter(function (u) { return !u.borrado; });
     var papel = P.catalogo.filter(function (u) { return u.borrado; });
@@ -68,58 +70,115 @@
     if (P.tab === 'papelera') h += vistaPapelera();
     h += '</div>';
     panel.innerHTML = marco(h); enlazarMarco();
-    $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; pintar(); }); });
+    var pn1 = $('.pn', panel); if (pn1) pn1.scrollTop = irA == null ? antes : irA;
+    $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; pintar(0); }); });
     ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
   }
 
-  /* ---------- folios ---------- */
+  /* ---------- folios ----------
+     La lista es de tarjetas que se tocan completas (sin menús adentro que se roben el toque).
+     Al abrir un folio se ve primero lo que importa para cotizar: cuántos uniformes, de qué tallas y cómo es cada uno. */
+  function cuantos(e) { return (e.jugadores && e.jugadores.length) || 1; }
+  function totalDe(f) { return f.equipos.reduce(function (s, e) { return s + cuantos(e); }, 0); }
+  function plural(n, uno, varios) { return n + ' ' + (n === 1 ? uno : varios); }
+  function tallasDe(lista) {
+    var m = {}, orden = (P.config.tallas || []).slice();
+    lista.forEach(function (j) { var t = (j.talla || '').trim() || 'Sin talla'; m[t] = (m[t] || 0) + 1; });
+    return Object.keys(m).sort(function (a, b) { var x = orden.indexOf(a), y = orden.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); })
+      .map(function (t) { return '<span class="pn-talla' + (t === 'Sin talla' ? ' falta' : '') + '"><b>' + esc(t) + '</b> × ' + m[t] + '</span>'; }).join('');
+  }
   function vistaFolios() {
-    if (!P.folios.length) return '<div class="pn-vacio"><h3>Aún no hay folios</h3><p>Cuando un cliente arme su uniforme y toque "Cotízalo conmigo en WhatsApp", aparece aquí con su número.</p></div>';
+    if (!P.folios.length) return '<div class="pn-vacio"><h3>Aún no hay folios</h3><p>Cuando un cliente arme su uniforme y toque "Cotizar por WhatsApp", aparece aquí con su número.</p></div>';
     return '<div class="pn-lista">' + P.folios.map(function (f, i) {
-      var jug = f.equipos.reduce(function (s, e) { return s + (e.jugadores || []).length; }, 0);
-      var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
-      return '<div class="pn-fila"><button type="button" class="pn-ver" data-folio="' + i + '"><img src="' + esc(f.equipos[0].vistas.frente) + '" alt=""><span><b>' + esc(f.id) + '</b><small>' + esc(fecha) + ' · ' + f.equipos.length + (f.equipos.length > 1 ? ' equipos' : ' equipo') + (jug ? ' · ' + jug + ' jugadores' : '') + '</small></span></button>' +
-        '<select class="campo pn-estado" data-estado="' + i + '" aria-label="Estado de ' + esc(f.id) + '">' + ESTADOS.map(function (e) { return '<option value="' + e + '"' + (f.estado === e ? ' selected' : '') + '>' + esc(T('est_' + e)) + '</option>'; }).join('') + '</select></div>';
+      var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }), n = totalDe(f);
+      return '<button type="button" class="pn-folio" data-folio="' + i + '"><img src="' + esc(f.equipos[0].vistas.frente) + '" alt="">' +
+        '<span class="pn-folio-txt"><b>' + esc(f.id) + '</b><span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span><small>' + esc(fecha) + '</small></span>' +
+        '<span class="estado ' + esc(f.estado) + '">' + esc(T('est_' + f.estado)) + '</span></button>';
     }).join('') + '</div>';
   }
-  function cambiarEstado(f, est, sel) {
+  function cambiarEstado(f, est) {
     var antes = f.estado; f.estado = est;
     api('estado', { id: f.id, estado: est }).then(function () { A.toast('Folio ' + f.id + ': ' + T('est_' + est)); })
-      .catch(function () { f.estado = antes; if (sel) sel.value = antes; A.toast('No se guardó. Inténtalo otra vez.'); });
+      .catch(function () { f.estado = antes; A.toast('No se guardó. Inténtalo otra vez.'); pintar(); });
   }
   function enlazarFolios() {
-    $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.detalle = +b.getAttribute('data-folio'); pintar(); }); });
-    $$('[data-estado]', panel).forEach(function (s) { s.addEventListener('change', function () { cambiarEstado(P.folios[+s.getAttribute('data-estado')], s.value, s); }); });
+    $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = +b.getAttribute('data-folio'); pintar(0); }); });
+  }
+  function bolita(c) { return c ? '<i class="pn-bolita" style="background:' + esc(c) + '"></i>' : ''; }
+  var LUGAR = { 'pecho-izq': 'Pecho izquierdo', 'pecho-der': 'Pecho derecho', centro: 'Centro del pecho', espalda: 'Nuca', 'manga-izq': 'Manga izquierda', 'manga-der': 'Manga derecha', pecho: 'Pecho', 'espalda-p': 'Espalda (abajo del número)' };
+  var TAMANO = ['más chico', 'chico', 'normal', 'grande', 'más grande'];
+  function tela(r, delCatalogo) {
+    if (!r) return 'Igual que el frente';
+    if (r.tipo === 'img') return delCatalogo ? 'La del diseño' : 'Foto del cliente';
+    if (r.tipo === 'color') return bolita(r.color) + 'Color liso';
+    return 'Estampado del catálogo';
+  }
+  function comoEs(e) {
+    var d = e.diseno || {}, filas = [];
+    filas.push(['Diseño', esc(e.base || (d.foto ? 'Del catálogo' : 'Armado desde cero'))]);
+    if (!d.foto) {
+      filas.push(['Manga', d.manga === 'larga' ? 'Larga' : 'Corta']);
+      filas.push(['Tela del frente', tela(d.relleno, !!e.base)]);
+      filas.push(['Tela de la espalda', tela(d.rellenoEspalda, !!e.base)]);
+      filas.push(['Cuello', bolita(d.cuello) || '—']);
+      filas.push(['Costados', d.costados ? bolita(d.costados) : 'Sin costados']);
+      var sh = d.short || {};
+      filas.push(['Short', sh.mismo ? 'Igual que la playera' : bolita(sh.color || '#FFFFFF') + 'Color liso']);
+      filas.push(['Número en el short', d.numeroShort ? 'Sí' : 'No']);
+      (d.logos || []).forEach(function (g) { filas.push(['Logo del equipo', esc((LUGAR[g.pos] || g.pos) + ' · ' + TAMANO[g.tam == null ? 2 : g.tam])]); });
+      var ps = A.patros(d);
+      if (ps.length) filas.push(['Patrocinadores', ps.map(function (p, i) { return (i + 1) + '. ' + esc((p.pos === 'espalda' ? LUGAR['espalda-p'] : LUGAR[p.pos] || p.pos) + ' · ' + TAMANO[p.tam]); }).join('<br>')]);
+    }
+    filas.push(['Nombre y número', bolita(d.colorTexto)]);
+    return '<dl class="pn-como">' + filas.map(function (f) { return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>'; }).join('') + '</dl>';
   }
   function vistaDetalle() {
-    var f = P.folios[P.detalle];
-    return '<button type="button" class="link-x" data-volver>← Todos los folios</button>' +
-      '<div class="pn-estados">' + ESTADOS.map(function (e) { return '<button type="button" class="chip' + (f.estado === e ? ' on' : '') + '" data-est="' + e + '">' + esc(T('est_' + e)) + '</button>'; }).join('') + '</div>' +
-      A.folioHTML(f, true);
+    var f = P.folios[P.detalle], n = totalDe(f), todos = [];
+    f.equipos.forEach(function (e) { (e.jugadores && e.jugadores.length ? e.jugadores : [{}]).forEach(function (j) { todos.push(j); }); });
+    var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    var h = '<button type="button" class="link-x" data-volver>← Todos los folios</button>' +
+      '<div class="pn-det-top"><h3 class="pn-h">' + esc(f.id) + '</h3><small>' + esc(fecha) + '</small></div>' +
+      '<div class="pn-resumen"><div class="pn-total"><b>' + n + '</b><span>' + (n === 1 ? 'uniforme' : 'uniformes') + (f.equipos.length > 1 ? '<br>en ' + f.equipos.length + ' equipos' : '') + '</span></div>' +
+      '<div class="pn-tallas"><span class="etq">Tallas</span><div>' + tallasDe(todos) + '</div></div></div>' +
+      '<span class="etq">Estado del pedido</span><div class="pn-estados">' + ESTADOS.map(function (e) { return '<button type="button" class="chip' + (f.estado === e ? ' on' : '') + '" data-est="' + e + '">' + esc(T('est_' + e)) + '</button>'; }).join('') + '</div>';
+    f.equipos.forEach(function (e, i) {
+      var jug = e.jugadores || [];
+      h += '<section class="pn-eq"><h4>' + (f.equipos.length > 1 ? 'Equipo ' + (i + 1) + ': ' : '') + esc(e.nombre) + ' <small>· ' + plural(cuantos(e), 'uniforme', 'uniformes') + '</small></h4>' +
+        '<div class="pn-eq-cuerpo"><div class="pn-vistas"><figure><img src="' + esc(e.vistas.frente) + '" alt="Frente"><figcaption>Frente</figcaption></figure><figure><img src="' + esc(e.vistas.espalda) + '" alt="Espalda"><figcaption>Espalda</figcaption></figure></div>' +
+        '<div>' + comoEs(e) + '</div></div>';
+      if (jug.length) {
+        h += '<table class="tabla pn-tabla"><thead><tr><th>#</th><th>Nombre</th><th>Número</th><th>Talla</th></tr></thead><tbody>' +
+          jug.map(function (j, k) { return '<tr><td>' + (k + 1) + '</td><td>' + (esc(j.nombre) || '<span class="falta">Sin nombre</span>') + '</td><td>' + (esc(j.numero) || '—') + '</td><td>' + (esc(j.talla) || '<span class="falta">Falta</span>') + '</td></tr>'; }).join('') + '</tbody></table>';
+      }
+      var arch = (e.archivos && e.archivos.length) ? e.archivos : (e.originales || []).map(function (u, k) { return { que: 'Archivo ' + (k + 1), url: u }; });
+      if (arch.length) h += '<span class="etq">Archivos originales para imprimir</span><div class="pn-archivos">' + arch.map(function (a) { return '<a class="btn btn-linea btn-chico" href="' + esc(a.url) + '" target="_blank" rel="noopener">' + esc(a.que) + '</a>'; }).join('') + '</div>';
+      if (e.avisos && e.avisos.length) h += '<p class="nota">Ojo: el cliente subió fotos con avisos (' + esc(e.avisos.map(function (a) { return a.replace(':chica', ': pequeña').replace(':borrosa', ': movida'); }).join(', ')) + '). Pídele una mejor por WhatsApp si hace falta.</p>';
+      h += '</section>';
+    });
+    return h;
   }
   function enlazarDetalle() {
     var f = P.folios[P.detalle];
-    $('[data-volver]', panel).addEventListener('click', function () { P.detalle = null; pintar(); });
+    $('[data-volver]', panel).addEventListener('click', function () { P.detalle = null; pintar(P.scrollLista || 0); });
     $$('[data-est]', panel).forEach(function (b) { b.addEventListener('click', function () { cambiarEstado(f, b.getAttribute('data-est')); $$('[data-est]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); }); });
   }
 
   /* ---------- uniformes ---------- */
   function ordenados() { return P.catalogo.filter(function (u) { return !u.borrado; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }); }
+  var conMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  // Lista limpia: tocas la tarjeta y se abre el uniforme; solo quedan afuera las flechas para cambiar el orden.
   function vistaUniformes() {
     var lista = ordenados();
     return '<div class="pn-acciones"><button type="button" class="btn btn-oro" data-nuevo>+ Nuevo uniforme</button><button type="button" class="btn btn-linea" data-voz>▶ Escuchar cómo subir uno</button></div>' +
-      '<p class="nota">Arrastra un uniforme para cambiar su lugar, o usa las flechas. Lo oculto no se ve en la página pero no se borra.</p>' +
+      '<p class="nota">Toca un uniforme para cambiarlo, destacarlo, ocultarlo o mandarlo a la papelera. Las flechas cambian su lugar en la página.</p>' +
       '<div class="pn-lista" id="pn-unis">' + lista.map(function (u, i) {
-        return '<div class="pn-fila pn-uni' + (u.oculto ? ' apagado' : '') + '" draggable="true" data-uid="' + esc(u.id) + '">' +
-          '<span class="pn-asa" aria-hidden="true">⋮⋮</span><canvas width="120" height="180" data-th="' + esc(u.id) + '"></canvas>' +
-          '<span class="pn-info"><b>' + esc(u.nombre) + '</b><small>' + esc(u.categoria || 'Sin categoría') + (u.oculto ? ' · Oculto' : '') + '</small></span>' +
-          '<span class="pn-btns">' +
-          '<button type="button" class="icon-btn" data-mueve="-1" data-i="' + i + '" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
-          '<button type="button" class="icon-btn" data-mueve="1" data-i="' + i + '" aria-label="Bajar"' + (i === lista.length - 1 ? ' disabled' : '') + '>↓</button>' +
-          '<button type="button" class="icon-btn' + (u.destacado ? ' on' : '') + '" data-dest="' + esc(u.id) + '" aria-label="Destacar" title="Destacar">★</button>' +
-          '<button type="button" class="icon-btn" data-ocul="' + esc(u.id) + '" aria-label="' + (u.oculto ? 'Mostrar' : 'Ocultar') + '" title="' + (u.oculto ? 'Mostrar' : 'Ocultar') + '">' + (u.oculto ? '◌' : '●') + '</button>' +
-          '<button type="button" class="icon-btn" data-edit="' + esc(u.id) + '" aria-label="Editar" title="Editar">✎</button>' +
-          '<button type="button" class="icon-btn" data-borra="' + esc(u.id) + '" aria-label="Mandar a la papelera" title="Papelera"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></span></div>';
+        var marcas = (u.destacado ? '<span class="pn-marca oro">★ Destacado</span>' : '') + (u.oculto ? '<span class="pn-marca">Oculto</span>' : '');
+        return '<div class="pn-fila pn-uni' + (u.oculto ? ' apagado' : '') + '"' + (conMouse ? ' draggable="true"' : '') + ' data-uid="' + esc(u.id) + '">' +
+          '<button type="button" class="pn-abrir" data-edit="' + esc(u.id) + '"><canvas width="120" height="180" data-th="' + esc(u.id) + '"></canvas>' +
+          '<span class="pn-info"><b>' + esc(u.nombre) + '</b><small>' + esc(u.categoria || 'Sin categoría') + '</small>' + (marcas ? '<span class="pn-marcas">' + marcas + '</span>' : '') + '</span></button>' +
+          '<span class="pn-orden">' +
+          '<button type="button" class="icon-btn" data-mueve="-1" data-i="' + i + '" aria-label="Subir de lugar"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button type="button" class="icon-btn" data-mueve="1" data-i="' + i + '" aria-label="Bajar de lugar"' + (i === lista.length - 1 ? ' disabled' : '') + '>↓</button></span></div>';
       }).join('') + '</div>';
   }
   function guardarCatalogo(msg) {
@@ -132,7 +191,7 @@
   function porId(id) { return P.catalogo.filter(function (u) { return u.id === id; })[0]; }
   function enlazarUniformes() {
     $$('canvas[data-th]', panel).forEach(function (c) { var u = porId(c.getAttribute('data-th')); if (u) Kit.render(c, u.tipo === 'foto' ? { foto: u.foto } : u.diseno, 'front'); });
-    $('[data-nuevo]', panel).addEventListener('click', function () { P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: (P.config.categorias || [])[0] || '', tipo: 'foto', foto: { frente: '', espalda: '', yNombre: 0.2 }, colorTexto: '#111111', nuevo: true }; pintar(); });
+    $('[data-nuevo]', panel).addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: (P.config.categorias || [])[0] || '', tipo: 'foto', foto: { frente: '', espalda: '', yNombre: 0.2 }, colorTexto: '#111111', nuevo: true }; pintar(0); });
     $('[data-voz]', panel).addEventListener('click', narrar);
     $$('[data-mueve]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -141,12 +200,10 @@
         pintar(); guardarCatalogo('Orden guardado');
       });
     });
-    $$('[data-dest]', panel).forEach(function (b) { b.addEventListener('click', function () { var u = porId(b.getAttribute('data-dest')); u.destacado = !u.destacado; pintar(); guardarCatalogo(u.destacado ? 'Destacado' : 'Ya no está destacado'); }); });
-    $$('[data-ocul]', panel).forEach(function (b) { b.addEventListener('click', function () { var u = porId(b.getAttribute('data-ocul')); u.oculto = !u.oculto; pintar(); guardarCatalogo(u.oculto ? 'Oculto en la página' : 'Visible en la página'); }); });
-    $$('[data-edit]', panel).forEach(function (b) { b.addEventListener('click', function () { P.editando = A.clone(porId(b.getAttribute('data-edit'))); pintar(); }); });
-    $$('[data-borra]', panel).forEach(function (b) { b.addEventListener('click', function () { var u = porId(b.getAttribute('data-borra')); u.borrado = Date.now(); pintar(); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); }); });
-    // arrastrar para ordenar (escritorio)
+    $$('[data-edit]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.editando = A.clone(porId(b.getAttribute('data-edit'))); pintar(0); }); });
+    // arrastrar para ordenar: solo con mouse; en el celular el dedo sirve para bajar por la lista
     var cont = $('#pn-unis'), arr = null;
+    if (!conMouse) return;
     $$('.pn-uni', cont).forEach(function (f) {
       f.addEventListener('dragstart', function (e) { arr = f; f.classList.add('arrastra'); try { e.dataTransfer.setData('text/plain', f.getAttribute('data-uid')); } catch (x) { /* nada */ } });
       f.addEventListener('dragend', function () { f.classList.remove('arrastra'); });
@@ -182,10 +239,16 @@
         '<div class="subir"><span class="btn btn-oro archivo">' + (u.foto.frente ? 'Cambiar frente' : 'Foto del frente') + '<input type="file" accept="image/*" data-foto="frente"></span>' +
         '<span class="btn btn-oro archivo">' + (u.foto.espalda ? 'Cambiar espalda' : 'Foto de la espalda') + '<input type="file" accept="image/*" data-foto="espalda"></span></div>' +
         '<div id="ed-aviso"></div>' +
-        '<div class="grupo"><label for="ed-y">Altura del nombre en la espalda</label><input type="range" id="ed-y" min="0.08" max="0.4" step="0.01" value="' + (u.foto.yNombre || 0.2) + '"></div>' +
+        '<div class="grupo fila-tam"><span class="etq">Altura del nombre en la espalda</span><div class="tam-btns"><button type="button" class="icon-btn" data-ny="-1" aria-label="Más arriba">↑</button><button type="button" class="icon-btn" data-ny="1" aria-label="Más abajo">↓</button></div></div>' +
         '<div class="grupo"><span class="etq">Color de nombre y número</span><div class="colores">' + ['#111111', '#FFFFFF', '#1F2E7A', '#FFC61A', '#D7262E'].map(function (c) { return '<button type="button" class="color' + (u.colorTexto === c ? ' on' : '') + '" style="background:' + c + '" data-tx="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>';
     } else {
       h += '<p class="nota">Este diseño lo dibujó MOON Digital. Aquí puedes cambiarle el nombre y la categoría.</p>';
+    }
+    if (!u.nuevo) {
+      h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
+        '<button type="button" class="chip' + (u.destacado ? ' on' : '') + '" data-sw="destacado">★ ' + (u.destacado ? 'Destacado' : 'Destacar') + '</button>' +
+        '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
+        '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
     }
     h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (esFoto && !(u.foto.frente && u.foto.espalda) ? ' disabled' : '') + '>Publicar</button></div></div>' +
       '<div class="pn-prev"><figure><canvas width="500" height="750" id="ed-f"></canvas><figcaption>Frente</figcaption></figure><figure><canvas width="500" height="750" id="ed-b"></canvas><figcaption>Espalda con nombre y número de ejemplo</figcaption></figure></div></div>';
@@ -198,10 +261,19 @@
   }
   function enlazarEditor() {
     var u = P.editando;
-    $('[data-volver]', panel).addEventListener('click', function () { P.editando = null; pintar(); });
+    $('[data-volver]', panel).addEventListener('click', function () { P.editando = null; pintar(P.scrollLista || 0); });
     $('#ed-nombre').addEventListener('input', function (e) { u.nombre = e.target.value; });
     $('#ed-cat').addEventListener('change', function (e) { u.categoria = e.target.value; });
-    var y = $('#ed-y'); if (y) y.addEventListener('input', function () { u.foto.yNombre = +y.value; previsualizar(); });
+    $$('[data-ny]', panel).forEach(function (b) { b.addEventListener('click', function () { u.foto.yNombre = Math.max(0.08, Math.min(0.4, (u.foto.yNombre || 0.2) + 0.02 * +b.getAttribute('data-ny'))); previsualizar(); }); });
+    $$('[data-sw]', panel).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.getAttribute('data-sw'), real = porId(u.id); if (!real) return;
+        real[k] = !real[k]; u[k] = real[k];
+        pintar(); guardarCatalogo(k === 'destacado' ? (real[k] ? 'Destacado en la página' : 'Ya no está destacado') : (real[k] ? 'Oculto en la página' : 'Visible en la página'));
+      });
+    });
+    var pap = $('[data-papelera]', panel);
+    if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
     $$('[data-tx]', panel).forEach(function (b) { b.addEventListener('click', function () { u.colorTexto = b.getAttribute('data-tx'); $$('[data-tx]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
     $$('[data-foto]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () {

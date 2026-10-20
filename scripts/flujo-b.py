@@ -12,7 +12,14 @@ with sync_playwright() as p:
     pg.click('#barra-sig'); pg.wait_for_timeout(700)
     pg.set_input_files('#f-tela', U+'Boulder_Corp_Logo_1.jpg'); pg.wait_for_timeout(1800)
     if pg.query_selector('[data-aviso-ok="espalda"]'): pg.click('[data-aviso-ok="espalda"]')
-    for i in range(7): pg.click('#barra-sig'); pg.wait_for_timeout(600)
+    pg.click('#barra-sig'); pg.wait_for_timeout(600)   # cuello
+    pg.click('#barra-sig'); pg.wait_for_timeout(600)   # logo
+    pg.set_input_files('#f-logo', U+'WhatsApp_Image_2026-10-18_at_2_01_41p_m_.jpeg'); pg.wait_for_timeout(1500)
+    if pg.query_selector('[data-aviso-ok="logo"]'): pg.click('[data-aviso-ok="logo"]')
+    pg.click('#barra-sig'); pg.wait_for_timeout(600)   # patrocinadores
+    pg.set_input_files('#f-patro', U+'MOON-Digital-logo-horizontal-negro.png'); pg.wait_for_timeout(1300)
+    pg.click('[data-ppos="pecho"]'); pg.wait_for_timeout(300)
+    for i in range(4): pg.click('#barra-sig'); pg.wait_for_timeout(600)
     pg.click('#barra-sig'); pg.wait_for_timeout(5000)
     href=pg.get_attribute('#fiesta-wa','href') or ''
     link=[x for x in up.unquote(href).split() if x.startswith('http://localhost')]

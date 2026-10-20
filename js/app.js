@@ -473,7 +473,7 @@
     });
   }
   function reiniciar() {
-    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.telas = {}; S.patroSel = -1; S.mangaLado = 'izq';
+    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.telas = {}; S.tallaUno = ''; S.patroSel = -1; S.mangaLado = 'izq';
     store.set('borrador', null);
     if (!probador.hidden) cerrarProbador();
     vitrina(); pintarTablero(); cambiarVista('front'); dibujar();
@@ -619,8 +619,8 @@
         return '<span class="eq-chip"><img src="' + esc(e.mini) + '" alt="">' + esc(e.nombre) + ' · ' + e.jugadores.length + '<button type="button" data-quita-eq="' + i + '" aria-label="' + esc(T('quitar')) + '">×</button></span>';
       }).join('') + '</div>';
       h += '<div class="chips llenar' + (S.equipos.length ? '' : ' g0') + '"><button type="button" class="chip' + (!S.esEquipo ? ' on' : '') + '" data-eq="no">' + esc(T('equipo_no')) + '</button><button type="button" class="chip' + (S.esEquipo ? ' on' : '') + '" data-eq="si">' + esc(T('equipo_si')) + '</button></div>';
-      if (!S.esEquipo) return h + '<p class="nota-corta">' + esc(T('p_equipo_s')) + '</p>';
       var tallas = TIENDA.config.tallas || [];
+      if (!S.esEquipo) return h + '<div class="grupo"><label class="etq" for="f-talla1">' + esc(T('talla_uno')) + '</label><select class="campo" id="f-talla1"><option value="">' + esc(T('talla_luego')) + '</option>' + tallas.map(function (t) { return '<option' + (t === S.tallaUno ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div><p class="nota-corta">' + esc(T('p_equipo_s')) + '</p>';
       h += '<div class="grupo"><label class="etq" for="f-equipo">' + esc(T('nombre_equipo')) + '</label><input class="campo" id="f-equipo" maxlength="40" value="' + esc(S.nombreEquipo) + '"></div>';
       h += '<div class="roster"><div class="r-fila r-head"><span>' + esc(T('jugador')) + '</span><span>' + esc(T('numero')) + '</span><span>' + esc(T('talla')) + '</span><span></span></div>' +
         S.jugadores.map(function (j, i) {
@@ -772,6 +772,7 @@
           pintarTablero(); guardarBorrador();
         });
       });
+      var t1 = $('#f-talla1'); if (t1) t1.addEventListener('change', function () { S.tallaUno = t1.value; guardarBorrador(); });
       var ne = $('#f-equipo'); if (ne) ne.addEventListener('input', function () { S.nombreEquipo = ne.value; guardarBorrador(); });
       $$('[data-j]', tablero).forEach(function (el) {
         el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', function () {
@@ -925,7 +926,7 @@
       S.avisoLog = S.avisoLog || [];
       info.avisos.forEach(function (a) { S.avisoLog.push(que + ':' + a); });
       if (esTela) {
-        var t = { fuente: info.fuente, fuenteURL: info.fuente.toDataURL('image/jpeg', 0.8), recorte: info.recorte, A: { w: info.recorte.w, h: info.recorte.h }, nivel: 2, repOriginal: !!info.repetir, avisos: info.avisos, zoom: info.zoom };
+        var t = { clave: info.local, fuente: info.fuente, fuenteURL: info.fuente.toDataURL('image/jpeg', 0.8), recorte: info.recorte, A: { w: info.recorte.w, h: info.recorte.h }, nivel: 2, repOriginal: !!info.repetir, avisos: info.avisos, zoom: info.zoom };
         t.foto = { tipo: 'img', src: info.local, base: '#FFFFFF', luz: info.luz, repetir: info.repetir };
         S.telas[que] = t; usarTela(que, t.foto);
       } else if (que === 'logo') {
@@ -949,14 +950,25 @@
     return Kit.render(c, d, 'front').then(function () { return c.toDataURL('image/png'); });
   }
   function equipoActual() {
-    var jug = S.esEquipo ? S.jugadores.filter(function (j) { return j.nombre || j.numero; }) : [];
-    return { nombre: (S.esEquipo && S.nombreEquipo) || T('sin_nombre'), diseno: clone(S.d), jugadores: clone(jug) };
+    var jug = S.esEquipo ? S.jugadores.filter(function (j) { return j.nombre || j.numero || j.talla; })
+      : [{ nombre: S.d.nombre || '', numero: S.d.numero || '', talla: S.tallaUno || '' }];
+    var base = S.modo === 'catalogo' && S.baseId ? (catalogoVisible().filter(function (u) { return u.id === S.baseId; })[0] || {}).nombre : '';
+    return { nombre: (S.esEquipo && S.nombreEquipo) || T('sin_nombre'), diseno: clone(S.d), jugadores: clone(jug), base: base || '', archivos: archivosDe() };
+  }
+  // los archivos originales que el dueño necesita para imprimir, cada uno con su nombre
+  function archivosDe() {
+    var l = [];
+    if (S.modo !== 'libre') return l;
+    ['frente', 'espalda'].forEach(function (lado) { var t = S.telas[lado]; if (t && telaActiva(lado) && t.clave) l.push({ que: lado === 'frente' ? 'Tela del frente' : 'Tela de la espalda', local: t.clave }); });
+    (S.d.logos || []).forEach(function (g) { l.push({ que: 'Logo del equipo', local: g.src }); });
+    Kit.patros(S.d).forEach(function (p, i) { l.push({ que: 'Patrocinador ' + (i + 1), local: p.src }); });
+    return l;
   }
   function guardarEquipoYOtro() {
     var e = equipoActual();
     miniatura(e.diseno).then(function (m) {
       e.mini = m; S.equipos.push(e);
-      S.jugadores = []; S.nombreEquipo = ''; S.esEquipo = false;
+      S.jugadores = []; S.nombreEquipo = ''; S.esEquipo = false; S.tallaUno = '';
       S.d.nombre = ''; S.d.numero = '';
       S.paso = 0; pintarTablero(-1); verVistaDe(pasos()[0]); dibujar(); guardarBorrador();
       toast(T('otro_equipo_ok'));
@@ -984,7 +996,7 @@
     if (guardando) return;
     guardando = true;
     var btn = $('#barra-sig'); btn.disabled = true; btn.textContent = T('guardando');
-    var equipos = S.equipos.map(function (e) { return { nombre: e.nombre, diseno: e.diseno, jugadores: e.jugadores }; }).concat([equipoActual()]);
+    var equipos = S.equipos.map(function (e) { return { nombre: e.nombre, diseno: e.diseno, jugadores: e.jugadores, base: e.base, archivos: e.archivos }; }).concat([equipoActual()]);
     Promise.all(S.pendientes).then(function () {
       if (JSON.stringify(equipos).indexOf('data:image') >= 0) {
         // alguna foto no subió: se reintenta aquí sin pedirle nada al cliente
@@ -998,7 +1010,8 @@
         return Promise.all([vistaJPG(e.diseno, 'front'), vistaJPG(e.diseno, 'back')]).then(function (v) {
           return Promise.all([subirConReintento(v[0]), subirConReintento(v[1])]).then(function (u) {
             var orig = Object.keys(S.originales).filter(function (loc) { return JSON.stringify(e.diseno).indexOf(loc) >= 0; }).map(function (loc) { return S.originales[loc]; });
-            return { nombre: e.nombre, diseno: d, jugadores: e.jugadores, vistas: { frente: u[0], espalda: u[1] }, originales: orig, avisos: (S.avisoLog || []) };
+            var arch = (e.archivos || []).map(function (a) { return { que: a.que, url: S.originales[a.local] || S.remotos[a.local] || (/^data:/.test(a.local) ? '' : a.local) }; }).filter(function (a) { return a.url; });
+            return { nombre: e.nombre, base: e.base || '', diseno: d, jugadores: e.jugadores, vistas: { frente: u[0], espalda: u[1] }, originales: orig, archivos: arch, avisos: (S.avisoLog || []) };
           });
         });
       }));
@@ -1277,7 +1290,8 @@
     f.equipos.forEach(function (e, i) {
       h += '<div class="folio-eq"><figure><img src="' + esc(e.vistas.frente) + '" alt="' + esc(T('v_frente')) + '" loading="lazy"></figure><figure><img src="' + esc(e.vistas.espalda) + '" alt="' + esc(T('v_espalda')) + '" loading="lazy"></figure>' +
         '<div class="tabla-wrap"><h3 style="font:800 26px/1 var(--display);text-transform:uppercase;margin:4px 0 10px">' + esc(e.nombre) + '</h3>';
-      if (e.jugadores && e.jugadores.length) {
+      var conDatos = (e.jugadores || []).filter(function (j) { return j.nombre || j.numero || j.talla; });
+      if (conDatos.length > 1 || (conDatos.length === 1 && conDatos[0].talla)) {
         h += '<table class="tabla"><thead><tr><th>' + esc(T('jugador')) + '</th><th>' + esc(T('numero')) + '</th><th>' + esc(T('talla')) + '</th></tr></thead><tbody>' +
           e.jugadores.map(function (j) { return '<tr><td>' + esc(j.nombre) + '</td><td>' + esc(j.numero) + '</td><td>' + esc(j.talla) + '</td></tr>'; }).join('') + '</tbody></table>';
       } else if (e.diseno && (e.diseno.nombre || e.diseno.numero)) {
@@ -1297,12 +1311,12 @@
     // solo se guardan fotos que ya subieron (links); las locales pesan demasiado para el navegador
     var d = cambiarLocales(S.d);
     if (JSON.stringify(d).indexOf('data:image') >= 0) return;
-    store.set('borrador', { modo: S.modo, paso: S.paso, baseId: S.baseId, d: d, esEquipo: S.esEquipo, nombreEquipo: S.nombreEquipo, jugadores: S.jugadores });
+    store.set('borrador', { modo: S.modo, paso: S.paso, baseId: S.baseId, d: d, tallaUno: S.tallaUno, esEquipo: S.esEquipo, nombreEquipo: S.nombreEquipo, jugadores: S.jugadores });
   }
   function cargarBorrador() {
     var b = store.get('borrador');
     if (!b || !b.d || !b.modo) return;
-    S.modo = b.modo; S.paso = b.paso || 0; S.baseId = b.baseId; S.d = b.d; S.esEquipo = !!b.esEquipo; S.nombreEquipo = b.nombreEquipo || ''; S.jugadores = b.jugadores || [];
+    S.modo = b.modo; S.paso = b.paso || 0; S.baseId = b.baseId; S.d = b.d; S.esEquipo = !!b.esEquipo; S.tallaUno = b.tallaUno || ''; S.nombreEquipo = b.nombreEquipo || ''; S.jugadores = b.jugadores || [];
   }
 
   /* ---------- avisos breves ---------- */
@@ -1348,6 +1362,6 @@
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
 
-  window.APP = { T: T, esc: esc, clone: clone, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, prepararFotoDueno: null, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, S: S, get lang() { return lang; } };
+  window.APP = { patros: function (d) { return Kit.patros(d); }, T: T, esc: esc, clone: clone, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, prepararFotoDueno: null, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, S: S, get lang() { return lang; } };
   iniciar();
 })();

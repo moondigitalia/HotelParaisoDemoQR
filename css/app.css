@@ -595,3 +595,62 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .paso-cuerpo[data-paso="patro"] .chip{min-height:38px}
 .paso-cuerpo[data-paso="patro"] .grupo{margin-top:12px}
 .paso-cuerpo[data-paso="patro"] .fila-tam .icon-btn{height:36px}
+
+/* ---------- panel del dueño: hecho para el dedo ---------- */
+.pn{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.panel button,.panel a,.panel select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.pn-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pn-tabs .chip{width:100%;justify-content:center;min-height:46px}
+@media (min-width:700px){.pn-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pn-folio{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--cancha);border:1px solid var(--linea);border-radius:var(--r-l);padding:12px 14px;color:var(--texto);cursor:pointer;transition:border-color var(--rapido) var(--curva),transform var(--rapido) var(--curva)}
+.pn-folio:active{transform:scale(.985);border-color:var(--oro)}
+.pn-folio img{width:52px;height:78px;object-fit:contain;flex:none;border-radius:10px;background:#141E58}
+.pn-folio-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.pn-folio-txt b{font:800 24px/1 var(--display);text-transform:uppercase}
+.pn-cuantos{font-weight:700;color:var(--texto)}
+.pn-folio-txt small{color:var(--suave);font-weight:600}
+.pn-folio .estado{flex:none}
+.pn-det-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:4px}
+.pn-det-top small{color:var(--suave);font-weight:600}
+.pn-resumen{display:flex;gap:14px;align-items:stretch;margin:12px 0 16px;flex-wrap:wrap}
+.pn-total{display:flex;align-items:center;gap:12px;background:rgba(255,198,26,.1);border:1px solid rgba(255,198,26,.35);border-radius:var(--r-l);padding:12px 18px}
+.pn-total b{font:800 56px/1 var(--display);color:var(--oro)}
+.pn-total span{font-weight:700;line-height:1.25}
+.pn-tallas{flex:1;min-width:200px;background:var(--cancha);border:1px solid var(--linea);border-radius:var(--r-l);padding:12px 14px}
+.pn-tallas .etq{display:block;margin:0 0 8px}
+.pn-tallas>div{display:flex;flex-wrap:wrap;gap:8px}
+.pn-talla{border:1px solid var(--linea);border-radius:999px;padding:6px 12px;font-weight:600}
+.pn-talla b{font-weight:800}
+.pn-talla.falta,.falta{color:var(--peligro)}
+.pn-estados .chip{min-height:46px}
+.pn-eq{margin-top:22px;padding-top:18px;border-top:1px solid var(--linea)}
+.pn-eq h4{font:800 26px/1.05 var(--display);text-transform:uppercase;margin:0 0 12px}
+.pn-eq h4 small{font:700 15px/1 var(--texto-f,inherit);color:var(--suave);text-transform:none}
+.pn-eq-cuerpo{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+@media (min-width:760px){.pn-eq-cuerpo{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.pn-vistas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pn-vistas figure{margin:0;background:radial-gradient(70% 60% at 50% 40%,#22307A,#131C52);border-radius:var(--r-l);padding:6px;text-align:center}
+.pn-vistas img{width:100%;height:auto;max-height:260px;object-fit:contain;display:block;margin:0 auto}
+.pn-vistas figcaption{font-size:12.5px;font-weight:700;color:var(--suave)}
+.pn-como{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;margin:0;font-size:15px}
+.pn-como dt{color:var(--suave);font-weight:600}
+.pn-como dd{margin:0;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pn-bolita{display:inline-block;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);flex:none}
+.pn-tabla{margin-top:14px}
+.pn-archivos{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.pn-uni{padding:8px 10px 8px 8px}
+.pn-abrir{display:flex;align-items:center;gap:12px;flex:1;min-width:0;background:none;border:0;padding:4px;text-align:left;color:var(--texto);cursor:pointer;border-radius:12px}
+.pn-abrir:active{background:rgba(255,255,255,.05)}
+.pn-orden{display:flex;flex-direction:column;gap:6px;flex:none}
+.pn-orden .icon-btn{width:42px;height:42px}
+.pn-marcas{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pn-marca{font-size:12px;font-weight:700;border:1px solid var(--linea);border-radius:999px;padding:2px 8px;color:var(--suave)}
+.pn-marca.oro{color:var(--oro);border-color:rgba(255,198,26,.4)}
+.pn-switches{display:flex;flex-wrap:wrap;gap:8px}
+.pn-switches .chip{min-height:46px}
+.pn-peligro{color:var(--peligro);border-color:rgba(255,138,122,.45)}
+@media (max-width:980px){ .pn-uni{flex-wrap:nowrap} }
+/* panel: cada botón del tamaño de un dedo */
+.panel .chip-dia{min-height:44px;min-width:48px}
+.pn-tags .eq-chip button{width:40px;height:40px}
+.panel .icon-btn{width:42px;height:42px}

@@ -32,6 +32,8 @@ module.exports = async (req, res) => {
     nombre: String(e.nombre || '').slice(0, 60),
     diseno: e.diseno || {},
     vistas: { frente: String((e.vistas || {}).frente || ''), espalda: String((e.vistas || {}).espalda || '') },
+    base: String(e.base || '').slice(0, 80),
+    archivos: (Array.isArray(e.archivos) ? e.archivos : []).slice(0, 12).map((x) => ({ que: String((x && x.que) || '').slice(0, 40), url: String((x && x.url) || '').slice(0, 500) })).filter((x) => /^https?:\/\//.test(x.url)),
     originales: (Array.isArray(e.originales) ? e.originales : []).slice(0, 12).map(String),
     avisos: (Array.isArray(e.avisos) ? e.avisos : []).slice(0, 12).map(String),
     jugadores: (Array.isArray(e.jugadores) ? e.jugadores : []).slice(0, 60).map((j) => ({
