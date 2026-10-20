@@ -146,3 +146,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .box-note.comp span{display:block;color:#A9B6C4}
 .box-note.comp em{font-style:normal;color:var(--lime);font-weight:700}
 .busca-lema span{color:var(--lime)}
+.big-stat{font-stretch:100%!important;font-size:clamp(30px,10.3vw,52px)!important;letter-spacing:-1px!important}
+.big-stat .n{font-size:1.12em}
+.sub-h2{font-stretch:100%;font-size:clamp(24px,8vw,40px);letter-spacing:-.5px}
