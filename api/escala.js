@@ -87,6 +87,10 @@ module.exports = async (req, res) => {
       tarea = tk.status < 300;
       if (!tarea) console.error('escala tarea', tk.status, JSON.stringify(tk.data));
     }
+    if (b.revisar === 'moon-tags') { // diagnóstico temporal
+      const g = await esc('/contacts/' + id, 'GET');
+      return res.status(200).json({ tagId: await tagId(tag), put: t, contacto: g.data && (g.data.tags || g.data.entity && g.data.entity.tags || Object.keys(g.data)) });
+    }
     return res.status(200).json({ ok: true, nuevo: up.status === 201, etiqueta: t.status === 200, nota: n.status < 300, tarea });
   } catch (e) {
     console.error('escala error', e && e.message);
