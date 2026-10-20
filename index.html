@@ -13,8 +13,9 @@
 <link rel="apple-touch-icon" href="/assets/favicon.png">
 <link rel="preload" href="/fonts/saira-extra-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/schibsted-grotesk-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<script>document.documentElement.classList.add('espera')</script>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=11">
+<link rel="stylesheet" href="/css/app.css?v=12">
 </head>
 <body>
 
@@ -83,6 +84,7 @@
             <canvas id="lienzo-antes" width="1000" height="1500" aria-hidden="true"></canvas>
             <canvas id="lienzo" width="1000" height="1500" aria-label="Vista del uniforme" role="img"></canvas>
           </div>
+          <button type="button" class="lupa" id="lupa" aria-label="Ver el uniforme en grande"></button>
         </div>
 
         <div class="tablero" id="tablero" aria-live="polite"></div>
@@ -198,10 +200,10 @@
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=11"></script>
-<script src="/js/kit.js?v=11"></script>
-<script src="/js/catalogo-base.js?v=11"></script>
-<script src="/js/app.js?v=11"></script>
-<script src="/js/panel.js?v=11" defer></script>
+<script src="/js/i18n.js?v=12"></script>
+<script src="/js/kit.js?v=12"></script>
+<script src="/js/catalogo-base.js?v=12"></script>
+<script src="/js/app.js?v=12"></script>
+<script src="/js/panel.js?v=12" defer></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ with sync_playwright() as p:
     pg.goto('http://localhost:5055/#panel'); pg.wait_for_timeout(1200)
     pg.fill('#pn-codigo','0000'); pg.click('#pn-pin button'); pg.wait_for_timeout(800)
     pg.screenshot(path=out+'-0.png')
-    pg.fill('#pn-codigo','4719'); pg.click('#pn-pin button'); pg.wait_for_timeout(1200)
+    pg.fill('#pn-codigo','0'); pg.click('#pn-pin button'); pg.wait_for_timeout(1200)
     pg.screenshot(path=out+'-1.png')
     pg.click('[data-tab="uniformes"]'); pg.wait_for_timeout(900)
     pg.screenshot(path=out+'-2.png')

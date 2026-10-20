@@ -12,7 +12,7 @@ const fake = {
 require.cache[require.resolve('/tmp/claude-0/blobtest/node_modules/@vercel/blob')] = { exports: fake, loaded: true, id: 'x' };
 const Module = require('module'); const orig = Module._resolveFilename;
 Module._resolveFilename = function (r, ...a) { if (r === '@vercel/blob') return require.resolve('/tmp/claude-0/blobtest/node_modules/@vercel/blob'); return orig.call(this, r, ...a); };
-process.env.ADMIN_PIN = process.env.ADMIN_PIN || '4719';
+process.env.ADMIN_PIN = process.env.ADMIN_PIN || '0';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml' };
 http.createServer(async (req, res) => {
   const u = url.parse(req.url, true);

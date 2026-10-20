@@ -33,6 +33,7 @@ CHEQUEO = r'''() => {
     if (!im.offsetParent || getComputedStyle(im.parentNode).overflow==='hidden') return; const a=im.getBoundingClientRect(), b=im.parentNode.getBoundingClientRect();
     if (a.left<b.left-1||a.right>b.right+1||a.top<b.top-1||a.bottom>b.bottom+1) fallas.push('imagen se sale de su cuadro');
   });
+  if (document.querySelector('#tablero input[type=range]')) fallas.push('hay una barra para arrastrar');
   const t=document.querySelector('.toast.ver'); if (t && /Cargando|Loading/.test(t.textContent)) fallas.push('aviso Cargando se quedó en pantalla');
   const sg=document.querySelector('#barra-sig'); if (sg.scrollHeight>sg.clientHeight+2 || sg.getBoundingClientRect().height>60) fallas.push('el botón de la barra se parte en renglones');
   document.querySelectorAll('#paso-cuerpo .btn').forEach(bt=>{ if(bt.offsetParent && bt.getBoundingClientRect().height>60) fallas.push('botón partido: '+bt.textContent.trim().slice(0,20)); });
@@ -69,10 +70,34 @@ def correr():
             pg.click('#probador-x'); pg.wait_for_timeout(500)
             # camino B: desde cero
             pg.evaluate("document.querySelector('#crear').scrollIntoView()"); pg.wait_for_timeout(300)
-            pg.click('[data-camino="libre"]'); revisa('B tela (sin foto)')
-            pg.set_input_files('#f-relleno', U+'WhatsApp_Image_2026-10-19_at_3_54_56p_m_.jpeg'); revisa('B tela (aviso foto chica)')
-            pg.click('[data-aviso-ok="relleno"]'); revisa('B tela (ajustar)')
-            pg.set_input_files('#f-relleno', U+'1792450394633_image.png'); pg.wait_for_timeout(1500); revisa('B tela (prenda completa)')
+            pg.click('[data-camino="libre"]'); revisa('B frente (sin foto)')
+            pg.set_input_files('#f-tela', U+'WhatsApp_Image_2026-10-19_at_3_54_56p_m_.jpeg'); revisa('B frente (aviso foto chica)')
+            pg.click('[data-aviso-ok="frente"]'); revisa('B frente (ajustar)')
+            w0=pg.evaluate("document.querySelector('#marco').getBoundingClientRect().width")
+            pg.click('[data-tam="1"]'); pg.wait_for_timeout(300); pg.click('[data-tam="1"]'); pg.wait_for_timeout(500)
+            w1=pg.evaluate("document.querySelector('#marco').getBoundingClientRect().width")
+            if not w1 < w0*0.8: todo.append((nom,'botón + no agrandó el dibujo','relleno',['recuadro %d -> %d'%(w0,w1)]))
+            revisa('B frente (dibujo más grande)')
+            pg.click('.color[data-campo="relleno"][data-color="#1F2E7A"]'); pg.wait_for_timeout(400)
+            revisa('B frente (color liso, foto guardada)')
+            if not pg.query_selector('.color.foto[data-campo="relleno"]'): todo.append((nom,'la foto se perdió al elegir color','relleno',['no está la bolita de la foto']))
+            pg.click('.color.foto[data-campo="relleno"]'); pg.wait_for_timeout(500)
+            if not pg.evaluate("document.querySelector('.color.foto').classList.contains('on') && !document.querySelector('.tela-ajuste').classList.contains('apagado')"): todo.append((nom,'no regresó a la foto','relleno',['la foto no quedó elegida']))
+            pg.set_input_files('#f-tela', U+'1792450394633_image.png'); pg.wait_for_timeout(1500); revisa('B frente (prenda completa)')
+            sig(); revisa('B espalda (igual que el frente)')
+            if pg.evaluate("document.querySelector('.vista.on').dataset.vista")!='back': todo.append((nom,'la espalda no se ve al llegar a su paso','espalda',['vista no es espalda']))
+            pg.set_input_files('#f-tela', '/home/claude/m-sport/assets/tela-olas.jpg'); pg.wait_for_timeout(1500)
+            if pg.query_selector('[data-aviso-ok="espalda"]'): pg.click('[data-aviso-ok="espalda"]')
+            revisa('B espalda (su propia foto)')
+            if movil:
+                pg.click('#lupa'); pg.wait_for_timeout(900)
+                g=pg.evaluate("""() => { const e=document.querySelector('#escenario').getBoundingClientRect(), b=document.querySelector('#paso-barra').getBoundingClientRect(), s=document.querySelector('#barra-sig').getBoundingClientRect();
+                  const f=[]; if (Math.abs(e.bottom-b.top)>2) f.push('el uniforme grande no llega a la barra ('+Math.round(e.bottom)+' vs '+Math.round(b.top)+')');
+                  if (e.height < innerHeight*0.7) f.push('no se agrandó lo suficiente'); if (s.bottom>innerHeight+0.5) f.push('Siguiente fuera');
+                  if (getComputedStyle(document.body).position!=='fixed') f.push('fondo no congelado'); return f; }""")
+                f='/tmp/claude-0/rv-%s-%02d.png'%(nom,len([x for x in shots if x[0]==nom])); pg.screenshot(path=f); shots.append((nom,f,'B ver en grande'))
+                todo.append((nom,'B ver en grande','espalda',g))
+                pg.click('#lienzo-wrap'); pg.wait_for_timeout(900); revisa('B espalda (de regreso)')
             sig(); revisa('B cuello y costados')
             sig(); revisa('B logo (vacío)')
             pg.set_input_files('#f-logo', U+'WhatsApp_Image_2026-10-18_at_2_01_41p_m_.jpeg'); pg.wait_for_timeout(1200)

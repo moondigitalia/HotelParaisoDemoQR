@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg.goto('http://localhost:5055/?sinintro'); pg.wait_for_timeout(800); pg.evaluate("localStorage.clear()"); pg.reload(); pg.wait_for_timeout(1000)
     pg.click('[data-camino="libre"]'); pg.wait_for_timeout(400)
     for i,f in enumerate(['1792450394633_image.png','1792450375543_image.png','IMG_4308.JPG']):
-        pg.set_input_files('#f-relleno', U+f); pg.wait_for_timeout(2600)
+        pg.set_input_files('#f-tela', U+f); pg.wait_for_timeout(2600)
         pg.locator('#estudio').screenshot(path=f'/tmp/claude-0/t-{i}.png')
     # mover el recuadro
     m=pg.locator('#marco').bounding_box()

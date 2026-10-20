@@ -249,6 +249,7 @@
   function collect(d) {
     var list = [];
     if (d.relleno && d.relleno.tipo === 'img') list.push(d.relleno.src);
+    if (d.rellenoEspalda && d.rellenoEspalda.tipo === 'img') list.push(d.rellenoEspalda.src);
     if (d.short && d.short.relleno && d.short.relleno.tipo === 'img') list.push(d.short.relleno.src);
     (d.logos || []).forEach(function (l) { list.push(l.src); });
     (d.patrocinadores || []).forEach(function (s) { list.push(s); });
@@ -308,7 +309,8 @@
     // sombra suave del piso (plano)
     ctx.save();
     shirtPath(ctx, manga, back); ctx.clip();
-    paintFill(ctx, d.relleno, imgs, [40, 60, 920, 980]);
+    // la espalda puede llevar su propia tela; si no, usa la del frente
+    paintFill(ctx, (back && d.rellenoEspalda) || d.relleno, imgs, [40, 60, 920, 980]);
     if (acc) {
       ctx.fillStyle = acc;
       var R = rightSide(manga);
