@@ -1,6 +1,8 @@
 /* Todos los textos visibles viven aquí, por idioma. */
 window.I18N = {
   es: {
+    cotizar_corto: 'Cotizar por WhatsApp', mas_jugador: 'Jugador', mas_equipo: 'Otro equipo', jugador_1: 'jugador',
+    p_detalles: 'Cuello y costados', ver_mas: 'Desliza para ver más', tela_mueve_corto: 'Mueve el recuadro para elegir qué parte de la tela usamos.', cambiar: 'Cambiar', donde_va: '¿Dónde va?', subir_orden: 'Subir un lugar', equipos: 'equipos', equipo_1: 'equipo',
     seguir_armando: 'Seguir armando mi uniforme', seguir_armando_p: 'Retoma donde te quedaste.',
     a_dia: 'a', y_dia: 'y', hoy: 'hoy', abierto: 'Abierto ahora', cerrado: 'Cerrado ahora',
     todos: 'Todos',
@@ -61,6 +63,8 @@ window.I18N = {
     sin_nombre: 'Mi equipo', cargando: 'Cargando…'
   },
   en: {
+    cotizar_corto: 'Quote on WhatsApp', mas_jugador: 'Player', mas_equipo: 'Another team', jugador_1: 'player',
+    p_detalles: 'Collar and sides', ver_mas: 'Scroll for more', tela_mueve_corto: 'Move the box to choose which part of the fabric we use.', cambiar: 'Change', donde_va: 'Where does it go?', subir_orden: 'Move up', equipos: 'teams', equipo_1: 'team',
     seguir_armando: 'Keep building my kit', seguir_armando_p: 'Pick up where you left off.',
     a_dia: 'to', y_dia: 'and', hoy: 'today', abierto: 'Open now', cerrado: 'Closed now',
     todos: 'All',
@@ -121,6 +125,8 @@ window.I18N = {
     sin_nombre: 'My team', cargando: 'Loading…'
   },
   fr: {
+    cotizar_corto: 'Devis sur WhatsApp', mas_jugador: 'Joueur', mas_equipo: 'Autre équipe', jugador_1: 'joueur',
+    p_detalles: 'Col et côtés', ver_mas: 'Fais défiler pour voir plus', tela_mueve_corto: 'Déplace le cadre pour choisir la partie du tissu.', cambiar: 'Changer', donde_va: 'Où va-t-il ?', subir_orden: 'Monter', equipos: 'équipes', equipo_1: 'équipe',
     seguir_armando: 'Continuer mon maillot', seguir_armando_p: 'Reprends là où tu t’es arrêté.',
     a_dia: 'au', y_dia: 'et', hoy: 'aujourd’hui', abierto: 'Ouvert', cerrado: 'Fermé',
     todos: 'Tous',
@@ -181,6 +187,8 @@ window.I18N = {
     sin_nombre: 'Mon équipe', cargando: 'Chargement…'
   },
   pt: {
+    cotizar_corto: 'Orçar no WhatsApp', mas_jugador: 'Jogador', mas_equipo: 'Outro time', jugador_1: 'jogador',
+    p_detalles: 'Gola e laterais', ver_mas: 'Deslize para ver mais', tela_mueve_corto: 'Mova o quadro para escolher que parte do tecido usamos.', cambiar: 'Trocar', donde_va: 'Onde vai?', subir_orden: 'Subir', equipos: 'times', equipo_1: 'time',
     seguir_armando: 'Continuar meu uniforme', seguir_armando_p: 'Continue de onde parou.',
     a_dia: 'a', y_dia: 'e', hoy: 'hoje', abierto: 'Aberto agora', cerrado: 'Fechado agora',
     todos: 'Todos',

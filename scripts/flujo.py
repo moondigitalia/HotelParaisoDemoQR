@@ -28,7 +28,7 @@ with sync_playwright() as p:
     pg.screenshot(path=f'{out}-4.png', full_page=False)
     pg.click('[data-nav="siguiente"]'); pg.wait_for_timeout(900)
     pg.screenshot(path=f'{out}-5.png')
-    pg.click('#cotizar'); pg.wait_for_timeout(4500)
+    pg.click('#barra-sig'); pg.wait_for_timeout(4500)
     pg.screenshot(path=f'{out}-6.png')
     href=pg.get_attribute('#fiesta-wa','href'); print('WA', href)
     import urllib.parse as up
