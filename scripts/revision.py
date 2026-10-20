@@ -10,6 +10,7 @@ CHEQUEO = r'''() => {
   const fallas=[]; const vh=innerHeight, vw=innerWidth;
   const sig=document.querySelector('#barra-sig'); const r=sig.getBoundingClientRect();
   if (r.bottom>vh+0.5||r.top<0) fallas.push('Siguiente fuera de la pantalla');
+  if (innerWidth<=980){const bw=document.querySelector('#paso-barra').getBoundingClientRect(); if (bw.left>0.5||bw.right<innerWidth-0.5) fallas.push('la barra/paso no ocupa todo el ancho ('+Math.round(bw.width)+' de '+innerWidth+')');}
   const c=document.querySelector('#paso-cuerpo'); const paso=c.dataset.paso;
   const desborda=c.scrollHeight>c.clientHeight+2;
   if (desborda && paso!=='equipo') fallas.push('el paso no cabe ('+c.scrollHeight+' > '+c.clientHeight+')');
