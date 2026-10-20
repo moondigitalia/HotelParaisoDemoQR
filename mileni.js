@@ -1,6 +1,6 @@
 // Chat de Mileni (asesor virtual U3M) — ElevenLabs Agents: texto + modo voz.
 const AGENT_ID = 'agent_1401m3pnkh09fvaryxg1nanmg9ns';
-const WA_URL = 'https://wa.me/522299096832';
+const WA_URL = 'https://wa.me/522299096832?text=%C2%A1Hola%21%20Vengo%20de%20la%20p%C3%A1gina%20web%20de%20U3M%20y%20me%20gustar%C3%ADa%20recibir%20informes%20sobre%20sus%20carreras%20y%20becas.';
 
 const $ = (s) => document.querySelector(s);
 const chat = $('#chat'), msgs = $('#msgs'), form = $('#chat-form'), input = $('#chat-in'),
