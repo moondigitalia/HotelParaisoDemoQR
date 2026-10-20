@@ -791,11 +791,16 @@
   var COPA = '<svg viewBox="0 0 60 70"><path d="M15 6h30v14c0 11-6 19-15 21-9-2-15-10-15-21Z" fill="#FFC61A"/><path d="M15 10H7c0 9 4 14 10 15M45 10h8c0 9-4 14-10 15" fill="none" stroke="#FFC61A" stroke-width="4" stroke-linecap="round"/><rect x="26" y="41" width="8" height="11" fill="#E0A800"/><rect x="17" y="52" width="26" height="7" rx="2" fill="#FFC61A"/><rect x="13" y="59" width="34" height="9" rx="3" fill="#1F2E7A"/></svg>';
   var MEDALLA = '<svg viewBox="0 0 50 70"><path d="M12 0h10l6 26h-10ZM38 0H28l-6 26h10Z" fill="#1F2E7A"/><circle cx="25" cy="46" r="20" fill="#FFC61A"/><circle cx="25" cy="46" r="13" fill="none" stroke="#E0A800" stroke-width="3"/></svg>';
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  // la portada siempre se ve; la animación solo se agrega si la página está a la vista
+  function animarPortada() {
+    var p = $('.portada');
+    if (p && document.visibilityState === 'visible') requestAnimationFrame(function () { p.classList.add('anim'); });
+  }
   function intro() {
     var el = $('#intro');
     if (!el) return;
     var q = new URLSearchParams(location.search);
-    if (q.has('folio') || q.has('sinintro') || location.hash === '#panel') { el.remove(); return; }
+    if (q.has('folio') || q.has('sinintro') || location.hash === '#panel') { el.remove(); animarPortada(); return; }
     $('#intro-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
     var W = window.innerWidth, H = window.innerHeight, fx = $('#intro-fx'), h = '';
     for (var i = 0; i < 7; i++) {
@@ -813,7 +818,7 @@
     fx.innerHTML = h;
     document.documentElement.style.overflow = 'hidden';
     var fin = false;
-    function terminar() { if (fin) return; fin = true; document.documentElement.style.overflow = ''; el.remove(); }
+    function terminar() { if (fin) return; fin = true; document.documentElement.style.overflow = ''; el.remove(); animarPortada(); }
     setTimeout(terminar, 3400);
   }
   function lluviaDePremios(cont, n) {

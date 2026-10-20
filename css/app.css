@@ -72,14 +72,19 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .portada{position:relative;background:linear-gradient(170deg,#FFD12E 0%,#FFC61A 55%,#F2B400 100%);color:#1C2A7E;overflow:hidden;padding-block:34px 92px}
 .portada-estrellas{position:absolute;inset:0;opacity:.13;background-image:radial-gradient(circle at 12% 30%,#1F2E7A 0 2px,transparent 3px),radial-gradient(circle at 78% 22%,#1F2E7A 0 2px,transparent 3px),radial-gradient(circle at 60% 70%,#1F2E7A 0 1.5px,transparent 2.5px),radial-gradient(circle at 30% 80%,#1F2E7A 0 1.5px,transparent 2.5px);background-size:220px 160px}
 .portada-in{position:relative;display:flex;align-items:center;gap:clamp(18px,4vw,44px);max-width:980px}
-.portada-logo{flex:none;width:clamp(96px,16vw,170px);aspect-ratio:136/132;animation:portadaLogo .9s var(--t-suave) both}
+.portada-logo{flex:none;width:clamp(96px,16vw,170px);aspect-ratio:136/132}
+.portada.anim .portada-logo{animation:portadaLogo .9s var(--t-suave) both}
 .portada-logo svg{width:100%;height:100%;display:block}
 .portada-txt{display:flex;flex-direction:column;min-width:0}
-.portada-dep{font:800 clamp(50px,10vw,128px)/.85 var(--display);letter-spacing:.04em;animation:portadaTxt .8s var(--t-suave) .1s both}
-.portada-ms{font:400 clamp(30px,5vw,58px)/1 Yellowtail,cursive;color:#1F2E7A;margin:2px 0 4px;animation:portadaTxt .8s var(--t-suave) .2s both}
-.portada-lema{font:800 clamp(20px,3.2vw,36px)/1 var(--display);text-transform:uppercase;letter-spacing:.03em;animation:portadaTxt .8s var(--t-suave) .3s both}
+.portada-dep{font:800 clamp(50px,10vw,128px)/.85 var(--display);letter-spacing:.04em}
+.portada.anim .portada-dep{animation:portadaTxt .8s var(--t-suave) .1s both}
+.portada-ms{font:400 clamp(30px,5vw,58px)/1 Yellowtail,cursive;color:#1F2E7A;margin:2px 0 4px}
+.portada.anim .portada-ms{animation:portadaTxt .8s var(--t-suave) .2s both}
+.portada-lema{font:800 clamp(20px,3.2vw,36px)/1 var(--display);text-transform:uppercase;letter-spacing:.03em}
+.portada.anim .portada-lema{animation:portadaTxt .8s var(--t-suave) .3s both}
 .portada-curva{position:absolute;left:0;bottom:-1px;width:100%;height:clamp(46px,7vw,96px);display:block}
-.portada-balon{position:absolute;left:50%;bottom:clamp(14px,2.4vw,34px);width:clamp(40px,5vw,58px);height:clamp(40px,5vw,58px);transform:translateX(-50%);animation:balonRueda 1.2s cubic-bezier(.2,.8,.2,1) .3s both}
+.portada-balon{position:absolute;left:50%;bottom:clamp(14px,2.4vw,34px);width:clamp(40px,5vw,58px);height:clamp(40px,5vw,58px);transform:translateX(-50%)}
+.portada.anim .portada-balon{animation:balonRueda 1.2s cubic-bezier(.2,.8,.2,1) .3s both}
 .portada-balon svg{width:100%;height:100%;display:block}
 @keyframes portadaLogo{from{opacity:0;transform:scale(.8) rotate(-8deg)}to{opacity:1;transform:none}}
 @keyframes portadaTxt{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
