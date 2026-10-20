@@ -19,12 +19,12 @@
   }
 
   function abrir() {
-    panel.hidden = false; document.documentElement.style.overflow = 'hidden';
+    if (panel.hidden) window.FIJAR.on(); panel.hidden = false;
     P.pin = P.pin || ses.get();
     if (P.pin) cargar(); else pantallaPin();
   }
   function cerrar() {
-    panel.hidden = true; document.documentElement.style.overflow = '';
+    if (!panel.hidden) window.FIJAR.off(); panel.hidden = true;
     if (location.hash === '#panel') history.replaceState(null, '', location.pathname + location.search);
   }
 

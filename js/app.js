@@ -9,6 +9,29 @@
     set: function (k, v) { try { localStorage.setItem('msport:' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
   };
 
+  /* ---------- fondo congelado: mientras hay algo abierto encima, la página de atrás no se mueve (también en iPhone) ---------- */
+  var FIJAR = (function () {
+    var n = 0, y = 0;
+    return {
+      on: function () {
+        if (n++) return;
+        y = window.scrollY;
+        var b = document.body.style;
+        b.position = 'fixed'; b.top = -y + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; b.overflow = 'hidden';
+      },
+      off: function () {
+        if (!n) return;
+        if (--n) return;
+        var b = document.body.style;
+        b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; b.overflow = '';
+        window.scrollTo({ top: y, behavior: 'instant' });
+      }
+    };
+  })();
+  window.FIJAR = FIJAR;
+  // al recargar, la página empieza siempre hasta arriba
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
   /* ---------- idioma ---------- */
   var LANGS = Object.keys(window.I18N);
   // el idioma lo decide el celular o la computadora de cada persona
@@ -320,7 +343,7 @@
 
   function pintarTablero() {
     if (!tablero) return;
-    if (!S.modo) { tablero.innerHTML = vistaInicio(); enlazarInicio(); return; }
+    if (!S.modo || probador.hidden) { tablero.innerHTML = vistaInicio(); enlazarInicio(); return; }
     var lista = pasos(), id = lista[S.paso];
     var h = '<div class="paso-top"><span class="paso-num">' + esc(T('paso')) + ' ' + (S.paso + 1) + ' ' + esc(T('de')) + ' ' + lista.length + '</span><span class="puntos" aria-hidden="true">' +
       lista.map(function (x, i) { return '<i class="' + (i === S.paso ? 'on' : i < S.paso ? 'hecho' : '') + '"></i>'; }).join('') + '</span></div>';
@@ -337,13 +360,8 @@
     var lista = pasos();
     S.paso = Math.max(0, Math.min(lista.length - 1, i));
     pintarTablero(); verVistaDe(lista[S.paso]); guardarBorrador();
-    // solo se mueve si el uniforme quedó fuera de la vista, para no marear
-    var esc_ = $('#escenario').getBoundingClientRect();
-    if (esc_.bottom < 80) {
-      var cont = $('#probador').hidden ? null : $('#probador-cuerpo');
-      if (cont) cont.scrollTo({ top: 0, behavior: 'smooth' });
-      else window.scrollTo({ top: Math.max(0, esc_.top + window.scrollY - 76), behavior: 'smooth' });
-    }
+    // el uniforme se queda fijo arriba; solo la lista de pasos regresa a su inicio
+    tablero.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function enlazarComunes() {
     $$('[data-nav]', tablero).forEach(function (b) {
@@ -369,11 +387,14 @@
   }
   function reiniciar() {
     S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.fuente = null;
-    vitrina(); pintarTablero(); cambiarVista('front'); dibujar(); store.set('borrador', null);
+    store.set('borrador', null);
+    if (!probador.hidden) cerrarProbador();
+    vitrina(); pintarTablero(); cambiarVista('front'); dibujar();
   }
 
   function vistaInicio() {
     return '<div class="paso"><h3>' + esc(T('inicio_t')) + '</h3><p class="sub"></p><div class="caminos">' +
+      (S.modo ? '<button type="button" class="camino camino-sigue" data-camino="seguir"><span class="ico">' + icono('lapiz') + '</span><div><b>' + esc(T('seguir_armando')) + '</b><span>' + esc(T('seguir_armando_p')) + '</span></div></button>' : '') +
       '<button type="button" class="camino" data-camino="catalogo"><span class="ico">' + icono('lista') + '</span><div><b>' + esc(T('inicio_a')) + '</b><span>' + esc(T('inicio_a_p')) + '</span></div></button>' +
       '<button type="button" class="camino" data-camino="libre"><span class="ico">' + icono('lapiz') + '</span><div><b>' + esc(T('inicio_b')) + '</b><span>' + esc(T('inicio_b_p')) + '</span></div></button>' +
       '</div></div>';
@@ -382,10 +403,12 @@
     $$('[data-camino]', tablero).forEach(function (b) {
       b.addEventListener('click', function () {
         var m = b.getAttribute('data-camino');
-        S.modo = m; S.paso = 0;
-        if (m === 'libre') { S.d = clone(DISENO_LIBRE); S.baseId = null; }
-        else if (!S.baseId) { var primero = catalogoVisible()[0]; if (primero) usarBase(primero); }
-        pintarTablero(); verVistaDe(pasos()[0]); dibujar(); guardarBorrador();
+        if (m !== 'seguir') {
+          S.modo = m; S.paso = 0; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = '';
+          if (m === 'libre') { S.d = clone(DISENO_LIBRE); S.baseId = null; }
+          else { var primero = catalogoVisible()[0]; if (primero) usarBase(primero); }
+        }
+        abrirProbador(null, null);
       });
     });
   }
@@ -816,9 +839,9 @@
       h += '<div class="intro-estrella" style="left:' + (W / 2 - z / 2) + 'px;top:' + (H / 2 - z / 2) + 'px;width:' + z + 'px;height:' + z + 'px;--dx:' + Math.cos(ang) * dist + 'px;--dy:' + Math.sin(ang) * dist + 'px;--s:' + rnd(0.8, 1.6).toFixed(2) + ';--r:' + rnd(-160, 160) + 'deg;animation-delay:' + rnd(0.45, 0.85).toFixed(2) + 's">' + ESTRELLA + '</div>';
     }
     fx.innerHTML = h;
-    document.documentElement.style.overflow = 'hidden';
+    window.scrollTo(0, 0); FIJAR.on();
     var fin = false;
-    function terminar() { if (fin) return; fin = true; document.documentElement.style.overflow = ''; el.remove(); animarPortada(); }
+    function terminar() { if (fin) return; fin = true; FIJAR.off(); window.scrollTo(0, 0); el.remove(); animarPortada(); }
     setTimeout(terminar, 3400);
   }
   function lluviaDePremios(cont, n) {
@@ -834,11 +857,11 @@
     var f = $('#fiesta');
     $('#fiesta-folio').textContent = id;
     $('#fiesta-wa').href = waLink(T('wa_msg').replace('{f}', id).replace('{u}', link));
-    f.hidden = false;
+    f.hidden = false; FIJAR.on();
     lluviaDePremios($('#fiesta-fx'), 46);
     setTimeout(function () { $('#fiesta-wa').focus(); }, 900);
   }
-  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; cerrarProbador(); reiniciar(); });
+  $('#fiesta-cerrar').addEventListener('click', function () { $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; FIJAR.off(); reiniciar(); });
 
   /* ---------- catálogo de la página ---------- */
   var filtro = 'todos';
@@ -946,48 +969,47 @@
     });
   }
 
-  /* ---------- probador: el creador se abre encima, la página no se mueve ---------- */
+  /* ---------- creador a pantalla completa: uniforme fijo arriba, pasos abajo; la página de atrás no se mueve ---------- */
   var estudio = $('#estudio'), lugarEstudio = estudio.parentNode, probador = $('#probador'), hueco = document.createElement('div');
   var ancla = null;
   function abrirProbador(u, el) {
-    // se recuerda dónde estaba en pantalla lo que tocaste, para volver exactamente ahí
     ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
-    S.modo = 'catalogo'; usarBase(u);
-    S.paso = Math.min(1, pasos().length - 1);
-    // se deja reservado el espacio del creador para que la página no se mueva
-    hueco.style.height = estudio.offsetHeight + 'px'; lugarEstudio.insertBefore(hueco, estudio);
-    $('#probador-cuerpo').appendChild(estudio);
-    probador.hidden = false; document.documentElement.classList.add('fijo');
-    $('#probador-cuerpo').scrollTop = 0;
-    pintarTablero(); verVistaDe(pasos()[S.paso]); dibujar(); guardarBorrador();
+    if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); S.paso = Math.min(1, pasos().length - 1); }
+    if (probador.hidden) {
+      hueco.style.height = estudio.offsetHeight + 'px'; lugarEstudio.insertBefore(hueco, estudio);
+      $('#probador-cuerpo').appendChild(estudio);
+      FIJAR.on();
+      probador.hidden = false;
+    }
+    tablero.scrollTop = 0;
+    pintarTablero(); verVistaDe(pasos()[S.paso]); dibujar(); guardarBorrador(); moverPulgar();
   }
   function cerrarProbador() {
     if (probador.hidden) return;
-    var y = window.scrollY, alto0 = hueco.offsetHeight;
     lugarEstudio.insertBefore(estudio, hueco); hueco.remove();
-    probador.hidden = true; document.documentElement.classList.remove('fijo');
-    // vuelves a ver exactamente lo mismo que antes de abrir
+    probador.hidden = true;
+    pintarTablero();
+    FIJAR.off();
+    // vuelves a ver exactamente lo que veías antes de abrir
     if (ancla && document.body.contains(ancla.el)) window.scrollTo({ top: window.scrollY + ancla.el.getBoundingClientRect().top - ancla.top, behavior: 'instant' });
-    else window.scrollTo({ top: y + (estudio.offsetHeight - alto0), behavior: 'instant' });
-    dibujar();
+    dibujar(); moverPulgar();
   }
   $('#probador-x').addEventListener('click', cerrarProbador);
-  probador.addEventListener('click', function (e) { if (e.target === probador) cerrarProbador(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarProbador(); });
 
   /* ---------- folio compartido ---------- */
   function abrirFolio(id, k) {
     var capa = $('#folio-capa'), cuerpo = $('#folio-cuerpo');
-    capa.hidden = false; cuerpo.innerHTML = '<p>' + esc(T('cargando')) + '</p>';
+    capa.hidden = false; FIJAR.on(); cuerpo.innerHTML = '<p>' + esc(T('cargando')) + '</p>';
     fetch('/api/folio?id=' + encodeURIComponent(id) + '&k=' + encodeURIComponent(k)).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (f) {
       cuerpo.innerHTML = folioHTML(f, false);
       $$('[data-armar]', cuerpo).forEach(function (b) {
         b.addEventListener('click', function () {
           var e = f.equipos[+b.getAttribute('data-armar')];
           S.modo = 'libre'; S.d = clone(e.diseno); S.paso = pasos().indexOf('dorsal');
-          capa.hidden = true; pintarTablero(); dibujar(); cambiarVista('back');
+          capa.hidden = true; FIJAR.off();
           history.replaceState(null, '', '/');
-          $('#crear').scrollIntoView({ behavior: 'smooth' });
+          abrirProbador(null, null); cambiarVista('back');
         });
       });
     }).catch(function () { cuerpo.innerHTML = '<p>' + esc(T('folio_no')) + '</p>'; });
@@ -1011,7 +1033,7 @@
     });
     return h;
   }
-  $$('[data-cerrar]').forEach(function (b) { b.addEventListener('click', function () { b.closest('.capa').hidden = true; }); });
+  $$('[data-cerrar]').forEach(function (b) { b.addEventListener('click', function () { var c = b.closest('.capa'); if (!c.hidden) { c.hidden = true; FIJAR.off(); } }); });
 
   /* ---------- borrador del cliente ---------- */
   function guardarBorrador() {
@@ -1051,6 +1073,7 @@
   ['gesturestart', 'gesturechange'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
   document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   function iniciar() {
+    if (!new URLSearchParams(location.search).has('folio')) window.scrollTo(0, 0);
     $('#marca-logo').insertAdjacentHTML('afterbegin', logoSVG('#1F2E7A', '#FFFFFF'));
     $('#portada-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
     $('#portada-balon').innerHTML = BALON;

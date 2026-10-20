@@ -147,7 +147,7 @@
     ctx.moveTo(x + 60 * s, y + 40 * s); ctx.lineTo(x + 66 * s, y + 50 * s); ctx.lineTo(x + 61 * s, y + 58 * s);
     ctx.stroke();
     ctx.font = 'italic 700 ' + Math.round(19 * s) + 'px Yellowtail, cursive';
-    ctx.translate(x + 66 * s, y + 116 * s); ctx.rotate(-0.38);
+    ctx.translate(x + 58 * s, y + 118 * s); ctx.rotate(-0.3);
     ctx.fillStyle = claro ? '#111111' : inner; ctx.fillText('Sport', 0, 0);
     ctx.restore();
   }
@@ -155,6 +155,33 @@
   /* ---------- texto de espalda ---------- */
   var NUM_FONT = '"Saira Extra Condensed", "Arial Narrow", sans-serif';
   var SELLO_Y = [0.6, 0.27, 0.44, 0.33, 0.52];
+  // Busca dentro del trazo real de cada cifra un lugar donde el sello completo quepa sin salirse
+  var spotCache = {};
+  function selloSpot(ch, fs, hgt, k, pref, s0) {
+    var key = ch + '|' + Math.round(fs) + '|' + k.toFixed(3) + '|' + pref + '|' + Math.round(s0);
+    if (spotCache[key] !== undefined) return spotCache[key];
+    var c = document.createElement('canvas'), g = c.getContext('2d');
+    g.font = '700 ' + fs + 'px ' + NUM_FONT;
+    var w = Math.ceil(g.measureText(ch).width) + 4, h = Math.ceil(hgt * 1.2);
+    c.width = w; c.height = h;
+    g.font = '700 ' + fs + 'px ' + NUM_FONT; g.textBaseline = 'top'; g.fillStyle = '#000';
+    g.fillText(ch, 2, -fs * 0.06);
+    var d = g.getImageData(0, 0, w, h).data, I = new Uint32Array((w + 1) * (h + 1)), x, y;
+    for (y = 0; y < h; y++) { var fila = 0; for (x = 0; x < w; x++) { fila += d[(y * w + x) * 4 + 3] > 140 ? 1 : 0; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + fila; } }
+    function suma(x0, y0, x1, y1) { return I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0]; }
+    var res = null;
+    for (var sz = s0; sz >= s0 * 0.55 && !res; sz *= 0.9) {
+      var sw = Math.round(sz / k), sh = Math.round(sz * 1.24), mejor = 1e9; // ancho en la cifra comprimida; alto con el "Sport"
+      var pd = Math.max(2, Math.round(sz * 0.14)); // borde de tinta alrededor del sello, para que no corte la cifra
+      for (y = pd; y + sh + pd <= h; y += 2) for (x = pd; x + sw + pd <= w; x += 2) {
+        var aw = sw + 2 * pd, ah = sh + 2 * pd;
+        if (suma(x - pd, y - pd, x + sw + pd, y + sh + pd) < aw * ah * 0.985) continue;
+        var dist = Math.abs((y + sz / 2) - hgt * pref) + Math.abs((x + sw / 2) - w / 2) * 0.6;
+        if (dist < mejor) { mejor = dist; res = { x: x - 2, y: y, s: sz }; }
+      }
+    }
+    spotCache[key] = res; return res;
+  }
   function drawNumber(ctx, num, cx, top, hgt, color, sello, maxW) {
     num = String(num || '').slice(0, 3);
     if (!num) return;
@@ -164,22 +191,17 @@
     for (var i = 0; i < num.length; i++) { widths[i] = ctx.measureText(num[i]).width; total += widths[i] + (i ? gap : 0); }
     var k = Math.min(1, maxW / total);
     ctx.save(); ctx.translate(cx, top); ctx.scale(k, 1);
-    var x = -total / 2;
+    var x = -total / 2, starts = [];
     ctx.fillStyle = color; ctx.textBaseline = 'top';
-    var boxes = [];
-    for (i = 0; i < num.length; i++) {
-      ctx.fillText(num[i], x, -fs * 0.06);
-      boxes.push([x, widths[i]]);
-      x += widths[i] + gap;
-    }
+    for (i = 0; i < num.length; i++) { ctx.fillText(num[i], x, -fs * 0.06); starts.push(x); x += widths[i] + gap; }
+    ctx.restore();
     if (sello) {
-      var ss = hgt * 0.17;
-      for (i = 0; i < boxes.length; i++) {
-        var bx = boxes[i][0] + boxes[i][1] * 0.5 + (i % 2 ? ss * 0.1 : -ss * 0.25);
-        drawSello(ctx, bx - ss / 2, hgt * SELLO_Y[i % SELLO_Y.length], ss, color);
+      for (i = 0; i < num.length; i++) {
+        var sp = selloSpot(num[i], fs, hgt, k, SELLO_Y[i % SELLO_Y.length], hgt * 0.17);
+        if (!sp) continue;
+        drawSello(ctx, cx + (starts[i] + sp.x) * k, top + sp.y, sp.s, color);
       }
     }
-    ctx.restore();
   }
   function drawName(ctx, name, cx, y, size, color, maxW) {
     name = String(name || '').toUpperCase().slice(0, 16);

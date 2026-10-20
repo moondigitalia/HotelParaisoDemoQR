@@ -1,0 +1,7 @@
+<!doctype html><html><head><meta charset="utf-8"><link href="../css/fonts.css" rel="stylesheet"><style>body{margin:0;background:#0E1640;display:flex;flex-wrap:wrap;gap:6px}canvas{width:230px;height:345px}</style></head><body>
+<script src="../js/kit.js"></script><script src="../js/catalogo-base.js"></script><script>
+var nums=['1','11','619','69','7','10','888','47'];
+Promise.all(nums.map(function(n,i){var c=document.createElement('canvas');c.width=1000;c.height=1500;document.body.appendChild(c);
+var d=JSON.parse(JSON.stringify(CATALOGO_BASE[i%2?1:6].diseno));d.nombre='PRUEBA';d.numero=n;
+d.relleno=i%2?{tipo:'color',color:'#151515'}:{tipo:'color',color:'#F4F4F4'};return Kit.render(c,d,'back');})).then(function(){document.title='ok'});
+</script></body></html>
