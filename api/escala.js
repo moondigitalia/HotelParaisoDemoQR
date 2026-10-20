@@ -158,7 +158,7 @@ module.exports = async (req, res) => {
       }
       nuevo = up.status === 201;
     }
-    const t = await esc('/contacts/' + id + '/tags', 'PUT', { addTags: [await tagId(tag)] });
+    const t = await esc('/contacts/' + id + '/tags', 'PUT', { addTags: [await tagId(tag)], triggerWorkflow: true }); // activa el flujo "Asignación asesor - Web y Radar"
     if (t.status !== 200) console.error('escala tags', t.status, JSON.stringify(t.data));
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
