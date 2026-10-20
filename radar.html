@@ -258,7 +258,9 @@ $('#t-send').addEventListener('click',function(){
   if(window.u3mEscala){
     // ficha de la mamá, papá o tutor, ligada al alumno
     window.u3mEscala({origen:'radar',nombre:n,whatsapp:w,email:em,
-      notas:par+' de '+st.nombre+' (WhatsApp '+st.wa+(st.email?', '+st.email:'')+'), quien hizo el Radar de Carrera y pidió que también le enviemos su resultado.\n\n'+st.txt});
+      notas:par+' de '+st.nombre+' (WhatsApp '+st.wa+(st.email?', '+st.email:'')+'), quien hizo el Radar de Carrera y pidió que también le enviemos su resultado.\n\n'+st.txt,
+      tarea:{titulo:'Enviar resultado del Radar a '+n+' ('+par.toLowerCase()+' de '+st.nombre+')',
+        descripcion:st.nombre+' pidió que su '+par.toLowerCase()+', '+n+', también reciba su resultado del Radar de Carrera por WhatsApp ('+w+').\n\nResultado:\n'+st.txt}});
     // y en la ficha del alumno queda quién es su mamá, papá o tutor
     window.u3mEscala({origen:'radar',nombre:st.nombre,whatsapp:st.wa,email:st.email,
       notas:'Pidió que también le enviemos su resultado a su '+par.toLowerCase()+': '+n+' · WhatsApp '+w+(em?' · '+em:'')+'.'});

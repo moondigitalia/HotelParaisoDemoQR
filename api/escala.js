@@ -77,7 +77,17 @@ module.exports = async (req, res) => {
     if (t.status !== 200) console.error('escala tags', t.status, JSON.stringify(t.data));
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
-    return res.status(200).json({ ok: true, nuevo: up.status === 201, etiqueta: t.status === 200, nota: n.status < 300 });
+    // Recordatorio (tarea) para el asesor, cuando la página lo pide (ej. enviar el resultado al familiar)
+    let tarea;
+    if (b.tarea && b.tarea.titulo) {
+      const tk = await esc('/tasks', 'POST', {
+        contactId: id, title: clean(b.tarea.titulo, 256), description: clean(b.tarea.descripcion, 3900) || notas,
+        startAt: new Date().toISOString().slice(0, 19), status: 'pending',
+      });
+      tarea = tk.status < 300;
+      if (!tarea) console.error('escala tarea', tk.status, JSON.stringify(tk.data));
+    }
+    return res.status(200).json({ ok: true, nuevo: up.status === 201, etiqueta: t.status === 200, nota: n.status < 300, tarea });
   } catch (e) {
     console.error('escala error', e && e.message);
     return res.status(502).json({ ok: false, error: 'sin conexión con Escala' });
