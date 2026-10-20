@@ -65,7 +65,7 @@
     modo: null, paso: 0, vista: 'front', baseId: null,
     d: clone(DISENO_LIBRE),
     equipos: [], esEquipo: false, nombreEquipo: '', jugadores: [],
-    avisos: {}, telas: {}, originales: {}, remotos: {}, pendientes: [], colorPatro: 'auto'
+    avisos: {}, telas: {}, patroSel: -1, mangaLado: 'izq', originales: {}, remotos: {}, pendientes: [], colorPatro: 'auto'
   };
   var PASOS = {
     catalogo: ['diseno', 'manga', 'dorsal', 'equipo', 'listo'],
@@ -85,7 +85,7 @@
     dibujando = true;
     var suave = S.suave; S.suave = false;
     if (suave) { var g = antes.getContext('2d'); g.clearRect(0, 0, antes.width, antes.height); g.drawImage(lienzo, 0, 0); }
-    Kit.render(lienzo, S.d, S.vista).then(function () {
+    Kit.render(lienzo, S.d, S.vista, { lado: S.mangaLado }).then(function () {
       dibujando = false;
       if (suave) {
         var wrap = $('#lienzo-wrap');
@@ -116,7 +116,7 @@
     var tipo = (v === 'manga' || desde === 'manga') ? 'zoom' : 'lado';
     var dir = ORDEN_VISTA[v] > ORDEN_VISTA[desde] ? 1 : -1;
     var mio = ++transicion;
-    Kit.render(lienzo, S.d, S.vista).then(function () {
+    Kit.render(lienzo, S.d, S.vista, { lado: S.mangaLado }).then(function () {
       if (mio !== transicion) return;
       var wrap = $('#lienzo-wrap');
       wrap.classList.remove('tr-lado', 'tr-zoom', 'tr-izq', 'tr-der', 'tr-sale', 'tr-ok', 'tr-funde'); void wrap.offsetWidth;
@@ -128,6 +128,11 @@
   function verVistaDe(paso) {
     var v = paso === 'dorsal' ? 'back' : paso === 'patro' ? 'manga' : (paso === 'espalda') ? 'back' : (paso === 'relleno' || paso === 'detalles' || paso === 'logo' || paso === 'diseno' || paso === 'manga') ? 'front' : null;
     if (v === 'manga' && S.d.foto) v = 'front';
+    if (paso === 'patro' && !S.d.foto) {
+      var ps = Kit.patros(S.d), p0 = ps[S.patroSel] || ps[0];
+      if (p0) { mirarPatro(p0); return; }
+      S.mangaLado = 'izq';
+    }
     if (v) cambiarVista(v);
   }
 
@@ -468,7 +473,7 @@
     });
   }
   function reiniciar() {
-    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.telas = {};
+    S.modo = null; S.paso = 0; S.baseId = null; S.d = clone(DISENO_LIBRE); S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; S.avisos = {}; S.avisoLog = []; S.telas = {}; S.patroSel = -1; S.mangaLado = 'izq';
     store.set('borrador', null);
     if (!probador.hidden) cerrarProbador();
     vitrina(); pintarTablero(); cambiarVista('front'); dibujar();
@@ -487,7 +492,7 @@
         var m = b.getAttribute('data-camino');
         if (m !== 'seguir') {
           S.modo = m; S.paso = 0; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = '';
-          if (m === 'libre') { S.d = clone(DISENO_LIBRE); S.baseId = null; S.telas = {}; S.avisos = {}; }
+          if (m === 'libre') { S.d = clone(DISENO_LIBRE); S.baseId = null; S.telas = {}; S.avisos = {}; S.patroSel = -1; S.mangaLado = 'izq'; }
           else { var primero = catalogoVisible()[0]; if (primero) usarBase(primero); }
         }
         abrirProbador(null, null);
@@ -517,6 +522,29 @@
     equipo: function () { return '<h3>' + esc(T('p_equipo')) + '</h3>'; },
     listo: function () { return '<h3>' + esc(T('p_listo')) + '</h3>'; }
   };
+  function filaTam(n) {
+    n = n == null ? 2 : n;
+    return '<div class="grupo fila-tam"><span class="etq">' + esc(T('tamano')) + '</span><div class="tam-btns"><button type="button" class="icon-btn" data-ltam="-1" aria-label="' + esc(T('mas_chico')) + '"' + (n <= 0 ? ' disabled' : '') + '>−</button><button type="button" class="icon-btn" data-ltam="1" aria-label="' + esc(T('mas_grande')) + '"' + (n >= 4 ? ' disabled' : '') + '>+</button></div></div>';
+  }
+  function enlazarTam(obj, alCambiar) {
+    $$('[data-ltam]', tablero).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var n = obj.tam == null ? 2 : obj.tam, nuevo = Math.max(0, Math.min(4, n + +b.getAttribute('data-ltam')));
+        if (nuevo === n) return;
+        obj.tam = nuevo;
+        $$('[data-ltam]', tablero).forEach(function (x) { x.disabled = +x.getAttribute('data-ltam') < 0 ? nuevo <= 0 : nuevo >= 4; });
+        if (alCambiar) alCambiar();
+        dibujar(); guardarBorrador();
+      });
+    });
+  }
+  // a qué vista mirar según dónde va un patrocinador
+  function mirarPatro(p) {
+    if (!p) return;
+    var v = p.pos === 'pecho' ? 'front' : p.pos === 'espalda' ? 'back' : 'manga', lado = p.pos === 'manga-der' ? 'der' : 'izq';
+    if (v === 'manga' && S.vista === 'manga' && lado !== S.mangaLado) { S.mangaLado = lado; S.suave = true; dibujar(); return; }
+    S.mangaLado = lado; cambiarVista(v);
+  }
   var catDiseno = null;
   /* ---- contenido de cada paso ---- */
   var VISTAS = {
@@ -548,21 +576,27 @@
       h += '<div class="grupo"><span class="etq">' + esc(T('donde_va')) + '</span><div class="chips llenar">' +
         ['pecho-izq', 'pecho-der', 'centro', 'espalda'].map(function (p) {
           return '<button type="button" class="chip' + (l.pos === p ? ' on' : '') + '" data-pos="' + p + '">' + esc(T('pos_' + p.replace('-', '_'))) + '</button>';
-        }).join('') + '</div></div>';
+        }).join('') + '</div></div>' + filaTam(l.tam);
       return h;
     },
     patro: function () {
-      var lista = S.d.patrocinadores || [];
-      var h = '<div class="pares g0">' + lista.map(function (src, i) {
-        return '<div class="patro"><span class="prev"><img src="' + esc(src) + '" alt=""></span>' +
+      var lista = Kit.patros(S.d), sel = S.patroSel;
+      var h = '<div class="pares g0">' + lista.map(function (p, i) {
+        return '<div class="patro' + (i === sel ? ' sel' : '') + '" data-psel="' + i + '" role="button" tabindex="0" aria-pressed="' + (i === sel) + '"><span class="prev"><img src="' + esc(p.src) + '" alt=""></span>' +
           (i > 0 ? '<button type="button" class="icon-btn" data-sube="' + i + '" aria-label="' + esc(T('subir_orden')) + '">' + icono('sube') + '</button>' : '') +
           '<button type="button" class="icon-btn" data-quita="' + i + '" aria-label="' + esc(T('quitar')) + '">×</button></div>';
       }).join('') + (lista.length < 4 ? '<span class="patro patro-mas archivo">' + icono('mas') + esc(T('agregar_patro')) + '<input type="file" accept="image/*" id="f-patro"></span>' : '') + '</div>';
-      if (lista.length) {
+      if (lista[sel]) {
+        // el logo tocado: dónde va y qué tan grande
+        h += '<div class="grupo"><span class="etq">' + esc(T('donde_va')) + '</span><div class="chips llenar">' +
+          ['manga-izq', 'manga-der', 'pecho', 'espalda'].map(function (q) {
+            return '<button type="button" class="chip' + (lista[sel].pos === q ? ' on' : '') + '" data-ppos="' + q + '">' + esc(T('zp_' + q.replace('-', '_'))) + '</button>';
+          }).join('') + '</div></div>' + filaTam(lista[sel].tam);
+      } else if (lista.length) {
         h += '<div class="grupo"><span class="etq">' + esc(T('color_logos')) + '</span><div class="chips llenar">' +
           [['blanco', 'c_blanco'], ['negro', 'c_negro'], ['original', 'c_original']].map(function (c) {
             return '<button type="button" class="chip' + (colorPatroActual() === c[0] ? ' on' : '') + '" data-cpatro="' + c[0] + '">' + esc(T(c[1])) + '</button>';
-          }).join('') + '</div></div>';
+          }).join('') + '</div></div><p class="nota-corta">' + esc(T('patro_toca')) + '</p>';
       } else h += '<p class="nota-corta">' + esc(T('p_patro_s')) + '</p>';
       return h;
     },
@@ -673,12 +707,30 @@
           cambiarVista(S.d.logos[0].pos === 'espalda' ? 'back' : 'front'); dibujar(); guardarBorrador();
         });
       });
+      if (S.d.logos && S.d.logos[0]) enlazarTam(S.d.logos[0], function () { cambiarVista(S.d.logos[0].pos === 'espalda' ? 'back' : 'front'); });
     },
     patro: function () {
       enlazarArchivo('#f-patro', 'patro');
+      // cada patrocinador guarda dónde va y su tamaño
+      S.d.patrocinadores = Kit.patros(S.d).map(function (p) { return { src: p.src, pos: p.pos, tam: p.tam }; });
       var L = S.d.patrocinadores;
-      $$('[data-sube]', tablero).forEach(function (b) { b.addEventListener('click', function () { var i = +b.getAttribute('data-sube'); var t = L[i - 1]; L[i - 1] = L[i]; L[i] = t; pintarTablero(); dibujar(); guardarBorrador(); }); });
-      $$('[data-quita]', tablero).forEach(function (b) { b.addEventListener('click', function () { L.splice(+b.getAttribute('data-quita'), 1); pintarTablero(); dibujar(); guardarBorrador(); }); });
+      function repinta() { pintarTablero(); dibujar(); guardarBorrador(); }
+      $$('[data-psel]', tablero).forEach(function (c) {
+        function elegir() { var i = +c.getAttribute('data-psel'); S.patroSel = S.patroSel === i ? -1 : i; pintarTablero(); if (S.patroSel >= 0) mirarPatro(L[S.patroSel]); }
+        c.addEventListener('click', function (e) { if (e.target.closest('button')) return; elegir(); });
+        c.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target === c) { e.preventDefault(); elegir(); } });
+      });
+      $$('[data-sube]', tablero).forEach(function (b) { b.addEventListener('click', function () { var i = +b.getAttribute('data-sube'); var t = L[i - 1]; L[i - 1] = L[i]; L[i] = t; if (S.patroSel === i) S.patroSel = i - 1; else if (S.patroSel === i - 1) S.patroSel = i; repinta(); }); });
+      $$('[data-quita]', tablero).forEach(function (b) { b.addEventListener('click', function () { var i = +b.getAttribute('data-quita'); L.splice(i, 1); if (S.patroSel === i) S.patroSel = -1; else if (S.patroSel > i) S.patroSel--; repinta(); }); });
+      $$('[data-ppos]', tablero).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var p = L[S.patroSel]; if (!p) return;
+          p.pos = b.getAttribute('data-ppos');
+          $$('[data-ppos]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
+          mirarPatro(p); dibujar(); guardarBorrador();
+        });
+      });
+      if (L[S.patroSel]) enlazarTam(L[S.patroSel], function () { mirarPatro(L[S.patroSel]); });
       $$('[data-cpatro]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
           var c = b.getAttribute('data-cpatro'); S.colorPatro = c;
@@ -880,11 +932,14 @@
         S.d.logos = [{ src: info.local, pos: (S.d.logos && S.d.logos[0] && S.d.logos[0].pos) || 'pecho-izq' }];
         S.avisos.logo = info.avisos; S.avisos.logoZoom = info.zoom; S.avisos.logoFondo = info.fondo === 'transparente' ? null : info.fondo;
       } else if (que === 'patro') {
-        S.d.patrocinadores = (S.d.patrocinadores || []).concat([info.local]).slice(0, 4);
+        var prev = Kit.patros(S.d), ult = prev[prev.length - 1];
+        S.d.patrocinadores = prev.map(function (p) { return { src: p.src, pos: p.pos, tam: p.tam }; }).concat([{ src: info.local, pos: ult ? ult.pos : 'manga-izq', tam: 2 }]).slice(0, 4);
+        S.patroSel = S.d.patrocinadores.length - 1;
         autoColorPatro();
       }
       pintarTablero(); dibujar(); guardarBorrador();
-      cambiarVista(que === 'patro' ? 'manga' : (que === 'espalda' || (que === 'logo' && S.d.logos[0].pos === 'espalda')) ? 'back' : 'front');
+      if (que === 'patro') { mirarPatro(S.d.patrocinadores[S.patroSel]); return; }
+      cambiarVista((que === 'espalda' || (que === 'logo' && S.d.logos[0].pos === 'espalda')) ? 'back' : 'front');
     }).catch(function () { toast(T('error_guardar')); });
   }
 

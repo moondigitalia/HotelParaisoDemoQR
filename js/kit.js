@@ -221,6 +221,13 @@
     'centro': { x: 500, y: 330, w: 190, view: 'front' },
     'espalda': { x: 500, y: 180, w: 120, view: 'back' }
   };
+  // tamaños que el cliente escoge con − y + (el 2 es el normal)
+  var TAM = [0.6, 0.8, 1, 1.25, 1.5];
+  function tamDe(n) { return TAM[n == null ? 2 : Math.max(0, Math.min(TAM.length - 1, n))]; }
+  // patrocinadores: antes eran solo la imagen (siempre en la manga izquierda); ahora cada uno puede decir dónde va y qué tan grande
+  function patros(d) {
+    return (d.patrocinadores || []).map(function (s) { return typeof s === 'string' ? { src: s, pos: 'manga-izq', tam: 2 } : { src: s.src, pos: s.pos || 'manga-izq', tam: s.tam == null ? 2 : s.tam }; });
+  }
   var tintCache = {};
   function tinted(im, color) {
     if (!color || !im) return im;
@@ -252,7 +259,7 @@
     if (d.rellenoEspalda && d.rellenoEspalda.tipo === 'img') list.push(d.rellenoEspalda.src);
     if (d.short && d.short.relleno && d.short.relleno.tipo === 'img') list.push(d.short.relleno.src);
     (d.logos || []).forEach(function (l) { list.push(l.src); });
-    (d.patrocinadores || []).forEach(function (s) { list.push(s); });
+    patros(d).forEach(function (s) { list.push(s.src); });
     if (d.foto) { list.push(d.foto.frente); list.push(d.foto.espalda); }
     return list.filter(Boolean);
   }
@@ -282,6 +289,7 @@
         // acercamiento a la manga izquierda, donde van los patrocinadores
         var larga = d.manga === 'larga', z = larga ? 1.75 : 2.5;
         var cx = larga ? 840 : 830, cy = larga ? 520 : 300;
+        if (opt.lado === 'der') cx = W - cx; // la otra manga
         ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-cx, -cy);
         drawKit(ctx, d, 'front', imgs);
       } else drawKit(ctx, d, view, imgs);
@@ -350,11 +358,16 @@
     // logos del frente / espalda
     (d.logos || []).forEach(function (l) {
       var p = POS[l.pos]; if (!p || (p.view === 'back') !== back) return;
-      drawLogoAt(ctx, imgs[l.src], p.x, p.y, p.w, p.w);
+      var k = tamDe(l.tam);
+      drawLogoAt(ctx, imgs[l.src], p.x, p.y, p.w * k, p.w * k);
     });
-    // patrocinadores en la manga izquierda de quien lo viste: centrados entre las dos orillas de la manga
-    var spons = (d.patrocinadores || []).map(function (s) { return tinted(imgs[s], d.colorPatrocinadores); }).filter(Boolean);
-    if (spons.length) {
+    // patrocinadores: cada zona acomoda los suyos uno debajo de otro
+    var todos = patros(d).map(function (p) { p.im = tinted(imgs[p.src], d.colorPatrocinadores); return p; }).filter(function (p) { return p.im; });
+    var zona = function (pos) { return todos.filter(function (p) { return p.pos === pos; }); };
+    ctx.save(); shirtPath(ctx, manga, back); ctx.clip();
+    // mangas: centrados entre las dos orillas de la manga
+    ['manga-izq', 'manga-der'].forEach(function (pos) {
+      var lista = zona(pos); if (!lista.length) return;
       var sp = sleevePts(manga);
       var outer = manga === 'larga' ? [sp[0], sp[1], sp[2]] : [sp[0], sp[1]];
       var inner = manga === 'larga' ? [sp[5], sp[4], sp[3]] : [sp[3], sp[2]];
@@ -366,19 +379,31 @@
         return y < poly[0][1] ? poly[0][0] : poly[poly.length - 1][0];
       };
       var y0 = manga === 'larga' ? 360 : 250, y1 = manga === 'larga' ? 760 : 372;
-      var n = spons.length, step = (y1 - y0) / n;
+      var n = lista.length, step = (y1 - y0) / n;
       var maxW = manga === 'larga' ? 84 : 78, maxH = Math.min(manga === 'larga' ? 70 : 34, step * 0.72);
-      ctx.save(); shirtPath(ctx, manga, back); ctx.clip();
-      spons.forEach(function (im, i) {
+      // la manga izquierda de quien lo viste se ve a la derecha del frente y a la izquierda de la espalda
+      var espejo = (pos === 'manga-izq') === back;
+      lista.forEach(function (p, i) {
         var y = y0 + step * (i + 0.5);
         var xo = xAt(outer, y), xi = xAt(inner, y);
         var cx = (xo + xi) / 2, wide = Math.abs(xo - xi);
         var ang = Math.atan2(xAt(outer, y + 20) - xAt(outer, y - 20) + xAt(inner, y + 20) - xAt(inner, y - 20), 80);
-        if (back) { cx = W - cx; ang = -ang; }
-        drawLogoAt(ctx, im, cx, y, Math.min(maxW, wide * 0.72), maxH, -ang);
+        if (espejo) { cx = W - cx; ang = -ang; }
+        var k = tamDe(p.tam);
+        drawLogoAt(ctx, p.im, cx, y, Math.min(maxW * k, wide * 0.9), Math.min(maxH * k, step * 0.95), -ang);
       });
-      ctx.restore();
-    }
+    });
+    // pecho (frente) y espalda abajo del número
+    [['pecho', false, 400, 600, 360, 110], ['espalda', true, 640, 860, 330, 96]].forEach(function (z) {
+      if (z[1] !== back) return;
+      var lista = zona(z[0]); if (!lista.length) return;
+      var step = (z[3] - z[2]) / lista.length;
+      lista.forEach(function (p, i) {
+        var k = tamDe(p.tam);
+        drawLogoAt(ctx, p.im, 500, z[2] + step * (i + 0.5), Math.min(z[4] * k, 600), Math.min(z[5] * k, step * 0.95));
+      });
+    });
+    ctx.restore();
     // nombre y número
     if (back) {
       drawName(ctx, d.nombre, 500, 262, 60, d.colorTexto || '#111111', 400);
@@ -398,5 +423,5 @@
     }
   }
 
-  window.Kit = { render: render, load: load, W: W, H: H, drawSello: drawSello, mPath: mPath };
+  window.Kit = { render: render, patros: patros, tamDe: tamDe, load: load, W: W, H: H, drawSello: drawSello, mPath: mPath };
 })();
