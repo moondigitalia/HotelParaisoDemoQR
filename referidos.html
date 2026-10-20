@@ -129,7 +129,7 @@ $('#ref').addEventListener('submit',function(e){
   if(msg){err.textContent=msg;err.style.display='block';return}
   err.style.display='none';
   var soy=(document.querySelector('input[name=soy]:checked')||{}).value||'';
-  if(window.u3mEscala)fr.forEach(function(f){window.u3mEscala({origen:'web',nombre:f.n,whatsapp:f.w,
+  if(window.u3mEscala)fr.forEach(function(f){window.u3mEscala({origen:'referidos',nombre:f.n,whatsapp:f.w,
     notas:'Referido (programa Recomienda y gana).\nLo recomendó: '+name+' · '+soy+' · WhatsApp '+wa+(f.c?'\nCarrera que le interesa: '+f.c:'')})});
   var folio='REF-'+Date.now().toString(36).slice(-5).toUpperCase();
   $('#ok-title').textContent='¡Gracias, '+name.split(' ')[0]+'!';

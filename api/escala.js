@@ -2,7 +2,7 @@
 // Recibe { origen: 'web'|'mileni'|'radar', nombre, whatsapp, email?, notas? } y guarda/actualiza el contacto con su etiqueta.
 const API = 'https://public-api.escala.com/v1/crm';
 const NOTE_API = 'https://public-api.escala.com/v1/note';
-const TAGS = { web: 'MOON_PaginaWeb', mileni: 'MOON_Mileni', radar: 'MOON_Radar' };
+const TAGS = { web: 'MOON_PaginaWeb', mileni: 'MOON_Mileni', radar: 'MOON_Radar', referidos: 'MOON_Referidos' };
 const ORIGINS = [/^https:\/\/u3m-demo(-[a-z0-9-]+)?\.vercel\.app$/, /^https:\/\/([a-z0-9-]+\.)?u3m-demo\.pages\.dev$/, /^https:\/\/(www\.)?u3m\.edu\.mx$/];
 const tagCache = {};
 
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
   if (emailOk) personal.email = email;
 
   const fecha = new Date().toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
-  const TITULOS = { web: 'Registro desde la página web', mileni: 'Registro con Mileni (asesora virtual)', radar: 'Radar de Carrera' };
+  const TITULOS = { web: 'Registro desde la página web', mileni: 'Registro con Mileni (asesora virtual)', radar: 'Radar de Carrera', referidos: 'Referido (Recomienda y gana)' };
   const notas = clean(b.notas, 3900) || 'Dejó sus datos para recibir informes.';
   const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
 
