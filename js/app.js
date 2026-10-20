@@ -629,14 +629,12 @@
       $('#cotizar').addEventListener('click', cotizar);
     }
   };
-  var telaT = 0;
   function rehacerTela() {
     var tela = hacerTela(S.fuente, S.recorte), url = tela.toDataURL('image/jpeg', 0.9);
     S.d.relleno = { tipo: 'img', src: url, base: '#FFFFFF', luz: luzMedia(tela), repetir: !!tela.repetir };
     if (S.d.short && S.d.short.mismo) S.d.short.relleno = S.d.relleno;
     autoColorPatro(); dibujar();
-    clearTimeout(telaT);
-    telaT = setTimeout(function () { S.pendientes.push(subirConReintento(url).then(function (u) { S.remotos[url] = u; guardarBorrador(); }).catch(function () {})); }, 900);
+    // la tela final se sube una sola vez, al mandar el pedido
   }
   function enlazarAjuste() {
     var caja = $('#ajuste-img'), marco = $('#marco'), tam = $('#f-tam');
@@ -750,7 +748,7 @@
     var btn = $('#cotizar'); btn.disabled = true; btn.textContent = T('guardando');
     var equipos = S.equipos.map(function (e) { return { nombre: e.nombre, diseno: e.diseno, jugadores: e.jugadores }; }).concat([equipoActual()]);
     Promise.all(S.pendientes).then(function () {
-      if (Object.keys(S.originales).length && JSON.stringify(equipos).indexOf('data:image') >= 0) {
+      if (JSON.stringify(equipos).indexOf('data:image') >= 0) {
         // alguna foto no subió: se reintenta aquí sin pedirle nada al cliente
         var faltan = [];
         JSON.stringify(equipos).replace(/data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+/g, function (m) { if (!S.remotos[m]) faltan.push(m); return m; });
@@ -881,12 +879,51 @@
     pintarEquiposCasa();
     var dir = $('#dato-dir'), hor = $('#dato-hor');
     if (dir) dir.textContent = c.direccion || '';
-    if (hor) hor.textContent = c.horario || '';
+    if (hor) pintarHorario(hor, c.horario);
     var saludo = waLink('Hola M Sport, quiero información de uniformes.');
     $('#wa-top').href = saludo; $('#wa-visita').href = saludo;
-    $('#mapa').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Deportes M Sport ' + (c.direccion || 'Cancún'));
+    $('#mapa').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('Deportes M Sport, ' + (c.direccion || 'Cancún')) + '&query_place_id=ChIJW_VETwUsTI8RK6y9Uue9Ksc';
   }
 
+  /* horario: días agrupados, hora en formato de cada idioma, hoy marcado y "abierto ahora" en hora de Cancún */
+  function nombreDia(d, largo) {
+    var ref = new Date(Date.UTC(2026, 9, 18 + d, 12)); // 18-oct-2026 fue domingo
+    return new Intl.DateTimeFormat(lang, { weekday: largo ? 'long' : 'short', timeZone: 'UTC' }).format(ref);
+  }
+  function hora(hhmm) {
+    var h = +hhmm.slice(0, 2), m = hhmm.slice(3);
+    if (lang === 'fr') return h + ' h' + (+m ? ' ' + m : '');
+    if (lang === 'pt') return h + 'h' + (+m ? m : '');
+    var h12 = h % 12 || 12, suf = h < 12 ? 'am' : 'pm';
+    if (lang === 'en') suf = suf.toUpperCase();
+    return h12 + (+m ? ':' + m : '') + ' ' + suf;
+  }
+  function diasTexto(dias) {
+    var orden = dias.slice().sort(function (a, b) { return ((a + 6) % 7) - ((b + 6) % 7); });
+    var cap = function (t) { return t.charAt(0).toUpperCase() + t.slice(1); };
+    if (orden.length > 2) {
+      var seguidos = orden.every(function (d, i) { return !i || (orden[i - 1] + 1) % 7 === d; });
+      if (seguidos) return cap(nombreDia(orden[0], true)) + ' ' + T('a_dia') + ' ' + nombreDia(orden[orden.length - 1], true);
+    }
+    return orden.map(function (d, i) { return i ? nombreDia(d, true) : cap(nombreDia(d, true)); }).join(orden.length === 2 ? ' ' + T('y_dia') + ' ' : ', ');
+  }
+  function ahoraCancun() {
+    var p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Cancun', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    var g = function (t) { return (p.filter(function (x) { return x.type === t; })[0] || {}).value; };
+    return { dia: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday')), min: (+g('hour') % 24) * 60 + +g('minute') };
+  }
+  function pintarHorario(ul, horario) {
+    if (!Array.isArray(horario)) horario = window.CONFIG_BASE.horario;
+    var ah = ahoraCancun(), abierto = false;
+    ul.innerHTML = horario.map(function (h) {
+      var hoy = h.dias.indexOf(ah.dia) >= 0;
+      var aMin = +h.abre.slice(0, 2) * 60 + +h.abre.slice(3), cMin = +h.cierra.slice(0, 2) * 60 + +h.cierra.slice(3);
+      if (hoy && ah.min >= aMin && ah.min < cMin) abierto = true;
+      return '<li' + (hoy ? ' class="hoy"' : '') + '><span>' + esc(diasTexto(h.dias)) + (hoy ? ' <em>' + esc(T('hoy')) + '</em>' : '') + '</span><b>' + esc(hora(h.abre)) + ' – ' + esc(hora(h.cierra)) + '</b></li>';
+    }).join('');
+    var ab = $('#abierto');
+    if (ab) { ab.textContent = T(abierto ? 'abierto' : 'cerrado'); ab.className = 'abierto' + (abierto ? ' si' : ''); }
+  }
   function pintarEquiposCasa() {
     var cont = $('#eq-casa'); if (!cont) return;
     var lista = catalogoVisible().filter(function (u) { return u.destacado; }).slice(0, 4);
@@ -1010,7 +1047,8 @@
   document.addEventListener('touchmove', function (e) { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
   function iniciar() {
     $('#marca-logo').insertAdjacentHTML('afterbegin', logoSVG('#1F2E7A', '#FFFFFF'));
-    $('#muro-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
+    $('#portada-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
+    $('#portada-balon').innerHTML = BALON;
     intro();
     cargarBorrador();
     if (!S.modo) vitrina();

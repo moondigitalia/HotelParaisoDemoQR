@@ -14,7 +14,7 @@
 <link rel="preload" href="/fonts/saira-extra-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/schibsted-grotesk-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=7">
 </head>
 <body>
 
@@ -49,6 +49,20 @@
 </header>
 
 <main>
+  <section class="portada" aria-label="Deportes M Sport, la tienda de las estrellas">
+    <div class="portada-estrellas" aria-hidden="true"></div>
+    <div class="wrap portada-in">
+      <span class="portada-logo" id="portada-logo"></span>
+      <div class="portada-txt">
+        <span class="portada-dep">DEPORTES</span>
+        <span class="portada-ms">M Sport</span>
+        <span class="portada-lema" data-t="intro_lema">La tienda de las estrellas</span>
+      </div>
+    </div>
+    <svg class="portada-curva" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 120V64C240 112 480 120 720 120S1200 112 1440 64V120Z" fill="#0A1033"/></svg>
+    <span class="portada-balon" id="portada-balon" aria-hidden="true"></span>
+  </section>
+
   <section class="crear" id="crear">
     <div class="wrap">
       <div class="crear-head">
@@ -121,17 +135,16 @@
 
   <section class="visita" id="visita">
     <div class="wrap visita-in">
-      <div class="visita-muro" aria-hidden="true">
-        <span class="muro-dep">DEPORTES</span>
-        <span class="muro-logo" id="muro-logo"></span>
-        <span class="muro-lema" data-t="intro_lema">La tienda de las estrellas</span>
+      <div class="mapa">
+        <iframe id="mapa-frame" title="Mapa de Deportes M Sport" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Deportes%20M%20Sport%2C%20C.%2019%2038%2C%2077513%20Canc%C3%BAn&z=16&output=embed"></iframe>
       </div>
       <div class="visita-datos">
         <h2 data-t="visita_t">Visítanos</h2>
-        <dl>
-          <dt data-t="direccion">Dirección</dt><dd id="dato-dir"></dd>
-          <dt data-t="horario">Horario</dt><dd id="dato-hor"></dd>
-        </dl>
+        <p class="dir" id="dato-dir"></p>
+        <div class="horario">
+          <div class="hor-top"><span class="etq" data-t="horario">Horario</span><span class="abierto" id="abierto"></span></div>
+          <ul class="hor-lista" id="dato-hor"></ul>
+        </div>
         <div class="visita-btns">
           <a class="btn btn-wa" id="wa-visita" href="#" target="_blank" rel="noopener" data-t="escribenos">Escríbenos por WhatsApp</a>
           <a class="btn btn-linea" id="mapa" href="https://www.google.com/maps/search/?api=1&query=Deportes+M+Sport+Calle+19+38+Canc%C3%BAn" target="_blank" rel="noopener" data-t="como_llegar">Cómo llegar</a>
@@ -185,10 +198,10 @@
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=5"></script>
-<script src="/js/kit.js?v=5"></script>
-<script src="/js/catalogo-base.js?v=5"></script>
-<script src="/js/app.js?v=5"></script>
-<script src="/js/panel.js?v=5" defer></script>
+<script src="/js/i18n.js?v=7"></script>
+<script src="/js/kit.js?v=7"></script>
+<script src="/js/catalogo-base.js?v=7"></script>
+<script src="/js/app.js?v=7"></script>
+<script src="/js/panel.js?v=7" defer></script>
 </body>
 </html>

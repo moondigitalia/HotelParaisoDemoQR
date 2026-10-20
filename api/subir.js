@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0] || 'x';
   const now = Date.now();
   const h = (hits.get(ip) || []).filter((t) => now - t < 3600e3);
-  if (h.length >= 60) return send(res, 429, { error: 'limite' });
+  if (h.length >= 200) return send(res, 429, { error: 'limite' });
   h.push(now); hits.set(ip, h);
 
   const b = await body(req);

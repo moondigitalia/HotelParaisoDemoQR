@@ -244,7 +244,7 @@
     return '<div class="pn-form pn-datos">' +
       '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
       '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
-      '<div class="grupo"><label for="dt-hor">Horario</label><input class="campo" id="dt-hor" value="' + esc(c.horario) + '"></div>' +
+      '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
       '<div class="grupo"><label for="dt-lema">Lema</label><input class="campo" id="dt-lema" value="' + esc(c.lema) + '"></div>' +
       '<div class="grupo"><label for="dt-hist">Tu historia (la ve la gente en "Quiénes somos")</label><textarea class="campo campo-largo" id="dt-hist" maxlength="900" placeholder="Si lo dejas vacío, se muestra el texto de ejemplo.">' + esc(c.historia || '') + '</textarea></div>' +
       '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
@@ -252,7 +252,33 @@
       '<div class="grupo"><span class="etq">Categorías del catálogo</span>' + lista('categorias', c.categorias) + '</div>' +
       '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-guardar-datos>Guardar cambios</button></div></div>';
   }
+  var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  function horarioHTML(h) {
+    if (!Array.isArray(h)) h = A.clone(window.CONFIG_BASE.horario);
+    P.horario = h;
+    return '<div class="pn-hor" id="pn-hor">' + h.map(function (r, i) {
+      return '<div class="pn-hor-fila"><div class="chips">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
+        return '<button type="button" class="chip chip-dia' + (r.dias.indexOf(d) >= 0 ? ' on' : '') + '" data-hdia="' + d + '" data-hi="' + i + '">' + DIAS[d] + '</button>';
+      }).join('') + '</div><div class="pn-hor-horas"><label>Abre <input class="campo" type="time" data-habre="' + i + '" value="' + r.abre + '"></label><label>Cierra <input class="campo" type="time" data-hcierra="' + i + '" value="' + r.cierra + '"></label>' +
+      '<button type="button" class="icon-btn" data-hquita="' + i + '" aria-label="Quitar renglón">×</button></div></div>';
+    }).join('') + '<button type="button" class="btn btn-linea" data-hmas>+ Otro horario</button></div>';
+  }
+  function leerHorario() {
+    return P.horario.map(function (r, i) {
+      var a = $('[data-habre="' + i + '"]', panel), c = $('[data-hcierra="' + i + '"]', panel);
+      return { dias: r.dias, abre: a ? a.value : r.abre, cierra: c ? c.value : r.cierra };
+    }).filter(function (r) { return r.dias.length; });
+  }
   function enlazarDatos() {
+    $$('[data-hdia]', panel).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var r = P.horario[+b.getAttribute('data-hi')], d = +b.getAttribute('data-hdia'), k = r.dias.indexOf(d);
+        if (k >= 0) r.dias.splice(k, 1); else r.dias.push(d);
+        b.classList.toggle('on', k < 0);
+      });
+    });
+    $$('[data-hquita]', panel).forEach(function (b) { b.addEventListener('click', function () { P.config.horario = leerHorario(); P.config.horario.splice(+b.getAttribute('data-hquita'), 1); pintar(); }); });
+    var mas = $('[data-hmas]', panel); if (mas) mas.addEventListener('click', function () { P.config.horario = leerHorario().concat([{ dias: [], abre: '09:00', cierra: '18:00' }]); pintar(); });
     var c = P.config;
     $$('[data-quita-tag]', panel).forEach(function (b) { b.addEventListener('click', function () { c[b.getAttribute('data-quita-tag')].splice(+b.getAttribute('data-i'), 1); pintar(); }); });
     $$('[data-tag-in]', panel).forEach(function (inp) {
@@ -268,7 +294,7 @@
       if (wa && wa.length === 10) wa = '52' + wa;
       if (wa && wa.length !== 12) { A.toast('El WhatsApp debe tener 10 dígitos.'); $('#dt-wa').focus(); return; }
       $$('[data-tag-in]', panel).forEach(function (inp) { var v = inp.value.trim(); if (v) { var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); } });
-      c.whatsapp = wa; c.direccion = $('#dt-dir').value; c.horario = $('#dt-hor').value; c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
+      c.whatsapp = wa; c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
       api('config', { config: c }).then(function () { A.toast('Datos guardados'); return A.cargarTienda(); }).then(function () { A.pintarDatos(); A.pintarCatalogo(); pintar(); })
         .catch(function () { A.toast('No se guardó. Inténtalo otra vez.'); });
     });

@@ -1,6 +1,7 @@
 /* Todos los textos visibles viven aquí, por idioma. */
 window.I18N = {
   es: {
+    a_dia: 'a', y_dia: 'y', hoy: 'hoy', abierto: 'Abierto ahora', cerrado: 'Cerrado ahora',
     todos: 'Todos',
     hist_k: 'Quiénes somos', hist_t: 'La tienda de las estrellas', hist_p: 'En la Calle 19 de Cancún, Deportes M Sport viste a los equipos que juegan fútbol en la ciudad. Ligas, escuelas y equipos de amigos vienen por su uniforme, y cada número sale con nuestro sello. Aquí puedes armar el tuyo y verlo antes de pedirlo.', hist_prendas: 'Playera de manga corta o larga y short, con nombre y número', hist_folio: 'Folio por pedido, para que nada se pierda', hist_op: 'opiniones en Google', eq_k: 'Equipos que visten M Sport', eq_ver: 'Armar uno así',
     tela_parte: 'La parte de la tela que usamos', tela_mueve: 'Si tu foto trae la playera completa, tomamos solo la tela. Mueve el recuadro para elegir otra parte.', tela_tam: 'Tamaño del dibujo',
@@ -59,6 +60,7 @@ window.I18N = {
     sin_nombre: 'Mi equipo', cargando: 'Cargando…'
   },
   en: {
+    a_dia: 'to', y_dia: 'and', hoy: 'today', abierto: 'Open now', cerrado: 'Closed now',
     todos: 'All',
     hist_k: 'About us', hist_t: 'The store of the stars', hist_p: 'On Calle 19 in Cancún, Deportes M Sport dresses the teams that play soccer in the city. Leagues, schools and groups of friends come for their uniforms, and every number carries our seal. Build yours here and see it before you order.', hist_prendas: 'Short or long sleeve shirt and shorts, with name and number', hist_folio: 'One order number per order, so nothing gets lost', hist_op: 'reviews on Google', eq_k: 'Teams that wear M Sport', eq_ver: 'Build one like this',
     tela_parte: 'The part of the fabric we use', tela_mueve: 'If your photo shows a whole shirt, we take only the fabric. Move the box to pick another part.', tela_tam: 'Pattern size',
@@ -117,6 +119,7 @@ window.I18N = {
     sin_nombre: 'My team', cargando: 'Loading…'
   },
   fr: {
+    a_dia: 'au', y_dia: 'et', hoy: 'aujourd’hui', abierto: 'Ouvert', cerrado: 'Fermé',
     todos: 'Tous',
     hist_k: 'Qui sommes-nous', hist_t: 'La boutique des étoiles', hist_p: 'Calle 19 à Cancún, Deportes M Sport habille les équipes de football de la ville. Ligues, écoles et équipes d’amis viennent chercher leurs maillots, et chaque numéro porte notre sceau. Crée le tien ici et vois-le avant de commander.', hist_prendas: 'Maillot à manches courtes ou longues et short, avec nom et numéro', hist_folio: 'Un numéro par commande, pour que rien ne se perde', hist_op: 'avis sur Google', eq_k: 'Équipes habillées par M Sport', eq_ver: 'En créer un pareil',
     tela_parte: 'La partie du tissu utilisée', tela_mueve: 'Si ta photo montre un maillot entier, on prend seulement le tissu. Déplace le cadre pour choisir une autre partie.', tela_tam: 'Taille du motif',
@@ -175,6 +178,7 @@ window.I18N = {
     sin_nombre: 'Mon équipe', cargando: 'Chargement…'
   },
   pt: {
+    a_dia: 'a', y_dia: 'e', hoy: 'hoje', abierto: 'Aberto agora', cerrado: 'Fechado agora',
     todos: 'Todos',
     hist_k: 'Quem somos', hist_t: 'A loja das estrelas', hist_p: 'Na Calle 19 de Cancún, a Deportes M Sport veste os times que jogam futebol na cidade. Ligas, escolas e times de amigos vêm buscar seus uniformes, e cada número sai com o nosso selo. Monte o seu aqui e veja antes de pedir.', hist_prendas: 'Camisa de manga curta ou longa e calção, com nome e número', hist_folio: 'Um número por pedido, para nada se perder', hist_op: 'avaliações no Google', eq_k: 'Times que vestem M Sport', eq_ver: 'Montar um assim',
     tela_parte: 'A parte do tecido que usamos', tela_mueve: 'Se a foto mostra a camisa inteira, usamos só o tecido. Mova o quadro para escolher outra parte.', tela_tam: 'Tamanho do desenho',

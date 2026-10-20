@@ -68,7 +68,11 @@ module.exports = async (req, res) => {
     const c = b.config || {};
     const limpio = {
       whatsapp: String(c.whatsapp || '').replace(/\D/g, '').slice(0, 15),
-      horario: String(c.horario || '').slice(0, 140),
+      horario: (Array.isArray(c.horario) ? c.horario : []).slice(0, 7).map((h) => ({
+        dias: (Array.isArray(h.dias) ? h.dias : []).map(Number).filter((d) => d >= 0 && d <= 6),
+        abre: /^\d{2}:\d{2}$/.test(h.abre) ? h.abre : '09:00',
+        cierra: /^\d{2}:\d{2}$/.test(h.cierra) ? h.cierra : '19:00'
+      })).filter((h) => h.dias.length),
       direccion: String(c.direccion || '').slice(0, 140),
       lema: String(c.lema || '').slice(0, 60),
       historia: String(c.historia || '').slice(0, 900),

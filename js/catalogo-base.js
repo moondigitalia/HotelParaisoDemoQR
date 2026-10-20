@@ -58,7 +58,7 @@ window.CATALOGO_BASE = [
 ];
 window.CONFIG_BASE = {
   whatsapp: '',
-  horario: 'Lun–Vie 9:00–19:00 · Sáb 9:00–18:00 · Dom 9:00–16:30',
+  horario: [{ dias: [1, 2, 3, 4, 5], abre: '09:00', cierra: '19:00' }, { dias: [6], abre: '09:00', cierra: '18:00' }, { dias: [0], abre: '09:00', cierra: '16:30' }],
   direccion: 'Calle 19 #38, Cancún, Q.R.',
   lema: 'La tienda de las estrellas',
   tallas: ['Niño 6', 'Niño 8', 'Niño 10', 'Niño 12', 'Niño 14', 'Ch', 'M', 'G', 'XG', 'XXG'],
