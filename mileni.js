@@ -125,8 +125,11 @@ function registrarProspecto(p) {
   if (window.u3mEscala) {
     const det = [['Carrera de interés', p.carrera], ['Promedio', p.promedio], ['Modalidad', p.modalidad], ['Quién es', QUIEN[p.quien] || p.quien],
       ['Nivel de interés', INTERES[p.interes] || p.interes], ['Notas de Mileni', p.notas]].filter((r) => r[1]).map((r) => r[0] + ': ' + r[1]);
+    const cods = window.u3mCodigos ? window.u3mCodigos(p.carrera) : [];
     window.u3mEscala({ origen: 'mileni', nombre: p.nombre, whatsapp: tel.slice(-10), email: p.email || '',
-      notas: 'Platicó con Mileni por ' + (lead.canal === 'voz' ? 'voz' : 'chat') + ' (folio ' + folio + ').\n' + det.join('\n') });
+      notas: 'Platicó con Mileni por ' + (lead.canal === 'voz' ? 'voz' : 'chat') + ' (folio ' + folio + ') · ' + det.join(' · '),
+      campos: { carreras: cods.length ? cods : ['POR DEFINIR'], modalidad: window.u3mModalidad ? window.u3mModalidad(p.modalidad) : '',
+        como: 'Sitio web', observaciones: p.notas ? 'Mileni: ' + p.notas : '' } });
   }
   try { const k = 'u3m_prospectos'; const arr = JSON.parse(localStorage.getItem(k) || '[]'); arr.push(lead); localStorage.setItem(k, JSON.stringify(arr)); } catch (e) {}
   const rows = [

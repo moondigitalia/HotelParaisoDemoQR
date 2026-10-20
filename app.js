@@ -70,7 +70,9 @@
     var email = $('#f-email').value.trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) { err.textContent = 'Revisa tu correo (o déjalo vacío).'; err.style.display = 'block'; return; }
     if (window.u3mEscala) window.u3mEscala({ origen: 'web', nombre: nombre, whatsapp: tel, email: email,
-      notas: 'Formulario "Recibe informes".\nCarrera de interés: ' + carrera + '\nModalidad: ' + modalidad });
+      notas: 'Formulario "Recibe informes" · Carrera de interés: ' + carrera + ' · Modalidad: ' + modalidad,
+      campos: { carreras: sel.value && window.u3mCodigos(sel.value).length ? window.u3mCodigos(sel.value) : ['POR DEFINIR'],
+        modalidad: window.u3mModalidad(modalidad), como: 'Sitio web' } });
     var first = nombre.split(' ')[0];
     $('#ok-title').textContent = '¡Listo, ' + first + '!';
     $('#ok-text').textContent = 'Un asesor de admisiones te escribirá al ' + tel.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') + ' con información de ' + carrera + '.';
