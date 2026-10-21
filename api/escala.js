@@ -37,10 +37,12 @@ const tagCache = {};
 async function comoValido(v) {
   if (!v) return '';
   if (!opcionesComo) {
-    const r = await esc('/custom-fields?size=200', 'GET');
+    const r = await esc('/custom-fields?size=100', 'GET');
     const f = (r.data.items || []).find((x) => x.internalName === CF.como);
-    opcionesComo = (f && f.options) || [];
+    if (f && Array.isArray(f.options) && f.options.length) opcionesComo = f.options;
   }
+  // Si no se pudo leer la lista, no dejamos el campo vacío: usamos lo de siempre
+  if (!opcionesComo) return v === 'Código QR' ? 'Sitio web' : v;
   if (opcionesComo.includes(v)) return v;
   return v === 'Código QR' && opcionesComo.includes('Sitio web') ? 'Sitio web' : '';
 }
