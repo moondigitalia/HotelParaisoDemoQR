@@ -25,8 +25,25 @@ const CF = {
 };
 const CARRERAS = ['LAE', 'LAET', 'CNI', 'IIS', 'IGE', 'DG', 'DAJ', 'COM', 'PSI', 'EDU', 'ARQ', 'CAP', 'MKT', 'POR DEFINIR'];
 const MODALIDADES = ['ESC', 'EJE'];
-const COMO = ['Sitio web', 'Referido alumno', 'Referido externo ', 'Referido Inscrito ', 'Referido colaborador', 'Referido profesor'];
+const COMO = ['Código QR', 'Sitio web', 'Referido alumno', 'Referido externo ', 'Referido Inscrito ', 'Referido colaborador', 'Referido profesor'];
+// Asesores: Referidos va directo a Rafael Martínez; lo demás lo reparte el flujo "Asignación asesor - Web y Radar"
+// entre estas tres. Si el flujo no alcanzara a asignar, el puente asigna por su cuenta (respaldo).
+const RAFA = 'rmartinez@u3m.edu.mx';
+const ASESORAS = ['admisiones05@u3m.edu.mx', 'admisiones03@u3m.edu.mx', 'admisiones04@u3m.edu.mx']; // Mariela, Paulina, Yelenyz
+let opcionesComo = null;
 const tagCache = {};
+
+// Opciones reales de "Cómo se enteró" en Escala (si "Código QR" aún no existe allá, se usa "Sitio web")
+async function comoValido(v) {
+  if (!v) return '';
+  if (!opcionesComo) {
+    const r = await esc('/custom-fields?size=200', 'GET');
+    const f = (r.data.items || []).find((x) => x.internalName === CF.como);
+    opcionesComo = (f && f.options) || [];
+  }
+  if (opcionesComo.includes(v)) return v;
+  return v === 'Código QR' && opcionesComo.includes('Sitio web') ? 'Sitio web' : '';
+}
 
 const clean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u0009\u000b-\u001f]/g, ' ').trim().slice(0, max);
 const diez = (v) => String(v == null ? '' : v).replace(/\D/g, '').slice(-10);
@@ -82,12 +99,14 @@ function camposPara(b, nombre, tel, existente) {
   pon('telefono', Number(tel));
   const cs = (Array.isArray(c.carreras) ? c.carreras : []).filter((x) => CARRERAS.includes(x));
   if (cs.length) {
+    // Carrera principal: la que la persona eligió; "POR DEFINIR" solo si no hay ninguna carrera
     const ya = Array.isArray(prev[CF.carreras]) ? prev[CF.carreras] : [];
-    const union = ya.concat(cs.filter((x) => !ya.includes(x)));
-    if (union.length !== ya.length) out[CF.carreras] = union;
+    let union = ya.concat(cs.filter((x) => !ya.includes(x)));
+    if (union.some((x) => x !== 'POR DEFINIR')) union = union.filter((x) => x !== 'POR DEFINIR');
+    if (union.join() !== ya.join()) out[CF.carreras] = union;
   }
   if (MODALIDADES.includes(c.modalidad)) pon('modalidad', c.modalidad);
-  if (COMO.includes(c.como)) pon('como', c.como);
+  if (COMO.includes(c.como)) pon('como', c.comoOk);
   pon('referido_de', clean(c.referido_de, 250));
   pon('tutor_nombre', clean(c.tutor_nombre, 250));
   if (diez(c.tutor_tel).length === 10) pon('tutor_tel', Number(diez(c.tutor_tel)));
@@ -99,6 +118,25 @@ function camposPara(b, nombre, tel, existente) {
     else if (!ant.includes(obs)) out[CF.observaciones] = (ant + ' | ' + obs).slice(0, 3900);
   }
   return out;
+}
+
+const sinAsesor = (a) => !a || a === 'unassigned';
+const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Revisa que el contacto quede con asesor. El flujo de Escala suele asignarlo en segundos;
+// si no lo hizo, el puente lo asigna (Referidos → Rafael Martínez; lo demás → una de las tres asesoras).
+async function asegurarAsesor(id, origen) {
+  for (let i = 0; i < 4; i++) {
+    await espera(i === 0 ? 2500 : 3000);
+    const c = await esc('/contacts/' + id, 'GET');
+    const a = c.data && (c.data.entity || c.data).assignedTo;
+    if (!sinAsesor(a)) return a;
+  }
+  const quien = origen === 'referidos' ? RAFA : ASESORAS[Math.floor(Math.random() * ASESORAS.length)];
+  const u = await esc('/contacts/' + id, 'PUT', { assignedTo: quien, triggerWorkflow: false });
+  if (u.status >= 300) console.error('escala asesor', u.status, JSON.stringify(u.data));
+  console.log('asesor asignado por respaldo', origen);
+  return quien;
 }
 
 module.exports = async (req, res) => {
@@ -129,6 +167,7 @@ module.exports = async (req, res) => {
   const notas = clean(b.notas, 3900) || 'Dejó sus datos para recibir informes.';
 
   try {
+    if (b.campos) b.campos.comoOk = await comoValido(b.campos.como);
     const existente = await buscar(tel, nombre);
     const custom = camposPara(b, nombre, tel, existente);
     let id, nuevo = false;
@@ -140,6 +179,7 @@ module.exports = async (req, res) => {
       if (!ep.phoneNumber) personal.phoneNumber = '52' + tel;
       if (emailOk && !ep.email) personal.email = email;
       const cambio = {};
+      if (b.origen === 'referidos' && sinAsesor(existente.assignedTo)) cambio.assignedTo = RAFA;
       if (Object.keys(personal).length) cambio.personal = personal;
       if (Object.keys(custom).length) cambio.custom = custom;
       if (Object.keys(cambio).length) {
@@ -152,6 +192,7 @@ module.exports = async (req, res) => {
       if (partes.length > 1) personal.lastName = partes.slice(1).join(' ').slice(0, 100);
       if (emailOk) personal.email = email;
       const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
+      if (b.origen === 'referidos') contacto.assignedTo = RAFA;
       if (Object.keys(custom).length) contacto.custom = custom;
       const up = await esc('/contacts/upsert', 'POST', contacto);
       id = up.data && up.data.id;
@@ -163,6 +204,7 @@ module.exports = async (req, res) => {
     }
     const t = await esc('/contacts/' + id + '/tags', 'PUT', { addTags: [await tagId(tag)], triggerWorkflow: true }); // activa el flujo "Asignación asesor - Web y Radar"
     if (t.status !== 200) console.error('escala tags', t.status, JSON.stringify(t.data));
+    const asesor = await asegurarAsesor(id, b.origen);
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
     let tarea;
@@ -174,7 +216,7 @@ module.exports = async (req, res) => {
       tarea = tk.status < 300;
       if (!tarea) console.error('escala tarea', tk.status, JSON.stringify(tk.data));
     }
-    return res.status(200).json({ ok: true, nuevo, yaExistia: !!existente, etiqueta: t.status === 200, nota: n.status < 300, tarea });
+    return res.status(200).json({ ok: true, nuevo, yaExistia: !!existente, etiqueta: t.status === 200, nota: n.status < 300, tarea, asesor });
   } catch (e) {
     console.error('escala error', e && e.message);
     return res.status(502).json({ ok: false, error: 'sin conexión con Escala' });

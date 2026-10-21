@@ -58,16 +58,6 @@
         <div class="field"><label for="r-wa">Teléfono (WhatsApp, 10 dígitos)</label><input class="input" id="r-wa" type="tel" inputmode="numeric" autocomplete="tel" placeholder="229 000 0000" required></div>
         <div class="field"><label for="r-email">Correo <span class="opt">(opcional)</span></label><input class="input" id="r-email" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"></div>
         <div class="field"><label for="r-car">Carrera de interés <span class="opt">(opcional)</span></label><input class="input" id="r-car" list="carreras-list" placeholder="Escribe o elige una carrera"></div>
-        <div class="field"><span class="lbl">¿Qué haces actualmente?</span>
-          <div class="opts3 opts4" id="ocup">
-            <label><input type="radio" name="ocup" value="estudio">Estudio</label>
-            <label><input type="radio" name="ocup" value="trabajo">Trabajo</label>
-            <label><input type="radio" name="ocup" value="ambos">Estudio y trabajo</label>
-            <label><input type="radio" name="ocup" value="ninguno">Por ahora, ninguno</label>
-          </div>
-        </div>
-        <div class="field" id="f-esc" hidden><label for="r-esc">¿En qué escuela estudias?</label><input class="input" id="r-esc" autocomplete="off" placeholder="Ej. COBAEV 20, Bachilleres de Veracruz"></div>
-        <div class="field" id="f-trab" hidden><label for="r-trab">¿Dónde trabajas?</label><input class="input" id="r-trab" autocomplete="off" placeholder="Ej. Tienda, restaurante, negocio familiar"></div>
         <datalist id="carreras-list"></datalist>
         <label class="check"><input type="checkbox" id="r-ok"><span>Acepto el <a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener">aviso de privacidad</a> y que U3M me contacte por WhatsApp.</span></label>
         <p id="r-err" class="err" role="alert"></p>
@@ -219,27 +209,22 @@ function texto(R){
   t+=' ··· RESPUESTAS: '+Q.map(function(q,i){return (i+1)+') '+q[0]+' → '+q[1][st.ans[i]]}).join(' ··· ');
   return t;
 }
-var OCUP={estudio:'Estudia',trabajo:'Trabaja',ambos:'Estudia y trabaja',ninguno:'Por ahora no estudia ni trabaja'};
-document.querySelectorAll('input[name=ocup]').forEach(function(r){r.addEventListener('change',function(){
-  $('#f-esc').hidden=!(r.value==='estudio'||r.value==='ambos'); $('#f-trab').hidden=!(r.value==='trabajo'||r.value==='ambos');
-})});
 $('#reg').addEventListener('submit',function(e){
   e.preventDefault();
   var n=$('#r-nombre').value.trim().replace(/\s+/g,' '),w=$('#r-wa').value.replace(/\D/g,''),em=$('#r-email').value.trim(),err=$('#r-err');
-  var oc=(document.querySelector('input[name=ocup]:checked')||{}).value||'',escu=$('#r-esc').value.trim(),trab=$('#r-trab').value.trim();
-  var msg=n.split(' ').length<2?'Escribe tu nombre completo (nombre y apellido).':w.length!==10?'Tu teléfono debe tener 10 dígitos.':(em&&!EMAIL.test(em))?'Revisa tu correo (o déjalo vacío).':!oc?'Dinos qué haces actualmente.':((oc==='estudio'||oc==='ambos')&&!escu)?'Escribe en qué escuela estudias.':((oc==='trabajo'||oc==='ambos')&&!trab)?'Escribe dónde trabajas.':!$('#r-ok').checked?'Acepta el aviso de privacidad para ver tu resultado.':'';
+  var msg=n.split(' ').length<2?'Escribe tu nombre completo (nombre y apellido).':w.length!==10?'Tu teléfono debe tener 10 dígitos.':(em&&!EMAIL.test(em))?'Revisa tu correo (o déjalo vacío).':!$('#r-ok').checked?'Acepta el aviso de privacidad para ver tu resultado.':'';
   if(msg){err.textContent=msg;err.style.display='block';return}
   err.style.display='none';
   st.nombre=n;st.wa=w;st.email=em;st.car=$('#r-car').value.trim();
   st.R=calc();st.txt=texto(st.R);
-  st.ocup=OCUP[oc]+(escu?' en '+escu:'')+(trab?(escu?'; trabaja en ':' en ')+trab:'');
   var cod=function(x){return window.u3mCodigos?window.u3mCodigos(x):[]};
-  // Carrera principal en Escala: la que le salió en el Radar (siempre de U3M); si escribió otra de U3M, se agrega también
-  var carreras=cod(st.R.main).concat(cod(st.car)).filter(function(x,i,a){return a.indexOf(x)===i});
-  st.campos={carreras:carreras,como:'Sitio web',escuela:escu,
-    observaciones:'Radar: '+st.R.main+' (más afín); también '+st.R.alts.map(function(a){return a.c}).join(' y ')+'. Hoy: '+st.ocup+'. Pregunta 7: '+Q[6][1][st.ans[6]]+(st.car?'. Carrera que escribió: '+st.car:'')};
+  // Carrera principal en Escala: la que la persona escribió al registrarse; si no escribió (o no es de U3M), POR DEFINIR.
+  // El resultado del Radar va en Observaciones.
+  var carreras=cod(st.car);
+  st.campos={carreras:carreras.length?carreras:['POR DEFINIR'],como:'Código QR',
+    observaciones:'Radar: '+st.R.main+' (más afín); también '+st.R.alts.map(function(a){return a.c}).join(' y ')+'. Pregunta 7: '+Q[6][1][st.ans[6]]+(st.car?'. Carrera que escribió: '+st.car:'')};
   if(window.u3mEscala)window.u3mEscala({origen:'radar',nombre:n,whatsapp:w,email:em,campos:st.campos,
-    notas:'Hizo el Radar de Carrera y vio su resultado en pantalla · Hoy: '+st.ocup+(st.car?' · Carrera de interés: '+st.car:'')+(evento?' · Llegó desde: '+evento:'')+' ··· '+st.txt});
+    notas:'Hizo el Radar de Carrera y vio su resultado en pantalla'+(st.car?' · Carrera de interés: '+st.car:'')+(evento?' · Llegó desde: '+evento:'')+' ··· '+st.txt});
   analyze();
 });
 function analyze(){

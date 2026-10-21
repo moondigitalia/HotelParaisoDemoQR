@@ -149,5 +149,3 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .big-stat{font-stretch:100%!important;font-size:clamp(30px,10.3vw,52px)!important;letter-spacing:-1px!important}
 .big-stat .n{font-size:1.12em}
 .sub-h2{font-stretch:100%;font-size:clamp(24px,8vw,40px);letter-spacing:-.5px}
-.opts4{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-.opts4 label{justify-content:center!important;padding:8px!important}
