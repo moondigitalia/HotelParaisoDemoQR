@@ -63,6 +63,25 @@ async function esc(path, method, body, base) {
   return { status: r.status, data };
 }
 
+// Guarda en Escala; si Escala rechaza el valor de algún campo personalizado, se reintenta sin ese campo
+// (para "Cómo se enteró" se usa "Sitio web"). Así nunca se pierde un registro por un campo.
+async function guardar(path, method, body) {
+  let r = await esc(path, method, body);
+  for (let i = 0; i < 3 && r.status === 400 && body.custom; i++) {
+    const txt = JSON.stringify(r.data || {});
+    const malos = Object.keys(body.custom).filter((k) => txt.includes(k));
+    if (!malos.length) break;
+    console.error('escala campo rechazado', malos.join(','), txt.slice(0, 300));
+    malos.forEach((k) => {
+      if (k === CF.como && body.custom[k] !== 'Sitio web') body.custom[k] = 'Sitio web';
+      else delete body.custom[k];
+    });
+    if (!Object.keys(body.custom).length) delete body.custom;
+    r = await esc(path, method, body);
+  }
+  return r;
+}
+
 async function tagId(name) {
   if (tagCache[name]) return tagCache[name];
   const s = await esc('/tags?name=' + encodeURIComponent(name) + '&size=50', 'GET');
@@ -186,7 +205,7 @@ module.exports = async (req, res) => {
       if (Object.keys(personal).length) cambio.personal = personal;
       if (Object.keys(custom).length) cambio.custom = custom;
       if (Object.keys(cambio).length) {
-        const u = await esc('/contacts/' + id, 'PUT', Object.assign({ triggerWorkflow: false }, cambio));
+        const u = await guardar('/contacts/' + id, 'PUT', Object.assign({ triggerWorkflow: false }, cambio));
         if (u.status >= 300) console.error('escala actualizar', u.status, JSON.stringify(u.data));
       }
     } else {
@@ -197,7 +216,7 @@ module.exports = async (req, res) => {
       const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
       if (b.origen === 'referidos') contacto.assignedTo = RAFA;
       if (Object.keys(custom).length) contacto.custom = custom;
-      const up = await esc('/contacts/upsert', 'POST', contacto);
+      const up = await guardar('/contacts/upsert', 'POST', contacto);
       id = up.data && up.data.id;
       if (!id || ![200, 201, 412].includes(up.status)) {
         console.error('escala upsert', up.status, JSON.stringify(up.data));
