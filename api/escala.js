@@ -36,7 +36,8 @@ const tagCache = {};
 // Opciones reales de "Cómo se enteró" en Escala (si "Código QR" aún no existe allá, se usa "Sitio web")
 async function comoValido(v) {
   if (!v) return '';
-  if (!opcionesComo) {
+  // Vuelve a leer la lista si la que tenemos no trae la opción (por si la escuela la acaba de agregar)
+  if (!opcionesComo || !opcionesComo.includes(v)) {
     const r = await esc('/custom-fields?size=100', 'GET');
     const f = (r.data.items || []).find((x) => x.internalName === CF.como);
     if (f && Array.isArray(f.options) && f.options.length) opcionesComo = f.options;
