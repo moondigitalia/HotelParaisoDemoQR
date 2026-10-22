@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css?v=20261020c">
+<link rel="stylesheet" href="landing.css?v=20261022">
 </head>
 <body>
 <div class="rd">
@@ -65,48 +65,37 @@
       </form>
     </section>
 
-    <!-- 4 · Analizando -->
-    <section class="screen an" id="s-an">
-      <div class="an-fig"><div class="ring"></div><img src="img/asesor-avatar.webp" alt=""></div>
-      <h2>Estamos revisando tus respuestas…</h2>
-      <p>Estamos preparando tu Radar de Carrera.</p>
-      <div class="checks" id="checks">
-        <div><i></i>Analizando lo que te gusta hacer</div>
-        <div><i></i>Identificando tus rutas con más afinidad</div>
-        <div><i></i>Relacionándolas con carreras de U3M</div>
-        <div><i></i>Preparando tu resultado</div>
-      </div>
-    </section>
-
-    <!-- 5 · Resultado -->
+    <!-- 5 · Resultado (una sola pantalla para cualquier combinación) -->
     <section class="screen" id="s-done">
-      <div class="done-top"><img src="img/asesor-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">RADAR COMPLETADO</span><h2 class="q-title" style="margin:6px 0 0" id="d-title">¡Listo!</h2></div></div>
-      <div class="res-main">
-        <span class="res-k">LA CARRERA QUE MÁS VA CONTIGO</span>
-        <b class="res-car" id="res-car"></b>
-        <span class="res-ruta" id="res-ruta"></span>
-        <p id="res-why"></p>
+      <span class="eyebrow on-dark" style="font-size:12px">RADAR COMPLETADO</span>
+      <h2 class="q-title res-title" id="d-title">¡Aquí está tu resultado!</h2>
+      <div class="res-main" id="res-main">
+        <div class="res-txt">
+          <span class="res-k">UNA CARRERA PARA EXPLORAR</span>
+          <b class="res-car" id="res-car"></b>
+          <span class="res-ruta" id="res-ruta"></span>
+          <p id="res-frase"></p>
+        </div>
+        <div class="res-foto" id="res-foto" hidden><img id="res-img" alt="" decoding="async"></div>
       </div>
-      <p class="res-sub">Otras dos que vale la pena explorar</p>
+      <a class="btn btn-lime res-btn" id="n-explica" href="https://wa.me/522299096832" target="_blank" rel="noopener"><span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5z"/></svg>Quiero que me expliquen mi resultado</span></a>
+      <p class="res-sub" id="res-sub">Otras carreras que vale la pena explorar</p>
       <div class="res-alts" id="res-alts"></div>
-      <p class="res-note" id="res-note"></p>
+      <p class="res-decl" id="res-decl" hidden></p>
+      <p class="res-u3m"><b>U3M</b> · Licenciaturas desde 3 años. Conoce nuestras modalidades y horarios.</p>
+      <a class="btn btn-ghost res-btn" id="n-info" href="https://wa.me/522299096832" target="_blank" rel="noopener">Quiero información de estas carreras</a>
       <div class="tutor" id="tutor">
-        <b style="font-size:16px">¿Quieres que también le mandemos tu resultado a tu mamá, papá o tutor?</b>
+        <button type="button" class="tutor-open" id="t-open" aria-expanded="false" aria-controls="tutor-f"><span>Compartir mi resultado con mi mamá, papá o tutor</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
         <div id="tutor-f" class="tutor-f" hidden>
           <div class="opts3" id="t-par"><label><input type="radio" name="par" value="Mamá" checked>Mamá</label><label><input type="radio" name="par" value="Papá">Papá</label><label><input type="radio" name="par" value="Tutor">Tutor</label></div>
-          <input class="input" id="t-nombre" autocomplete="off" placeholder="Nombre completo" aria-label="Nombre completo de tu mamá, papá o tutor">
-          <input class="input" id="t-wa" type="tel" inputmode="numeric" autocomplete="off" placeholder="Teléfono (WhatsApp, 10 dígitos)" aria-label="WhatsApp de tu mamá, papá o tutor">
+          <input class="input" id="t-nombre" autocomplete="off" placeholder="Nombre" aria-label="Nombre de tu mamá, papá o tutor">
+          <input class="input" id="t-wa" type="tel" inputmode="numeric" autocomplete="off" placeholder="WhatsApp (10 dígitos)" aria-label="WhatsApp de tu mamá, papá o tutor">
           <input class="input" id="t-email" type="email" inputmode="email" autocomplete="off" placeholder="Correo (opcional)" aria-label="Correo de tu mamá, papá o tutor (opcional)">
           <p id="t-err" class="err" role="alert"></p>
-          <button class="btn btn-lime" type="button" id="t-send" style="height:48px;font-size:15px;border-radius:12px">Enviárselo también</button>
+          <button class="btn btn-lime" type="button" id="t-send">Enviar también mi resultado</button>
         </div>
-        <div style="display:flex;gap:10px" id="tutor-q"><button class="btn btn-ghost" type="button" id="t-si" style="height:44px;font-size:15px;flex:1">Sí, claro</button><button class="btn btn-ghost" type="button" id="t-no" style="height:44px;font-size:15px;flex:1">Ahora no</button></div>
       </div>
-      <div class="next">
-        <span style="font-size:15px;font-weight:700;color:#C9D2DC">¿Qué quieres hacer ahora?</span>
-        <a class="btn btn-lime" href="/#carreras">Quiero ver mis opciones de carrera</a>
-        <a class="btn btn-ghost" id="n-explica" href="https://wa.me/522299096832" target="_blank" rel="noopener">Quiero que me expliquen mi resultado</a>
-      </div>
+      <p class="res-fine">Este Radar te ayuda a explorar opciones; tú decides.</p>
     </section>
   </main>
 </div>
@@ -223,54 +212,98 @@ $('#reg').addEventListener('submit',function(e){
   var carreras=cod(st.car);
   st.campos={carreras:carreras.length?carreras:['POR DEFINIR'],como:'Código QR',
     observaciones:'Radar: '+st.R.main+' (más afín); también '+st.R.alts.map(function(a){return a.c}).join(' y ')+'. Pregunta 7: '+Q[6][1][st.ans[6]]+(st.car?'. Carrera que escribió: '+st.car:'')};
-  if(window.u3mEscala)window.u3mEscala({origen:'radar',nombre:n,whatsapp:w,email:em,campos:st.campos,
+  aEscala({origen:'radar',nombre:n,whatsapp:w,email:em,campos:st.campos,
     notas:'Hizo el Radar de Carrera y vio su resultado en pantalla'+(st.car?' · Carrera de interés: '+st.car:'')+(evento?' · Llegó desde: '+evento:'')+' ··· '+st.txt});
   analyze();
 });
-function analyze(){
-  show('s-an');
-  var items=document.querySelectorAll('#checks div'),k=0;
-  items.forEach(function(d){d.classList.remove('ok')});
-  var t=setInterval(function(){
-    if(k<items.length){items[k].classList.add('ok');k++}
-    else{clearInterval(t);setTimeout(done,450)}
-  },800);
-}
+// Frase breve de cada carrera (el alumno solo ve la de las carreras que le salieron)
+var FRASE={
+ 'Psicología':'Explora cómo pensamos, sentimos y nos relacionamos.',
+ 'Educación':'Aprende a enseñar y ayudar a otros a aprender.',
+ 'Derecho y Argumentación Jurídica':'Conoce las leyes y aprende a defender ideas con argumentos.',
+ 'Administración de Empresas':'Aprende a organizar negocios y tomar decisiones.',
+ 'Administración de Empresas Turísticas':'Descubre cómo funcionan las empresas y los servicios turísticos.',
+ 'Mercadotecnia Estratégica':'Aprende a entender clientes y crear estrategias para marcas.',
+ 'Comercio y Negocios Internacionales':'Explora cómo negocian empresas de distintos países.',
+ 'Contaduría y Auditoría':'Aprende a analizar información financiera y revisar cuentas.',
+ 'Ingeniería en Gestión Empresarial':'Mejora procesos y proyectos dentro de las empresas.',
+ 'Comunicación':'Crea mensajes y contenidos para conectar con las personas.',
+ 'Diseño Gráfico':'Convierte ideas en diseños que comunican.',
+ 'Ingeniería Industrial y de Sistemas':'Encuentra formas de mejorar procesos y operaciones.',
+ 'Arquitectura y Administración de la Empresa Constructora':'Diseña espacios y conoce cómo se gestionan las obras.'
+};
+// Foto de apoyo de la carrera principal. Se llena cuando lleguen las fotos (una por carrera, p. ej. 'Psicología':'img/radar/psicologia.webp').
+// Si una carrera no tiene foto, la tarjeta se muestra completa sin ella.
+var FOTO={};
+var lista=function(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1]};
+var mismo=function(x,y){return String(x||'').trim().toLowerCase()===String(y||'').trim().toLowerCase()};
+var wa=function(t){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(t)};
+function analyze(){done()} // sin esperas artificiales: el resultado aparece en cuanto se calcula
 function done(){
-  var R=st.R,first=st.nombre.split(' ')[0];
-  $('#d-title').textContent='¡Gracias, '+first+'!';
+  var R=st.R,first=(st.nombre||'').split(' ')[0];
+  $('#d-title').textContent=first?'¡'+first+', aquí está tu resultado!':'¡Aquí está tu resultado!';
   $('#res-car').textContent=R.main;
   $('#res-ruta').textContent='Ruta: '+RUTAS[R.top].n;
-  $('#res-why').textContent='Por tus respuestas, vale la pena que explores opciones donde puedas '+RUTAS[R.top].v+'.';
-  $('#res-alts').innerHTML=R.alts.map(function(a){return '<div class="res-alt"><b>'+esc(a.c)+'</b><span>Ruta: '+esc(a.r)+'</span></div>'}).join('');
-  var note='Ojo: esto no quiere decir que una sea "tu carrera ideal"; son opciones que vale la pena comparar con un asesor.';
-  if(R.car&&R.car!==R.main&&!R.alts.some(function(a){return a.c===R.car})){
-    note='Nos dijiste que te interesa '+R.car+'. Vale la pena compararla con estas opciones para confirmar que va contigo. '+note;
-  }
-  $('#res-note').textContent=note;
-  $('#n-explica').href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, soy '+st.nombre+'. Hice el Radar de Carrera y me salió '+R.main+' (ruta '+RUTAS[R.top].n+'), además de '+R.alts.map(function(a){return a.c}).join(' y ')+'. ¿Me explican mi resultado?');
+  $('#res-frase').textContent=FRASE[R.main]||'';
+  var f=FOTO[R.main];
+  $('#res-foto').hidden=!f; $('#res-main').classList.toggle('con-foto',!!f);
+  if(f){$('#res-img').src=f;$('#res-img').alt='Estudiante de '+R.main}
+  var alts=R.alts.filter(function(a){return a&&a.c});
+  $('#res-sub').hidden=!alts.length;
+  $('#res-sub').textContent=alts.length===1?'Otra carrera que vale la pena explorar':'Otras carreras que vale la pena explorar';
+  $('#res-alts').innerHTML=alts.map(function(a){return '<div class="res-alt"><b>'+esc(a.c)+'</b><span>Ruta: '+esc(a.r)+'</span>'+(FRASE[a.c]?'<p>'+esc(FRASE[a.c])+'</p>':'')+'</div>'}).join('');
+  var mostradas=[R.main].concat(alts.map(function(a){return a.c}));
+  var decl=st.car&&!mostradas.some(function(m){return mismo(m,st.car)})?st.car:'';
+  $('#res-decl').hidden=!decl;
+  if(decl)$('#res-decl').innerHTML='También nos dijiste que te interesa <b>'+esc(decl)+'</b>. Si quieres, la tomamos en cuenta al comparar opciones.';
+  $('#n-explica').href=wa('Hola, hice el Radar U3M y me apareció '+R.main+'. ¿Me ayudan a entender mi resultado?');
+  $('#n-info').href=wa('Hola, hice el Radar U3M y quiero información de '+lista(mostradas)+'.');
+  st.mostradas=mostradas;
   show('s-done');
 }
+// Cada envío a Escala espera al anterior: así nunca se crean dos fichas de la misma persona
+function aEscala(d){
+  if(!window.u3mEscala)return Promise.resolve({ok:false});
+  st.cola=(st.cola||Promise.resolve()).then(function(){return window.u3mEscala(d)},function(){return window.u3mEscala(d)});
+  return st.cola;
+}
+// Qué botón tocó (es intención: abrir WhatsApp no garantiza que haya enviado el mensaje)
+var tocado={};
+function intencion(cual,texto){
+  if(tocado[cual])return; tocado[cual]=1;
+  aEscala({origen:'radar',nombre:st.nombre,whatsapp:st.wa,email:st.email,
+    notas:'Tocó el botón «'+texto+'» del resultado del Radar ('+lista(st.mostradas||[])+'). Se le abrió WhatsApp con el mensaje listo; esto no confirma que lo haya enviado.'});
+}
+$('#n-explica').addEventListener('click',function(){intencion('explica','Quiero que me expliquen mi resultado')});
+$('#n-info').addEventListener('click',function(){intencion('info','Quiero información de estas carreras')});
 
-// mamá, papá o tutor
-$('#t-si').addEventListener('click',function(){$('#tutor-q').style.display='none';$('#tutor-f').hidden=false;$('#t-nombre').focus()});
-$('#t-no').addEventListener('click',function(){$('#tutor').style.display='none'});
+// mamá, papá o tutor (al final, opcional y cerrado)
+$('#t-open').addEventListener('click',function(){
+  var f=$('#tutor-f'),abre=f.hidden;
+  f.hidden=!abre; this.setAttribute('aria-expanded',abre?'true':'false'); $('#tutor').classList.toggle('open',abre);
+  if(abre)setTimeout(function(){$('#t-nombre').focus({preventScroll:true});f.scrollIntoView({behavior:'smooth',block:'nearest'})},60);
+});
 $('#t-send').addEventListener('click',function(){
-  var n=$('#t-nombre').value.trim().replace(/\s+/g,' '),w=$('#t-wa').value.replace(/\D/g,''),em=$('#t-email').value.trim(),err=$('#t-err');
+  var n=$('#t-nombre').value.trim().replace(/\s+/g,' '),w=$('#t-wa').value.replace(/\D/g,''),em=$('#t-email').value.trim(),err=$('#t-err'),btn=this;
   var par=(document.querySelector('input[name=par]:checked')||{}).value||'Tutor';
-  var msg=!n?'Escribe su nombre completo.':w.length!==10?'Su teléfono debe tener 10 dígitos.':w===st.wa?'Ese es tu número; escribe el de tu '+par.toLowerCase()+'.':(em&&!EMAIL.test(em))?'Revisa su correo (o déjalo vacío).':'';
+  var msg=!n?'Escribe su nombre.':w.length!==10?'Su WhatsApp debe tener 10 dígitos.':w===st.wa?'Ese es tu número; escribe el de tu '+par.toLowerCase()+'.':(em&&!EMAIL.test(em))?'Revisa su correo (o déjalo vacío).':'';
   if(msg){err.textContent=msg;err.style.display='block';return}
-  err.style.display='none';
-  if(window.u3mEscala){
-    // Como en su ficha de papel: el tutor va dentro de la ficha del alumno (Nombre del tutor / Teléfono del tutor),
-    // con un recordatorio para que el asesor le envíe el resultado
-    window.u3mEscala({origen:'radar',nombre:st.nombre,whatsapp:st.wa,email:st.email,
-      campos:{tutor_nombre:n+' ('+par+')',tutor_tel:w},
-      notas:'Pidió que también le enviemos su resultado a su '+par.toLowerCase()+': '+n+' · WhatsApp '+w+(em?' · '+em:''),
-      tarea:{titulo:'Enviar resultado del Radar a '+n+' ('+par.toLowerCase()+' de '+st.nombre+')',
-        descripcion:st.nombre+' pidió que su '+par.toLowerCase()+', '+n+', también reciba su resultado del Radar por WhatsApp ('+w+(em?', '+em:'')+'). '+st.txt}});
-  }
-  $('#tutor').innerHTML='<b style="font-size:16px">¡Perfecto! Un asesor de Admisiones también le hará llegar tu resultado a '+esc(n.split(' ')[0])+'.</b>';
+  err.style.display='none'; btn.disabled=true; btn.textContent='Enviando…';
+  // Como en su ficha de papel: el familiar va dentro de la ficha del alumno, con una tarea para que el asesor le envíe el resultado
+  aEscala({origen:'radar',nombre:st.nombre,whatsapp:st.wa,email:st.email,
+    campos:{tutor_nombre:n+' ('+par+')',tutor_tel:w},
+    notas:'Pidió que también le enviemos su resultado a su '+par.toLowerCase()+': '+n+' · WhatsApp '+w+(em?' · '+em:''),
+    tarea:{titulo:'Enviar resultado del Radar a '+n+' ('+par.toLowerCase()+' de '+st.nombre+')',
+      descripcion:st.nombre+' pidió que su '+par.toLowerCase()+', '+n+', también reciba su resultado del Radar por WhatsApp ('+w+(em?', '+em:'')+'). '+st.txt}})
+  .then(function(r){
+    if(r&&r.ok){
+      $('#tutor').classList.add('sent');
+      $('#tutor').innerHTML='<div class="tutor-ok"><i>✓</i><div><b>¡Listo!</b><span>Un asesor le enviará tu resultado a tu '+esc(par.toLowerCase())+' por WhatsApp.</span></div></div>';
+    }else{
+      btn.disabled=false; btn.textContent='Enviar también mi resultado';
+      err.textContent='No pudimos guardarlo. Inténtalo de nuevo en un momento.'; err.style.display='block';
+    }
+  });
 });
 })();
 </script>
