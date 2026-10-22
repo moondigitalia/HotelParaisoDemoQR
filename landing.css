@@ -97,29 +97,29 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .an-fig img{left:20px;bottom:20px;width:150px;height:150px;border-radius:50%;background:#fff;object-fit:cover;animation:bob 2.2s ease-in-out infinite}
 .done-top img{background:#fff}
 /* resultado (una sola pantalla) · medidas tomadas de las referencias del cliente */
-.res-title{margin:8px 0 0;font-size:clamp(30px,8.4vw,36px);line-height:1.08}
+.res-title{margin:8px 0 0;font-size:clamp(31px,9.4vw,40px);line-height:1.08}
 .res-main{margin-top:22px;background:#fff;color:var(--navy);border-radius:26px;padding:22px 18px 22px 22px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;animation:pop .5s cubic-bezier(.2,1.2,.4,1) both}
-.res-main.con-foto{grid-template-columns:minmax(0,1fr) 40%}
+.res-main.con-foto{grid-template-columns:minmax(0,1fr) 34%}
 .res-txt{display:flex;flex-direction:column;gap:8px;min-width:0;justify-content:center}
-.res-k{font-size:11px;font-weight:800;letter-spacing:1.6px;line-height:1.35;color:var(--blue)}
+.res-k{font-size:10px;font-weight:800;letter-spacing:1.3px;line-height:1.35;color:var(--blue);white-space:nowrap}
 .res-car{font-family:var(--display);font-stretch:108%;font-weight:800;font-size:clamp(30px,8.6vw,38px);line-height:1.04;letter-spacing:-.5px;overflow-wrap:break-word;hyphens:auto}
 .res-car.largo{font-size:clamp(22px,6vw,28px)}
 .res-car.muylargo{font-size:clamp(18px,4.9vw,22px);line-height:1.12}
-.res-ruta{align-self:flex-start;margin-top:2px;font-size:13.5px;line-height:1.3;font-weight:800;color:var(--navy);background:var(--lime);border-radius:16px;padding:7px 14px}
+.res-ruta{align-self:flex-start;max-width:100%;margin-top:2px;font-size:clamp(11.5px,3.4vw,13.5px);line-height:1.3;font-weight:800;color:var(--navy);background:var(--lime);border-radius:16px;padding:6px 12px}
 .res-txt p{margin:4px 0 0;font-size:16.5px;line-height:1.45;color:#3C4A57}
 .res-foto{border-radius:18px;overflow:hidden;background:#E9EEF3;min-height:230px;align-self:stretch}
 .res-foto[hidden]{display:none}
 .res-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block}
-.res-btn{margin-top:16px;width:100%;min-height:58px;height:auto;padding:14px 16px;border-radius:16px;font-size:16.5px;font-weight:800;white-space:normal;text-align:center;display:flex;align-items:center;justify-content:center!important;line-height:1.25}
+.res-btn{margin-top:16px;width:100%;min-height:58px;height:auto;padding:12px 10px;border-radius:16px;font-size:clamp(14px,4.1vw,16.5px);font-weight:800;white-space:normal;text-align:center;display:flex;align-items:center;justify-content:center!important;line-height:1.25}
 .res-btn>span{display:inline}
-.res-btn .ico{width:24px;height:24px;flex-shrink:0;vertical-align:-6px;margin-right:10px}
+.res-btn .ico{width:23px;height:23px;flex-shrink:0;vertical-align:-6px;margin-right:8px}
 .res-btn.btn-ghost{border:1.5px solid rgba(255,255,255,.85);color:#fff;background:transparent}
-.res-sub{margin:30px 0 12px;font-family:var(--display);font-stretch:105%;font-size:21px;line-height:1.2;font-weight:800;color:#fff}
+.res-sub{margin:30px 0 12px;font-family:var(--display);font-size:20px;line-height:1.2;font-weight:800;color:#fff}
 .res-sub[hidden]{display:none}
 .res-alts{display:flex;flex-direction:column;gap:12px}
 .res-alt{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:6px;animation:pop .5s .12s cubic-bezier(.2,1.2,.4,1) both}
 .res-alt:nth-child(2){animation-delay:.22s}
-.res-alt b{font-family:var(--display);font-stretch:105%;font-size:20px;line-height:1.2}
+.res-alt b{font-family:var(--display);font-size:19px;line-height:1.2}
 .res-alt span{font-size:15.5px;color:var(--lime);font-weight:800}
 .res-alt p{margin:2px 0 0;font-size:15.5px;line-height:1.45;color:#C9D2DC}
 .res-decl{margin:22px 0 0;font-size:17px;line-height:1.5;color:#E3E9EF}
@@ -153,7 +153,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .tutor-ok b{display:block;font-family:var(--display);font-stretch:105%;font-size:20px;line-height:1.2}.tutor-ok span{display:block;margin-top:4px;font-size:15.5px;color:#C9D2DC;line-height:1.45}
 .res-fine{margin:24px 0 0;text-align:center;font-size:13px;color:#8E9CAB}
 @keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (max-width:380px){.res-main{padding:18px 14px 18px 18px}.res-main.con-foto{grid-template-columns:minmax(0,1fr) 38%}.tutor-ic{width:62px;height:62px}.tutor-h b{font-size:21px}}
+@media (max-width:380px){.res-main{padding:18px 14px 18px 18px}.res-main.con-foto{grid-template-columns:minmax(0,1fr) 33%}.tutor-ic{width:62px;height:62px}.tutor-h b{font-size:21px}}
 /* animación al descubrir rutas: signos y lupas */
 .busca{contain:strict;position:fixed;inset:0;z-index:120;background:var(--navy);display:none;overflow:hidden;pointer-events:none}
 .busca.run{display:block;animation:bz-fondo 2.6s ease both}
