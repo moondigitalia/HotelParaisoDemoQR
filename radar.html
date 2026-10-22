@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css?v=20261022">
+<link rel="stylesheet" href="landing.css?v=20261022b">
 </head>
 <body>
 <div class="rd">
@@ -78,19 +78,25 @@
         </div>
         <div class="res-foto" id="res-foto" hidden><img id="res-img" alt="" decoding="async"></div>
       </div>
-      <a class="btn btn-lime res-btn" id="n-explica" href="https://wa.me/522299096832" target="_blank" rel="noopener"><span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5z"/></svg>Quiero que me expliquen mi resultado</span></a>
+      <a class="btn btn-lime res-btn" id="n-explica" href="https://wa.me/522299096832" target="_blank" rel="noopener"><span><svg class="ico wa-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" d="M12 2.6a9.4 9.4 0 0 0-8.1 14.2L2.6 21.4l4.7-1.2A9.4 9.4 0 1 0 12 2.6z"/><path fill="currentColor" d="M8.7 7.1c.2-.4.4-.4.7-.4h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .6l-.5.7c-.1.2-.1.4 0 .6.5.9 1.2 1.6 2.1 2.1.2.1.4.1.6 0l.7-.6c.2-.2.4-.2.6-.1l1.9.9c.3.1.4.3.4.5 0 .6-.2 1.3-.7 1.7-.6.5-1.5.7-2.4.4-2.6-.8-4.5-2.7-5.4-5.2-.3-.9-.1-1.9.3-2.6z"/></svg>Quiero que me expliquen mi resultado</span></a>
       <p class="res-sub" id="res-sub">Otras carreras que vale la pena explorar</p>
       <div class="res-alts" id="res-alts"></div>
       <p class="res-decl" id="res-decl" hidden></p>
       <p class="res-u3m"><b>U3M</b> · Licenciaturas desde 3 años. Conoce nuestras modalidades y horarios.</p>
       <a class="btn btn-ghost res-btn" id="n-info" href="https://wa.me/522299096832" target="_blank" rel="noopener">Quiero información de estas carreras</a>
       <div class="tutor" id="tutor">
-        <button type="button" class="tutor-open" id="t-open" aria-expanded="false" aria-controls="tutor-f"><span>Compartir mi resultado con mi mamá, papá o tutor</span><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button type="button" class="tutor-open" id="t-open" aria-expanded="false" aria-controls="tutor-f">
+          <span class="tutor-h"><b>Compartir mi resultado con mi mamá, papá o tutor</b><small>Si quieres, también se lo mandamos por WhatsApp. <i class="tutor-chev" aria-hidden="true"></i></small></span>
+          <span class="tutor-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="16.3" cy="9.6" r="2.6"/><path d="M15.6 14.4c2.6-.2 4.4 1.5 4.9 4.6"/></svg><em></em></span>
+        </button>
         <div id="tutor-f" class="tutor-f" hidden>
           <div class="opts3" id="t-par"><label><input type="radio" name="par" value="Mamá" checked>Mamá</label><label><input type="radio" name="par" value="Papá">Papá</label><label><input type="radio" name="par" value="Tutor">Tutor</label></div>
-          <input class="input" id="t-nombre" autocomplete="off" placeholder="Nombre" aria-label="Nombre de tu mamá, papá o tutor">
-          <input class="input" id="t-wa" type="tel" inputmode="numeric" autocomplete="off" placeholder="WhatsApp (10 dígitos)" aria-label="WhatsApp de tu mamá, papá o tutor">
-          <input class="input" id="t-email" type="email" inputmode="email" autocomplete="off" placeholder="Correo (opcional)" aria-label="Correo de tu mamá, papá o tutor (opcional)">
+          <label class="t-lbl" for="t-nombre">Nombre</label>
+          <input class="input" id="t-nombre" autocomplete="off">
+          <label class="t-lbl" for="t-wa">WhatsApp</label>
+          <input class="input" id="t-wa" type="tel" inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
+          <label class="t-lbl" for="t-email">Correo (opcional)</label>
+          <input class="input" id="t-email" type="email" inputmode="email" autocomplete="off">
           <p id="t-err" class="err" role="alert"></p>
           <button class="btn btn-lime" type="button" id="t-send">Enviar también mi resultado</button>
         </div>
@@ -235,6 +241,7 @@ var FRASE={
 // Foto de apoyo de la carrera principal. Se llena cuando lleguen las fotos (una por carrera, p. ej. 'Psicología':'img/radar/psicologia.webp').
 // Si una carrera no tiene foto, la tarjeta se muestra completa sin ella.
 var FOTO={};
+var FOTO_PROVISIONAL='img/radar/provisional.webp'; // mientras llegan las 13 fotos
 var lista=function(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1]};
 var mismo=function(x,y){return String(x||'').trim().toLowerCase()===String(y||'').trim().toLowerCase()};
 var wa=function(t){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(t)};
@@ -245,9 +252,10 @@ function done(){
   $('#res-car').textContent=R.main;
   $('#res-ruta').textContent='Ruta: '+RUTAS[R.top].n;
   $('#res-frase').textContent=FRASE[R.main]||'';
-  var f=FOTO[R.main];
+  var f=FOTO[R.main]||FOTO_PROVISIONAL;
+  $('#res-car').classList.toggle('largo',R.main.length>14);$('#res-car').classList.toggle('muylargo',R.main.length>30);
   $('#res-foto').hidden=!f; $('#res-main').classList.toggle('con-foto',!!f);
-  if(f){$('#res-img').src=f;$('#res-img').alt='Estudiante de '+R.main}
+  if(f){$('#res-img').src=f;$('#res-img').alt=''}
   var alts=R.alts.filter(function(a){return a&&a.c});
   $('#res-sub').hidden=!alts.length;
   $('#res-sub').textContent=alts.length===1?'Otra carrera que vale la pena explorar':'Otras carreras que vale la pena explorar';
