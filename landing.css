@@ -102,7 +102,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar{display:none;width:0;height:0}
 .res-main.con-foto{grid-template-columns:minmax(0,1fr) 34%}
 .res-txt{display:flex;flex-direction:column;gap:8px;min-width:0;justify-content:center}
 .res-k{font-size:10px;font-weight:800;letter-spacing:1.3px;line-height:1.35;color:var(--blue);white-space:nowrap}
-.res-car{font-family:var(--display);font-stretch:108%;font-weight:800;font-size:clamp(30px,8.6vw,38px);line-height:1.04;letter-spacing:-.5px;overflow-wrap:break-word;hyphens:auto}
+.res-car{font-family:var(--display);font-stretch:108%;font-weight:800;font-size:clamp(30px,8.6vw,38px);line-height:1.04;letter-spacing:-.5px;overflow-wrap:normal;hyphens:manual}
 .res-car.largo{font-size:clamp(22px,6vw,28px)}
 .res-car.muylargo{font-size:clamp(18px,4.9vw,22px);line-height:1.12}
 .res-ruta{align-self:flex-start;max-width:100%;margin-top:2px;font-size:clamp(11.5px,3.4vw,13.5px);line-height:1.3;font-weight:800;color:var(--navy);background:var(--lime);border-radius:16px;padding:6px 12px}
