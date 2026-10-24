@@ -280,7 +280,15 @@ function done(){
   $('#n-info').href=wa('Hola, hice el Radar U3M y quiero información de '+lista(mostradas)+'.');
   st.mostradas=mostradas;
   show('s-done');
+  ajusta($('#res-car'));
 }
+// El nombre de la carrera nunca se sale ni queda tapado por la foto: baja de tamaño hasta caber
+function ajusta(el){
+  el.style.fontSize='';
+  var t=0,f=parseFloat(getComputedStyle(el).fontSize);
+  while(t++<30&&f>16&&el.scrollWidth>el.clientWidth+1){f-=1;el.style.fontSize=f+'px'}
+}
+window.addEventListener('resize',function(){var e=$('#res-car');if(e&&e.offsetParent)ajusta(e)});
 // Cada envío a Escala espera al anterior: así nunca se crean dos fichas de la misma persona
 function aEscala(d){
   if(!window.u3mEscala)return Promise.resolve({ok:false});
