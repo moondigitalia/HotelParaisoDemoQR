@@ -33,3 +33,40 @@
     } catch (e) { return Promise.resolve({ ok: false }); }
   };
 })();
+
+// Teléfonos: el +52 ya viene puesto (fijo, a la izquierda) y la persona solo escribe sus 10 dígitos.
+// Si pega un número con +52, 52 o 521 al inicio, se quita solo. Aplica a todos los campos de teléfono, también a los que se agregan después.
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '.tel52{position:relative;display:block;width:100%}' +
+    '.tel52>.pre{position:absolute;left:14px;top:50%;transform:translateY(-50%);font:700 16px var(--body,system-ui);color:var(--navy,#12233B);pointer-events:none;padding-right:10px;border-right:1.5px solid #D5DEE6;line-height:1.2}' +
+    '.tel52>input{padding-left:70px!important}';
+  document.head.appendChild(st);
+  var limpia = function (v) {
+    var d = String(v || '').replace(/\D/g, '');
+    if (d.length > 10 && d.indexOf('521') === 0) d = d.slice(3);
+    else if (d.length > 10 && d.indexOf('52') === 0) d = d.slice(2);
+    d = d.slice(0, 10);
+    return d.length > 6 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : d.length > 3 ? d.slice(0, 3) + ' ' + d.slice(3) : d;
+  };
+  var arma = function (inp) {
+    if (inp.getAttribute('data-tel52')) return;
+    inp.setAttribute('data-tel52', '1');
+    var w = document.createElement('span'); w.className = 'tel52';
+    inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+    var pre = document.createElement('span'); pre.className = 'pre'; pre.textContent = '+52'; pre.setAttribute('aria-hidden', 'true');
+    w.insertBefore(pre, inp);
+    inp.setAttribute('inputmode', 'numeric');
+    // si el campo no tiene etiqueta visible (su texto guía dice qué es), se conserva; si no, se muestra un ejemplo de 10 dígitos
+    if (!/[a-z]/i.test(inp.getAttribute('placeholder') || '')) inp.setAttribute('placeholder', '229 000 0000');
+    inp.addEventListener('input', function () { var n = limpia(inp.value); if (n !== inp.value) inp.value = n; });
+    if (inp.value) inp.value = limpia(inp.value);
+  };
+  var todo = function (raiz) { [].forEach.call((raiz || document).querySelectorAll('input[type=tel]'), arma); };
+  var go = function () {
+    todo();
+    new MutationObserver(function (m) { m.forEach(function (r) { [].forEach.call(r.addedNodes, function (n) { if (n.nodeType === 1) { if (n.matches && n.matches('input[type=tel]')) arma(n); else todo(n); } }); }); })
+      .observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();
