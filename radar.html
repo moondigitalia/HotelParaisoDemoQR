@@ -162,7 +162,9 @@ function busca(cb){
   setTimeout(cb,1500);
   setTimeout(function(){o.classList.remove('run')},2600);
 }
-$('#go').addEventListener('click',function(){st.i=0;st.ans=[];busca(function(){renderQ();show('s-q')})});
+$('#go').addEventListener('click',function(){st.i=0;st.ans=[];busca(function(){renderQ();show('s-q')});
+  // deja listas las fotos del resultado mientras contesta (así aparecen sin espera)
+  setTimeout(function(){Object.keys(FOTO_RUTA).forEach(function(k){(new Image()).src=FOTO_RUTA[k].src})},2500)});
 
 // preguntas
 function total(){return Q.length}
@@ -241,7 +243,16 @@ var FRASE={
 // Foto de apoyo de la carrera principal. Se llena cuando lleguen las fotos (una por carrera, p. ej. 'Psicología':'img/radar/psicologia.webp').
 // Si una carrera no tiene foto, la tarjeta se muestra completa sin ella.
 var FOTO={};
-var FOTO_PROVISIONAL='img/radar/provisional.webp'; // mientras llegan las 13 fotos
+// Foto por ruta (enviadas por el cliente): la tarjeta muestra la de la ruta de la carrera principal.
+// 'p' = punto de la foto que siempre debe verse (la cara), para que el recorte nunca la corte.
+var FOTO_RUTA={
+ A:{src:'img/radar/personas-impacto.webp',p:'57% 30%'},
+ B:{src:'img/radar/negocios-liderazgo.webp',p:'48% 22%'},
+ C:{src:'img/radar/creatividad-comunicacion.webp',p:'30% 14%'},
+ D:{src:'img/radar/tecnologia-operaciones.webp',p:'46% 26%'},
+ E:{src:'img/radar/diseno-construccion.webp',p:'57% 28%'}
+};
+var FOTO_PROVISIONAL='img/radar/provisional.webp';
 var lista=function(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1]};
 var mismo=function(x,y){return String(x||'').trim().toLowerCase()===String(y||'').trim().toLowerCase()};
 var wa=function(t){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(t)};
@@ -252,7 +263,8 @@ function done(){
   $('#res-car').textContent=R.main;
   $('#res-ruta').textContent='Ruta: '+RUTAS[R.top].n;
   $('#res-frase').textContent=FRASE[R.main]||'';
-  var f=FOTO[R.main]||FOTO_PROVISIONAL;
+  var fr=FOTO_RUTA[R.top],f=FOTO[R.main]||(fr&&fr.src)||FOTO_PROVISIONAL;
+  $('#res-img').style.objectPosition=(!FOTO[R.main]&&fr)?fr.p:'';
   $('#res-car').classList.toggle('largo',R.main.length>14);$('#res-car').classList.toggle('muylargo',R.main.length>30);
   $('#res-foto').hidden=!f; $('#res-main').classList.toggle('con-foto',!!f);
   if(f){$('#res-img').src=f;$('#res-img').alt=''}
