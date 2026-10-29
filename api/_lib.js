@@ -61,4 +61,14 @@ function rid(n) {
   return s;
 }
 
-module.exports = { put, list, del, readJSON, writeJSON, body, send, pinOk, DEFAULT_CONFIG, rid, ACCESS };
+// Config guardada + valores de arranque. Las carpetas viejas de la versión 2D (nunca editadas por el dueño)
+// pasan solas a las nuevas: Liga MX, Liga europea, Mundial.
+const VIEJAS = ['Clásicos', 'Diseños M Sport', 'Equipos de la casa'];
+async function leerConfig() {
+  const c = Object.assign({}, DEFAULT_CONFIG, await readJSON('data/config.json', {}));
+  const cs = (c.categorias || []).slice().sort();
+  if (cs.length === VIEJAS.length && cs.every((x, i) => x === VIEJAS[i])) c.categorias = DEFAULT_CONFIG.categorias.slice();
+  return c;
+}
+
+module.exports = { leerConfig, put, list, del, readJSON, writeJSON, body, send, pinOk, DEFAULT_CONFIG, rid, ACCESS };

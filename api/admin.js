@@ -1,5 +1,5 @@
 // Panel del dueño. Todo pasa por aquí con su código.
-const { readJSON, writeJSON, list, del, body, send, pinOk, DEFAULT_CONFIG } = require('./_lib');
+const { leerConfig, readJSON, writeJSON, list, del, body, send, pinOk, DEFAULT_CONFIG } = require('./_lib');
 
 const DIA = 864e5;
 const fallos = new Map();
@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
     const folios = await todosLosFolios();
     let cat = await readJSON('data/catalogo.json', null);
     if (cat !== null) cat = await limpiar(cat, folios);
-    const config = Object.assign({}, DEFAULT_CONFIG, await readJSON('data/config.json', {}));
+    const config = await leerConfig();
     folios.forEach((x) => { delete x.historial; });
     return send(res, 200, { folios, catalogo: cat, config });
   }
