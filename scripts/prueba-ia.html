@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8"><script src="/js/motor3d.js"></script>
+<script>
+// Prueba del recorte con IA como lo hará el panel del dueño (fotos tal cual las manda)
+(async()=>{
+  const P=new URLSearchParams(location.search), out={};
+  const ld=s=>new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.src=s;});
+  for (const f of P.getAll('f')) {
+    const t0=performance.now(), c=await Motor3D.recortarIA(await ld('/scripts/.fuentes/raw/'+f)), ms=Math.round(performance.now()-t0);
+    const sep=Motor3D.separarConjunto(c);
+    out[f]={ms, cut:c.toDataURL('image/png'), sep: sep?{p:sep.playera.toDataURL('image/png'), s:sep.short.toDataURL('image/png')}:null};
+    if (P.get('rec')===f) { const b=Motor3D.coloresBase(sep?sep.playera:c); out[f].base=b; out[f].rec=Motor3D.recolorear(sep?sep.playera:c,b,[244,246,249]).toDataURL('image/png'); }
+  }
+  window.R=out; document.title='listo';
+})().catch(e=>{window.R={error:String(e)}; document.title='listo';});
+</script>

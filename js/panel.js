@@ -254,7 +254,7 @@
     }
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
-      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Una del frente y una de la espalda; la del short, si la tienes</li></ul></div>' +
+      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Una del frente y una de la espalda; si el short viene abajo en la misma foto, lo separamos solos</li><li>Quita la etiqueta que cuelga antes de tomar la foto</li></ul></div>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
       '<div id="ed-aviso"></div>' +
       '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
@@ -264,7 +264,8 @@
       '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
-      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>';
+      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
+      (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(toca un color y se hace la copia)</small></span>' + bolitas('oc', '', TELAS) + '</div>' : '');
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
         '<button type="button" class="chip' + (u.destacado ? ' on' : '') + '" data-sw="destacado">★ ' + (u.destacado ? 'Destacado' : 'Destacar') + '</button>' +
@@ -291,6 +292,22 @@
     });
   }
   // la foto del dueño: se recorta el fondo, se revisa y se sube; de la del frente salen los colores para el buscador
+  // la foto del dueño: la IA de su propio celular separa la prenda del fondo (sin créditos ni cuentas);
+  // si trae playera y short juntos, se separan solos. De la del frente salen los colores para el buscador.
+  function prepararCanvas(cut) { var out = A.aCanvas(cut, 900), data = out.toDataURL('image/webp', 0.86); if (data.indexOf('data:image/webp') !== 0) data = out.toDataURL('image/png'); return { out: out, data: data }; }
+  function ponerFoto(u, lado, cut) {
+    var r = prepararCanvas(cut);
+    u.fotos[lado] = r.data;
+    if (lado === 'frente') {
+      u.etiquetas.colores = window.Motor3D.coloresDe(r.out);
+      if (!u.colorShort) u.colorShort = hexDe(window.Motor3D.colorPrincipal(r.out));
+      var lum = window.Motor3D.colorPrincipal(r.out).reduce(function (s, v) { return s + v; }, 0) / 3;
+      if (!u.colorTextoElegido) u.colorTexto = lum > 140 ? '#111111' : '#FFFFFF';
+    }
+    if (lado === 'short') u.colorShort = hexDe(window.Motor3D.colorPrincipal(r.out));
+    if (!u.colorCalceta || lado === 'short') u.colorCalceta = u.colorShort;
+    return A.subirConReintento(r.data, 'catalogo').then(function (url) { u.fotos[lado] = url; });
+  }
   function procesarFoto(file, lado) {
     var u = P.editando;
     A.toast('Preparando la foto…', true);
@@ -298,28 +315,48 @@
       return A.cargarMotor().catch(function () {}).then(function () { return im; });
     }).then(function (im) {
       var av = [], w = im.naturalWidth, h = im.naturalHeight;
-      if (Math.min(w, h) < 800) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
+      if (Math.min(w, h) < 600) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
       if (A.nitidez(im) < 22) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
-      var base = A.aCanvas(im, 1400), cut = window.Motor3D.recortar(base);
-      if (cut.width * cut.height > base.width * base.height * 0.93) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
-      var out = A.aCanvas(cut, 900), data = out.toDataURL('image/webp', 0.86);
-      if (data.indexOf('data:image/webp') !== 0) data = out.toDataURL('image/png');
-      u.fotos[lado] = data;
-      if (lado === 'frente') {
-        u.etiquetas.colores = window.Motor3D.coloresDe(out);
-        if (!u.colorShort) u.colorShort = hexDe(window.Motor3D.colorPrincipal(out));
-        var lum = window.Motor3D.colorPrincipal(out).reduce(function (s, v) { return s + v; }, 0) / 3;
-        if (!u.colorTextoElegido) u.colorTexto = lum > 140 ? '#111111' : '#FFFFFF';
-      }
-      if (lado === 'short') u.colorShort = hexDe(window.Motor3D.colorPrincipal(out));
-      if (!u.colorCalceta || lado === 'short') u.colorCalceta = u.colorShort;
-      P.avisos = av;
-      pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
-      return A.subirConReintento(data, 'catalogo').then(function (url) {
-        u.fotos[lado] = url; A.toast('Foto lista');
-        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+      var base = A.aCanvas(im, 1400);
+      return window.Motor3D.recortarIA(base).then(function (cut) {
+        if (cut.width * cut.height > base.width * base.height * 0.93) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
+        if (window.Motor3D.tienePersona(cut)) av.push('La foto trae a una persona con la playera puesta. Para que se vea perfecto, toma la prenda sola, extendida.');
+        var tareas = [], sep = lado !== 'short' ? window.Motor3D.separarConjunto(cut) : null;
+        if (sep) {
+          tareas.push(ponerFoto(u, lado, sep.playera));
+          if (lado === 'frente') { tareas.push(ponerFoto(u, 'short', sep.short)); av.unshift('Venían playera y short en la misma foto: los separamos solos.'); }
+        } else tareas.push(ponerFoto(u, lado, cut));
+        P.avisos = av;
+        pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
+        return Promise.all(tareas).then(function () {
+          A.toast('Foto lista');
+          var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+          previsualizar();
+        });
       });
     }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
+  }
+  // misma playera, otro color: se hace una copia con las fotos ya recoloreadas, lista para ponerle nombre y publicar
+  function otroColor(T) {
+    var u = P.editando; if (!u || !u.fotos.frente) return;
+    A.toast('Haciendo la versión de otro color…', true);
+    var rgb = [1, 3, 5].map(function (i) { return parseInt(T.slice(i, i + 2), 16); });
+    Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+      var M = window.Motor3D, cf = A.aCanvas(im[0], 1000), base = M.coloresBase(cf);
+      var nuevo = A.clone(u); nuevo.id = 'u' + Date.now().toString(36); nuevo.nuevo = true; delete nuevo.destacado; delete nuevo.oculto;
+      nuevo.nombre = ''; nuevo.mini = '';
+      var mapa = function (hex) { var c = document.createElement('canvas'); c.width = c.height = 1; var g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 1, 1); return hexDe(Array.from(M.recolorear(c, base, rgb).getContext('2d').getImageData(0, 0, 1, 1).data).slice(0, 3)); };
+      ['colorShort', 'colorCalceta', 'colorFranja', 'colorTexto'].forEach(function (k) { if (nuevo[k]) nuevo[k] = mapa(nuevo[k]); });
+      var lados = ['frente', 'espalda', 'short'];
+      return Promise.all(lados.map(function (l, i) {
+        if (!im[i]) { nuevo.fotos[l] = ''; return null; }
+        var r = prepararCanvas(M.recolorear(A.aCanvas(im[i], 1000), base, rgb));
+        return A.subirConReintento(r.data, 'catalogo').then(function (url) { nuevo.fotos[l] = url; });
+      })).then(function () {
+        nuevo.etiquetas.colores = M.coloresDe(A.aCanvas(im[0], 300));
+        imagenP(nuevo.fotos.frente).then(function (f) { if (f) nuevo.etiquetas.colores = M.coloresDe(A.aCanvas(f, 300)); P.editando = nuevo; pintar(); A.toast('Listo: ponle nombre y publícalo'); });
+      });
+    }).catch(function () { A.toast('No se pudo hacer la otra versión. Inténtalo otra vez.'); });
   }
   function enlazarEditor() {
     var u = P.editando;
@@ -332,6 +369,7 @@
     [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['fr', 'colorFranja'], ['tx', 'colorTexto']].forEach(function (par) {
       $$('[data-' + par[0] + ']', panel).forEach(function (b) { b.addEventListener('click', function () { u[par[1]] = b.getAttribute('data-' + par[0]); if (par[0] === 'tx') u.colorTextoElegido = true; $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
     });
+    $$('[data-oc]', panel).forEach(function (b) { b.addEventListener('click', function () { otroColor(b.getAttribute('data-oc')); }); });
     $$('[data-pv]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = b.getAttribute('data-pv'); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); if (mEditor && mEditor.m) mEditor.m.vista(pvVista); }); });
     $$('[data-sw]', panel).forEach(function (b) {
       b.addEventListener('click', function () {

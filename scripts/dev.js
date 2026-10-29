@@ -13,7 +13,7 @@ require.cache[require.resolve('/tmp/claude-0/blobtest/node_modules/@vercel/blob'
 const Module = require('module'); const orig = Module._resolveFilename;
 Module._resolveFilename = function (r, ...a) { if (r === '@vercel/blob') return require.resolve('/tmp/claude-0/blobtest/node_modules/@vercel/blob'); return orig.call(this, r, ...a); };
 process.env.ADMIN_PIN = process.env.ADMIN_PIN || '0';
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml', '.mjs': 'text/javascript', '.wasm': 'application/wasm', '.webp': 'image/webp', '.glb': 'model/gltf-binary', '.mp3': 'audio/mpeg', '.onnx': 'application/octet-stream' };
 http.createServer(async (req, res) => {
   const u = url.parse(req.url, true);
   if (u.pathname.startsWith('/api/')) {
