@@ -69,7 +69,7 @@ def correr():
                 if (t.separacion > 0.01) f.push('la calceta no entra al taco '+t.lado+' ('+t.separacion+')'); if (t.corte >= t.bocaY) f.push('la calceta se ve por fuera del taco'); });
               return f; }""")
             todo.append((nom,'3D: tacos en los pies y calcetas dentro','diseno',g))
-            pg.fill('#p-buscar','rojo'); pg.wait_for_timeout(500); revisa('diseño (buscar sin resultados)')
+            pg.fill('#p-buscar','zzzz'); pg.wait_for_timeout(500); revisa('diseño (buscar sin resultados)')
             if not pg.query_selector('#p-resultados .vacio'): todo.append((nom,'buscar sin resultados no avisa','diseno',['falta el aviso']))
             pg.fill('#p-buscar','morado'); pg.wait_for_timeout(500)
             if not pg.query_selector('#p-resultados [data-base]'): todo.append((nom,'buscar "morado" no encontró el lila','diseno',['0 resultados']))

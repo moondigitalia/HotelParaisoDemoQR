@@ -263,6 +263,7 @@
       '<div class="grupo"><span class="etq">Colores del uniforme <small>(se marcan solos con la foto; corrige si hace falta)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
       '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
+      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
       '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>';
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
@@ -284,7 +285,7 @@
       return mEditor.p.then(function (m) {
         mEditor.m = m;
         return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
-          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5' });
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '' });
         }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); });
       });
     });
@@ -328,7 +329,7 @@
     $('#ed-pais').addEventListener('input', function (e) { u.etiquetas.pais = e.target.value; });
     $('#ed-equipo').addEventListener('input', function (e) { u.etiquetas.equipo = e.target.value; });
     $$('[data-col]', panel).forEach(function (b) { b.addEventListener('click', function () { var c = b.getAttribute('data-col'), l = u.etiquetas.colores, i = l.indexOf(c); if (i >= 0) l.splice(i, 1); else l.push(c); b.classList.toggle('on', i < 0); }); });
-    [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['tx', 'colorTexto']].forEach(function (par) {
+    [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['fr', 'colorFranja'], ['tx', 'colorTexto']].forEach(function (par) {
       $$('[data-' + par[0] + ']', panel).forEach(function (b) { b.addEventListener('click', function () { u[par[1]] = b.getAttribute('data-' + par[0]); if (par[0] === 'tx') u.colorTextoElegido = true; $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
     });
     $$('[data-pv]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = b.getAttribute('data-pv'); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); if (mEditor && mEditor.m) mEditor.m.vista(pvVista); }); });

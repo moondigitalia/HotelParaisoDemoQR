@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { enderezarShort } from './foto.js';
 
 // alturas de cada parte en cada modelo (0 = abajo, 1 = arriba), medidas sobre las imágenes con que se hicieron
 const MODELOS = {
@@ -41,27 +42,32 @@ function torsoFoto(c, alt) {
   if (a < 0) return [0, 1];
   return [a / c.width, (b - a) / c.width];
 }
-// el cuadro de manga más grande que hay en la foto: se usa como tela de las mangas
+// tela para las mangas y costados: el cuadro más liso de la manga de la foto (sin letras ni logos)
 function telaManga(c, fx0) {
   const g = c.getContext('2d'), W = c.width, H = c.height, d = g.getImageData(0, 0, W, H).data;
-  const xMax = Math.floor(W * fx0) - 4; let mejor = null;
-  for (let lado = 8; lado < Math.min(xMax, H * 0.4); lado += 6) {
-    let hallado = null;
-    for (let y = Math.floor(H * 0.04); y + lado < H * 0.5 && !hallado; y += 6)
-      for (let x = 0; x + lado < xMax && !hallado; x += 6) {
-        let ok = true;
-        for (let yy = y; yy < y + lado && ok; yy += 4) for (let xx = x; xx < x + lado && ok; xx += 4) if (d[(yy * W + xx) * 4 + 3] < 200) ok = false;
-        if (ok) hallado = [x, y, lado];
+  const xMax = Math.floor(W * fx0) - 4, lado = Math.max(16, Math.round(W * 0.05)); let mejor = null, menor = 1e9;
+  const prueba = (x0, x1) => {
+    for (let y = Math.floor(H * 0.04); y + lado < H * 0.6; y += 4)
+      for (let x = Math.max(0, x0); x + lado < x1; x += 4) {
+        let n = 0, s1 = 0, s2 = 0, ok = true;
+        for (let yy = y; yy < y + lado && ok; yy += 3) for (let xx = x; xx < x + lado; xx += 3) {
+          const i = (yy * W + xx) * 4; if (d[i + 3] < 230) { ok = false; break; }
+          const l = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; s1 += l; s2 += l * l; n++;
+        }
+        if (!ok) continue;
+        const v = s2 / n - (s1 / n) * (s1 / n); if (v < menor) { menor = v; mejor = [x, y]; }
       }
-    if (hallado) mejor = hallado; else break;
-  }
+  };
+  prueba(0, xMax);
+  if (!mejor) prueba(Math.floor(W * fx0), W);
   const o = document.createElement('canvas'); o.width = o.height = 256; const og = o.getContext('2d');
-  if (mejor) og.drawImage(c, mejor[0], mejor[1], mejor[2], mejor[2], 0, 0, 256, 256);
+  if (mejor) og.drawImage(c, mejor[0], mejor[1], lado, lado, 0, 0, 256, 256);
   else { og.fillStyle = '#eeeeee'; og.fillRect(0, 0, 256, 256); }
   return o;
 }
+// premultiplyAlpha: al mezclar pixeles en la orilla de la prenda no se cuela el negro de lo transparente
 function textura(c, repetir) {
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.premultiplyAlpha = true;
   if (repetir) t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
   return t;
 }
@@ -107,7 +113,7 @@ export async function crear(canvas, opt = {}) {
   // estado
   const E = {
     manga: 'corta', taco: 'negro', vista: 0, // vista: 0 frente, PI espalda
-    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4',
+    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
   let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null;
@@ -118,7 +124,8 @@ export async function crear(canvas, opt = {}) {
     uFoto: { value: null }, uEspalda: { value: null }, uManga: { value: null }, uShortTex: { value: null },
     uCaja: { value: new THREE.Vector4() }, uTorsoF: { value: new THREE.Vector2(0, 1) }, uTorsoB: { value: new THREE.Vector2(0, 1) },
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
-    uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte
+    uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
+    uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -128,7 +135,7 @@ export async function crear(canvas, opt = {}) {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex;
 uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
-uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort;
+uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;`)
       .replace('#include <map_fragment>', `
 if (vMundo.y < uCorte) discard;
@@ -142,15 +149,21 @@ if (t > uZonas.z - 0.01) {
   vec2 uv = vec2(tor.x + ux * tor.y, (vMundo.y - uCaja.y) / uCaja.w);
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
   vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
-  base = mix(manga, f.rgb, smoothstep(0.35, 0.9, f.a));
+  base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
 } else if (t > uShortBot) {
   base = uShort;
   if (uHayShort > 0.5) {
-    float sx = (vMundo.x - uShortCaja.x) / uShortCaja.z; if (atras) sx = 1.0 - sx;
+    // la foto del short se acomoda en lo que se ve de frente; los costados toman la franja de la orilla
+    float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0); if (atras) sx = 1.0 - sx;
     vec4 s = texture2D(uShortTex, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w));
-    base = mix(uShort, s.rgb, s.a);
+    // atrás solo van las franjas de los lados: escudos y logos del short van al frente
+    if (atras) s.a *= 1.0 - smoothstep(0.09, 0.12, sx) * (1.0 - smoothstep(0.88, 0.91, sx));
+    base = mix(uShort, s.rgb / max(s.a, 0.004), s.a);
   }
-} else { base = uSock; }
+} else {
+  base = uSock;
+  if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
+}
 diffuseColor.rgb *= base;`);
   };
 
@@ -179,14 +192,26 @@ diffuseColor.rgb *= base;`);
     const pos = kitMesh.geometry.attributes.position, v = new THREE.Vector3();
     const shirtBot = zonas.Y0 + zonas.hem * zonas.YH, yTor = shirtBot + (zonas.top - shirtBot) * 0.30;
     const shortTop = shirtBot, shortBot = zonas.Y0 + zonas.shortBot * zonas.YH;
-    let tx0 = 1e9, tx1 = -1e9, sx0 = 1e9, sx1 = -1e9;
+    let sx0 = 1e9, sx1 = -1e9; const xs = [];
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld);
-      if (Math.abs(v.y - yTor) < 0.012 && v.z > 0) { tx0 = Math.min(tx0, v.x); tx1 = Math.max(tx1, v.x); }
+      if (Math.abs(v.y - yTor) < 0.012 && v.z > 0) xs.push(v.x);
       if (v.y < shortTop && v.y > shortBot) { sx0 = Math.min(sx0, v.x); sx1 = Math.max(sx1, v.x); }
     }
+    // el ancho del torso sin los brazos: desde el centro hacia afuera hasta el primer hueco (en manga larga
+    // los brazos cuelgan junto al cuerpo y no deben contar, si no la foto se estira)
+    xs.sort((a, b) => a - b);
+    const hueco = 0.04 * zonas.YH; let c = 0; while (c < xs.length - 1 && xs[c] < 0) c++;
+    let i0 = c, i1 = c;
+    while (i0 > 0 && xs[i0] - xs[i0 - 1] < hueco) i0--;
+    while (i1 < xs.length - 1 && xs[i1 + 1] - xs[i1] < hueco) i1++;
+    const tx0 = xs[i0], tx1 = xs[i1];
     uni.uCaja.value.set(tx0, shirtBot - 0.01 * zonas.YH, tx1 - tx0, zonas.top - shirtBot + 0.01 * zonas.YH);
     uni.uShortCaja.value.set(sx0, shortBot, sx1 - sx0, shortTop - shortBot);
+    // la calceta empieza donde termina el hueco de la rodilla: su punto más alto bajo el short
+    let top = -1e9; const lim = shortBot - 0.01 * zonas.YH;
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld); if (v.y < lim && v.y > top) top = v.y; }
+    uni.uSockTop.value = top; uni.uFranjaAlto.value = (top - zonas.Y0) * 0.13;
   }
   async function ponerTacos() {
     const T = TACOS[E.taco];
@@ -245,9 +270,28 @@ diffuseColor.rgb *= base;`);
     }
     pintarEspalda();
     const s = E.fotos.short;
-    uni.uHayShort.value = s ? 1 : 0; if (s) uni.uShortTex.value = textura(s);
+    uni.uHayShort.value = s ? 1 : 0; if (s) uni.uShortTex.value = textura(enderezarShort(s));
     uni.uShort.value.set(E.colorShort); uni.uSock.value.set(E.colorCalceta);
+    uni.uHayFranja.value = E.colorFranja ? 1 : 0; if (E.colorFranja) uni.uFranja.value.set(E.colorFranja);
     pedir();
+  }
+  // dónde va el nombre: si la espalda ya trae un patrocinador arriba (ej. "Nutri"), el nombre y el número bajan
+  // hasta el hueco más limpio. Se mide cuánto "dibujo horizontal" hay (letras y logos; las rayas verticales no cuentan).
+  const huecos = new WeakMap();
+  function huecoDorsal(src, c, cx, ancho) {
+    if (huecos.has(src)) return huecos.get(src);
+    const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+    if (!d) return 0;
+    const x0 = Math.max(0, Math.round(cx - ancho * 0.3)), x1 = Math.min(W - 1, Math.round(cx + ancho * 0.3));
+    const fila = new Float32Array(H);
+    for (let y = 1; y < H; y++) { let e = 0; for (let x = x0; x <= x1; x += 2) { const i = (y * W + x) * 4, j = i - W * 4; e += Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]); } fila[y] = e; }
+    const banda = (a, b) => { let e = 0; for (let y = Math.max(1, Math.round(a * H)); y < Math.min(H, Math.round(b * H)); y++) e += fila[y]; return e / Math.max(1, (b - a) * H); };
+    let mejor = 0, menor = 1e18;
+    for (let dy = -0.02; dy <= 0.081; dy += 0.01) {
+      const costo = banda(0.19 + dy, 0.26 + dy) * 2 + banda(0.29 + dy, 0.62 + dy) + Math.abs(dy) * 4000;
+      if (costo < menor) { menor = costo; mejor = dy; }
+    }
+    huecos.set(src, mejor); return mejor;
   }
   // la espalda lleva el nombre y el número del cliente encima de la foto
   function pintarEspalda() {
@@ -258,9 +302,9 @@ diffuseColor.rgb *= base;`);
     const [bx0, bw] = torsoFoto(c, 0.30);
     const cx = (bx0 + bw / 2) * c.width, ancho = bw * c.width, d = E.dorsal;
     if (window.Kit && (d.nombre || d.numero)) {
-      const H = c.height;
-      window.Kit.drawName(g, d.nombre, cx, H * 0.24, H * 0.075, d.color, ancho * 0.72);
-      window.Kit.drawNumber(g, d.numero, cx, H * 0.29, H * 0.33, d.color, d.sello !== false, ancho * 0.72);
+      const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
+      window.Kit.drawName(g, d.nombre, cx, H * (0.24 + dy), H * 0.075, d.color, ancho * 0.72);
+      window.Kit.drawNumber(g, d.numero, cx, H * (0.29 + dy), H * 0.33, d.color, d.sello !== false, ancho * 0.72);
     }
     uni.uEspalda.value = textura(c);
     const [ex0, ew] = torsoFoto(c, 0.30); uni.uTorsoB.value.set(ex0, ew);
@@ -316,7 +360,7 @@ diffuseColor.rgb *= base;`);
   const api = {
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
-      if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta;
+      if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || '';
       const m = o.manga || E.manga;
       if (!kit || m !== E.manga) { E.manga = m; await ponerModelo(); } else aplicarFotos();
     },

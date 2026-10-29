@@ -136,11 +136,11 @@
     return imgCache[url];
   }
   var cola = Promise.resolve(), puesto = null;
-  function config(u, d) { return { frente: u.fotos.frente, espalda: u.fotos.espalda, short: u.fotos.short, manga: d.manga, colorShort: u.colorShort, colorCalceta: u.colorCalceta, taco: d.taco, nombre: d.nombre, numero: d.numero, color: d.colorTexto || u.colorTexto || '#111111' }; }
+  function config(u, d) { return { frente: u.fotos.frente, espalda: u.fotos.espalda, short: u.fotos.short, manga: d.manga, colorShort: u.colorShort, colorCalceta: u.colorCalceta, colorFranja: u.colorFranja || '', taco: d.taco, nombre: d.nombre, numero: d.numero, color: d.colorTexto || u.colorTexto || '#111111' }; }
   function aplicar(m, c) {
     return Promise.all([imagen(c.frente), imagen(c.espalda), imagen(c.short)]).then(function (im) {
       var clave = c.frente + '|' + c.espalda + '|' + c.short + '|' + c.manga;
-      var p = clave !== puesto ? m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: c.manga, colorShort: c.colorShort, colorCalceta: c.colorCalceta }) : Promise.resolve();
+      var p = clave !== puesto ? m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: c.manga, colorShort: c.colorShort, colorCalceta: c.colorCalceta, colorFranja: c.colorFranja }) : Promise.resolve();
       puesto = clave;
       return p.then(function () { return m.taco(c.taco); }).then(function () { m.dorsal({ nombre: c.nombre, numero: c.numero, color: c.color, sello: true }); });
     });

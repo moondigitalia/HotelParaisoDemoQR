@@ -698,3 +698,4 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 }
 .probador .lienzo3d{--aire-arriba:66px;--aire-abajo:12px}
 @media (max-width:980px){.probador .lienzo3d{--aire-arriba:50px;--aire-abajo:8px}}
+.color.sin{background:transparent;color:var(--suave);font-size:15px;box-shadow:inset 0 0 0 1px var(--linea)}

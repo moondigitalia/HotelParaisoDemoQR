@@ -5,7 +5,7 @@
   const P=new URLSearchParams(location.search), u=CATALOGO_BASE.find(x=>x.id===P.get('id'));
   const ld=s=>s?new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.src=s;}):null;
   const m=await Motor3D.crear(document.getElementById('a'),{baja:false});
-  await m.uniforme({frente:await ld(u.fotos.frente), espalda:await ld(u.fotos.espalda), short:await ld(u.fotos.short), manga:'corta', colorShort:u.colorShort, colorCalceta:u.colorCalceta});
+  await m.uniforme({frente:await ld(u.fotos.frente), espalda:await ld(u.fotos.espalda), short:await ld(u.fotos.short), manga:'corta', colorShort:u.colorShort, colorCalceta:u.colorCalceta, colorFranja:u.colorFranja});
   await m.taco('negro');
   window.R=m.foto(480,720,'frente'); document.title='listo';
 })();

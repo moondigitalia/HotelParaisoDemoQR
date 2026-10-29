@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/css/fonts.css"><canvas id="a" style="width:360px;height:540px"></canvas>
+<script src="/js/kit.js"></script><script src="/js/motor3d.js"></script>
+<script>
+// Prepara fotos como lo hace el panel: recorte automático, y una vista de prueba frente/espalda.
+(async()=>{
+  const P=new URLSearchParams(location.search);
+  const ld=s=>s?new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>ok(null); i.src=s;}):null;
+  const src={frente:P.get('f'),espalda:P.get('e'),short:P.get('s')}, cut={}, out={};
+  for (const k in src){ const im=await ld(src[k]); if(!im) continue; const c=Motor3D.recortar(im); cut[k]=c; out[k]=c.toDataURL('image/webp',0.9); }
+  out.colores=Motor3D.coloresDe(cut.frente);
+  out.cshort=cut.short?Motor3D.colorPrincipal(cut.short):null;
+  const m=await Motor3D.crear(document.getElementById('a'),{baja:false});
+  await m.uniforme({frente:cut.frente,espalda:cut.espalda,short:cut.short,manga:P.get('manga')||'corta',colorShort:P.get('cs'),colorCalceta:P.get('cc'),colorFranja:P.get('fr')||''});
+  await m.taco(P.get('taco')||'negro');
+  m.dorsal({nombre:P.get('n')||'',numero:P.get('num')||'',color:P.get('ct')||'#111111',sello:true});
+  out.vf=m.foto(600,900,'frente'); out.ve=m.foto(600,900,'espalda');
+  window.R=out; document.title='listo';
+})();
+</script>
