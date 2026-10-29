@@ -86,7 +86,11 @@ def correr():
                 pg.click('#lupa'); pg.wait_for_timeout(900)
                 gg=pg.evaluate("""() => { const e=document.querySelector('#escenario').getBoundingClientRect(), b=document.querySelector('#paso-barra').getBoundingClientRect(), s=document.querySelector('#barra-sig').getBoundingClientRect();
                   const f=[]; if (Math.abs(e.bottom-b.top)>2) f.push('el uniforme grande no llega a la barra'); if (e.height < innerHeight*0.7) f.push('no se agrandó'); if (s.bottom>innerHeight+0.5) f.push('Siguiente fuera'); return f; }""")
-                todo.append((nom,'ver en grande','listo',gg)); pg.click('#lupa'); pg.wait_for_timeout(800)
+                ESTIRA = """() => { const c=document.querySelector('#lienzo3d'), m=window.APP.motor, pr=c.width/c.clientWidth;
+                  return Math.abs(c.height/pr - c.clientHeight) > 2 ? ['el uniforme se ve estirado ('+c.width+'x'+c.height+' en '+c.clientWidth+'x'+c.clientHeight+')'] : []; }"""
+                gg += pg.evaluate(ESTIRA)
+                todo.append((nom,'ver en grande','listo',gg)); pg.click('#lupa'); pg.wait_for_timeout(1200)
+                todo.append((nom,'regresar de grande sin estirar','listo',pg.evaluate(ESTIRA)))
             pg.click('#probador-x'); pg.wait_for_timeout(500)
             if errs: todo.append((nom,'errores de página','',errs))
             ctx.close()

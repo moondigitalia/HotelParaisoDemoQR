@@ -308,6 +308,11 @@ diffuseColor.rgb *= base;`);
     animando = { id: requestAnimationFrame(paso) };
   }
 
+  // Cuando cambia el tamaño del lienzo (ver en grande, girar el teléfono, barra del navegador que aparece o se esconde),
+  // se vuelve a dibujar a su medida real; si no, el navegador estira la imagen vieja y el uniforme se ve deforme.
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => pedir()) : null;
+  if (ro) ro.observe(canvas);
+
   const api = {
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
@@ -339,7 +344,7 @@ diffuseColor.rgb *= base;`);
       });
     },
     gamaBaja: baja,
-    destruir() { r.dispose(); r.forceContextLoss(); }
+    destruir() { if (ro) ro.disconnect(); r.dispose(); r.forceContextLoss(); }
   };
   return api;
 }
