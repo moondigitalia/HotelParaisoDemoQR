@@ -13,8 +13,8 @@ CHEQUEO = r'''() => {
   if (innerWidth<=980){const bw=document.querySelector('#paso-barra').getBoundingClientRect(); if (bw.left>0.5||bw.right<innerWidth-0.5) fallas.push('la barra/paso no ocupa todo el ancho ('+Math.round(bw.width)+' de '+innerWidth+')');}
   const c=document.querySelector('#paso-cuerpo'); const paso=c.dataset.paso;
   const desborda=c.scrollHeight>c.clientHeight+2;
-  if (desborda && paso!=='equipo') fallas.push('el paso no cabe ('+c.scrollHeight+' > '+c.clientHeight+')');
-  if (desborda && paso==='equipo' && !c.parentNode.classList.contains('hay-mas') && c.scrollTop===0) fallas.push('hay más abajo y no se avisa');
+  if (desborda && paso!=='equipo' && paso!=='diseno') fallas.push('el paso no cabe ('+c.scrollHeight+' > '+c.clientHeight+')');
+  if (desborda && (paso==='equipo'||paso==='diseno') && !c.parentNode.classList.contains('hay-mas') && c.scrollTop===0) fallas.push('hay más abajo y no se avisa');
   document.querySelectorAll('#paso-cuerpo .rejilla, #paso-cuerpo .chips.llenar, #mini-grid').forEach(g=>{
     const ks=[...g.children]; if(ks.length<2) return; const filas={};
     ks.forEach(k=>{const t=Math.round(k.offsetTop); filas[t]=(filas[t]||0)+1;});
@@ -53,74 +53,41 @@ def correr():
             pg.evaluate("localStorage.clear()"); pg.reload(); pg.wait_for_timeout(1300)
             def revisa(etq):
                 pg.wait_for_timeout(650)
+                # esperar a que termine la animación de entrada del paso (si no, se mide a medio camino)
+                pg.wait_for_function("() => !document.getAnimations().some(a => a.playState==='running' && a.effect && a.effect.target && document.querySelector('#tablero').contains(a.effect.target) && !(a.effect.getComputedTiming().iterations===Infinity))", timeout=4000)
                 res=pg.evaluate(CHEQUEO); f='/tmp/claude-0/rv-%s-%02d.png'%(nom,len([s for s in shots if s[0]==nom]))
                 pg.screenshot(path=f); shots.append((nom,f,etq))
                 todo.append((nom,etq,res['paso'],res['fallas']))
             def sig(): pg.click('#barra-sig')
-            # camino A: elegir diseño
-            pg.click('[data-camino="catalogo"]'); revisa('A diseño')
-            pg.click('[data-base="aluxes-secundario"]'); pg.wait_for_timeout(500)
-            sig(); revisa('A manga y short')
-            sig(); pg.fill('#f-nombre','Kidviniflo'); pg.fill('#f-numero','619'); revisa('A nombre y número')
-            sig(); revisa('A equipo (no)')
+            # el único camino: el catálogo en 3D
+            if pg.evaluate("document.body.innerText.toLowerCase().includes('desde cero')"): todo.append((nom,'todavía aparece crear desde cero','',['texto "desde cero" en la página']))
+            pg.click('[data-camino="catalogo"]'); pg.wait_for_timeout(4500); revisa('diseño (catálogo)')
+            g=pg.evaluate("""() => { const c=document.querySelector('#lienzo3d'); const f=[];
+              if (!c.classList.contains('listo')) f.push('el 3D no se dibujó');
+              const m=window.APP.motor; if (!m) { f.push('sin motor 3D'); return f; }
+              m.revisar().forEach(t => { if (t.puntaZ < 0.9) f.push('taco '+t.lado+' no apunta al frente'); if (Math.sign(t.puntaX)!==t.lado) f.push('taco '+t.lado+' no abre hacia afuera');
+                if (t.separacion > 0.01) f.push('la calceta no entra al taco '+t.lado+' ('+t.separacion+')'); if (t.corte >= t.bocaY) f.push('la calceta se ve por fuera del taco'); });
+              return f; }""")
+            todo.append((nom,'3D: tacos en los pies y calcetas dentro','diseno',g))
+            pg.fill('#p-buscar','rojo'); pg.wait_for_timeout(500); revisa('diseño (buscar sin resultados)')
+            if not pg.query_selector('#p-resultados .vacio'): todo.append((nom,'buscar sin resultados no avisa','diseno',['falta el aviso']))
+            pg.fill('#p-buscar','morado'); pg.wait_for_timeout(500)
+            if not pg.query_selector('#p-resultados [data-base]'): todo.append((nom,'buscar "morado" no encontró el lila','diseno',['0 resultados']))
+            pg.fill('#p-buscar',''); pg.wait_for_timeout(400)
+            sig(); revisa('manga y tacos')
+            pg.click('[data-taco="rosa"]'); pg.wait_for_timeout(1500); pg.click('[data-manga="larga"]'); pg.wait_for_timeout(3000); revisa('manga larga, tacos rosas')
+            sig(); pg.fill('#f-nombre','Kidviniflo'); pg.fill('#f-numero','619'); pg.wait_for_timeout(1500); revisa('nombre y número')
+            sig(); revisa('equipo (no)')
             pg.click('[data-eq="si"]'); pg.fill('#f-equipo','Aluxes Capital')
             for i in range(5): pg.click('[data-mas-j]'); pg.wait_for_timeout(120)
-            revisa('A equipo (sí, 7 jugadores)')
-            sig(); revisa('A listo')
-            pg.click('#probador-x'); pg.wait_for_timeout(500)
-            # camino B: desde cero
-            pg.evaluate("document.querySelector('#crear').scrollIntoView()"); pg.wait_for_timeout(300)
-            pg.click('[data-camino="libre"]'); revisa('B frente (sin foto)')
-            pg.set_input_files('#f-tela', U+'WhatsApp_Image_2026-10-19_at_3_54_56p_m_.jpeg'); revisa('B frente (aviso foto chica)')
-            pg.click('[data-aviso-ok="frente"]'); revisa('B frente (ajustar)')
-            w0=pg.evaluate("document.querySelector('#marco').getBoundingClientRect().width")
-            pg.click('[data-tam="1"]'); pg.wait_for_timeout(300); pg.click('[data-tam="1"]'); pg.wait_for_timeout(500)
-            w1=pg.evaluate("document.querySelector('#marco').getBoundingClientRect().width")
-            if not w1 < w0*0.8: todo.append((nom,'botón + no agrandó el dibujo','relleno',['recuadro %d -> %d'%(w0,w1)]))
-            revisa('B frente (dibujo más grande)')
-            pg.click('.color[data-campo="relleno"][data-color="#1F2E7A"]'); pg.wait_for_timeout(400)
-            revisa('B frente (color liso, foto guardada)')
-            if not pg.query_selector('.color.foto[data-campo="relleno"]'): todo.append((nom,'la foto se perdió al elegir color','relleno',['no está la bolita de la foto']))
-            pg.click('.color.foto[data-campo="relleno"]'); pg.wait_for_timeout(500)
-            if not pg.evaluate("document.querySelector('.color.foto').classList.contains('on') && !document.querySelector('.tela-ajuste').classList.contains('apagado')"): todo.append((nom,'no regresó a la foto','relleno',['la foto no quedó elegida']))
-            pg.set_input_files('#f-tela', U+'1792450394633_image.png'); pg.wait_for_timeout(1500); revisa('B frente (prenda completa)')
-            sig(); revisa('B espalda (igual que el frente)')
-            if pg.evaluate("document.querySelector('.vista.on').dataset.vista")!='back': todo.append((nom,'la espalda no se ve al llegar a su paso','espalda',['vista no es espalda']))
-            pg.set_input_files('#f-tela', '/home/claude/m-sport/assets/tela-olas.jpg'); pg.wait_for_timeout(1500)
-            if pg.query_selector('[data-aviso-ok="espalda"]'): pg.click('[data-aviso-ok="espalda"]')
-            revisa('B espalda (su propia foto)')
+            revisa('equipo (sí, 7 jugadores)')
+            sig(); revisa('listo')
             if movil:
                 pg.click('#lupa'); pg.wait_for_timeout(900)
-                g=pg.evaluate("""() => { const e=document.querySelector('#escenario').getBoundingClientRect(), b=document.querySelector('#paso-barra').getBoundingClientRect(), s=document.querySelector('#barra-sig').getBoundingClientRect();
-                  const f=[]; if (Math.abs(e.bottom-b.top)>2) f.push('el uniforme grande no llega a la barra ('+Math.round(e.bottom)+' vs '+Math.round(b.top)+')');
-                  if (e.height < innerHeight*0.7) f.push('no se agrandó lo suficiente'); if (s.bottom>innerHeight+0.5) f.push('Siguiente fuera');
-                  if (getComputedStyle(document.body).position!=='fixed') f.push('fondo no congelado'); return f; }""")
-                f='/tmp/claude-0/rv-%s-%02d.png'%(nom,len([x for x in shots if x[0]==nom])); pg.screenshot(path=f); shots.append((nom,f,'B ver en grande'))
-                todo.append((nom,'B ver en grande','espalda',g))
-                pg.click('#lienzo-wrap'); pg.wait_for_timeout(900); revisa('B espalda (de regreso)')
-            sig(); revisa('B cuello y costados')
-            sig(); revisa('B logo (vacío)')
-            pg.set_input_files('#f-logo', U+'WhatsApp_Image_2026-10-18_at_2_01_41p_m_.jpeg'); pg.wait_for_timeout(1200)
-            if pg.query_selector('[data-aviso-ok="logo"]'): pg.click('[data-aviso-ok="logo"]')
-            pg.click('[data-ltam="1"]'); pg.wait_for_timeout(500)
-            revisa('B logo (puesto, más grande)')
-            sig(); revisa('B patrocinadores (vacío)')
-            for f in ['Boulder_Corp_Logo_1.jpg','WhatsApp_Image_2026-10-19_at_3_54_56p_m_.jpeg','MOON-Digital-logo-horizontal-negro.png']:
-                pg.set_input_files('#f-patro', U+f); pg.wait_for_timeout(1100)
-            revisa('B patrocinadores (3, el nuevo elegido)')
-            pg.click('[data-ppos="pecho"]'); pg.wait_for_timeout(700)
-            if pg.evaluate("document.querySelector('.vista.on').dataset.vista")!='front': todo.append((nom,'pecho no muestra el frente','patro',['vista equivocada']))
-            pg.click('[data-ltam="1"]'); pg.wait_for_timeout(300); pg.click('[data-ltam="1"]'); pg.wait_for_timeout(500)
-            revisa('B patrocinadores (en el pecho, más grande)')
-            pg.click('[data-psel="0"] .prev'); pg.wait_for_timeout(600)
-            pg.click('[data-ppos="manga-der"]'); pg.wait_for_timeout(800)
-            revisa('B patrocinadores (uno a la manga derecha)')
-            pg.click('[data-psel="0"] .prev'); pg.wait_for_timeout(600)
-            revisa('B patrocinadores (ninguno elegido)')
-            sig(); revisa('B manga y short')
-            sig(); revisa('B nombre y número')
-            sig(); revisa('B equipo')
-            sig(); revisa('B listo')
+                gg=pg.evaluate("""() => { const e=document.querySelector('#escenario').getBoundingClientRect(), b=document.querySelector('#paso-barra').getBoundingClientRect(), s=document.querySelector('#barra-sig').getBoundingClientRect();
+                  const f=[]; if (Math.abs(e.bottom-b.top)>2) f.push('el uniforme grande no llega a la barra'); if (e.height < innerHeight*0.7) f.push('no se agrandó'); if (s.bottom>innerHeight+0.5) f.push('Siguiente fuera'); return f; }""")
+                todo.append((nom,'ver en grande','listo',gg)); pg.click('#lupa'); pg.wait_for_timeout(800)
+            pg.click('#probador-x'); pg.wait_for_timeout(500)
             if errs: todo.append((nom,'errores de página','',errs))
             ctx.close()
         b.close()

@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/css/fonts.css"><style>body{margin:0;background:#000}canvas{width:450px;height:675px;display:inline-block}</style>
+<canvas id="a"></canvas><canvas id="b"></canvas>
+<script src="/js/kit.js"></script><script src="/js/motor3d.js"></script>
+<script>
+(async()=>{
+  await document.fonts.load('700 100px "Saira Extra Condensed"');
+  const img=await new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.src='/assets/catalogo/aluxes-lila-frente.webp';});
+  const P=new URLSearchParams(location.search);
+  for (const [id,vista] of [['a','frente'],['b','espalda']]) {
+    const m=await Motor3D.crear(document.getElementById(id));
+    await m.uniforme({frente:img, manga:P.get('m')||'corta', colorShort:'#f3f3f5', colorCalceta:'#f3f3f5'});
+    await m.taco(P.get('t')||'negro');
+    m.dorsal({nombre:'KIDVINIFLO', numero:'619', color:'#2a2560'});
+    m.vista(vista,false);
+    window['M'+id]=m;
+  }
+  setTimeout(()=>{ window.REV=window.Ma.revisar(); document.title='listo'; }, 600);
+})();
+</script>

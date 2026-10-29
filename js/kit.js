@@ -423,5 +423,5 @@
     }
   }
 
-  window.Kit = { render: render, patros: patros, tamDe: tamDe, load: load, W: W, H: H, drawSello: drawSello, mPath: mPath };
+  window.Kit = { drawName: drawName, drawNumber: drawNumber, render: render, patros: patros, tamDe: tamDe, load: load, W: W, H: H, drawSello: drawSello, mPath: mPath };
 })();

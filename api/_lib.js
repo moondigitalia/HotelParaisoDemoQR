@@ -47,7 +47,7 @@ const DEFAULT_CONFIG = {
   direccion: 'Calle 19 #38, Cancún, Q.R.',
   lema: 'La tienda de las estrellas',
   tallas: ['Niño 6', 'Niño 8', 'Niño 10', 'Niño 12', 'Niño 14', 'Ch', 'M', 'G', 'XG', 'XXG'],
-  categorias: ['Equipos de la casa', 'Diseños M Sport', 'Clásicos'],
+  categorias: ['Liga MX', 'Liga europea', 'Mundial'],
   historia: '',
   calificacion: '4.3',
   opiniones: '150'

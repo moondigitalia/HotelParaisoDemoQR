@@ -15,7 +15,7 @@
 <link rel="preload" href="/fonts/schibsted-grotesk-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>document.documentElement.classList.add('espera')</script>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=14">
+<link rel="stylesheet" href="/css/app.css?v=15">
 </head>
 <body>
 
@@ -76,13 +76,12 @@
         <div class="escenario" id="escenario">
           <div class="vistas" role="tablist" aria-label="Vista">
             <span class="vistas-pulgar" id="vistas-pulgar" aria-hidden="true"></span>
-            <button type="button" class="vista on" data-vista="front" data-t="v_frente" role="tab" aria-selected="true">Frente</button>
-            <button type="button" class="vista" data-vista="back" data-t="v_espalda" role="tab" aria-selected="false">Espalda</button>
-            <button type="button" class="vista" data-vista="manga" data-t="v_manga" role="tab" aria-selected="false">Manga</button>
+            <button type="button" class="vista on" data-vista="frente" data-t="v_frente" role="tab" aria-selected="true">Frente</button>
+            <button type="button" class="vista" data-vista="espalda" data-t="v_espalda" role="tab" aria-selected="false">Espalda</button>
           </div>
           <div class="lienzo-wrap" id="lienzo-wrap">
-            <canvas id="lienzo-antes" width="1000" height="1500" aria-hidden="true"></canvas>
-            <canvas id="lienzo" width="1000" height="1500" aria-label="Vista del uniforme" role="img"></canvas>
+            <img id="lienzo-respaldo" class="lienzo-respaldo" alt="" decoding="async">
+            <canvas id="lienzo3d" class="lienzo3d" aria-label="Vista del uniforme" role="img"></canvas>
           </div>
           <button type="button" class="lupa" id="lupa" aria-label="Ver el uniforme en grande"></button>
         </div>
@@ -98,8 +97,7 @@
         <h2 data-t="cat_t">Catálogo</h2>
         <p data-t="cat_p">Diseños que ya tenemos.</p>
       </div>
-      <div class="cat-filtros" id="cat-filtros"></div>
-      <div class="cat-lista" id="cat-lista"></div>
+      <div class="cat-zona" id="cat-zona"></div>
     </div>
   </section>
 
@@ -200,10 +198,11 @@
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=14"></script>
-<script src="/js/kit.js?v=14"></script>
-<script src="/js/catalogo-base.js?v=14"></script>
-<script src="/js/app.js?v=14"></script>
-<script src="/js/panel.js?v=14" defer></script>
+<script src="/js/i18n.js?v=15"></script>
+<script>window.VERSION="15"</script>
+<script src="/js/kit.js?v=15"></script>
+<script src="/js/catalogo-base.js?v=15"></script>
+<script src="/js/app.js?v=15"></script>
+<script src="/js/panel.js?v=15" defer></script>
 </body>
 </html>

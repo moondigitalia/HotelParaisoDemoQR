@@ -47,7 +47,7 @@
     panel.innerHTML = marco('<p class="pn-cargando">Cargando tu panel…</p>'); enlazarMarco();
     api('todo').then(function (j) {
       ses.set(P.pin);
-      P.folios = j.folios || []; P.catalogo = Array.isArray(j.catalogo) ? j.catalogo : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
+      P.folios = j.folios || []; P.catalogo = (Array.isArray(j.catalogo) && j.catalogo.some(function (u) { return u.tipo === '3d'; })) ? j.catalogo : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
       pintar();
     }).catch(function (e) {
       ses.set(''); var pin = P.pin; P.pin = null;
@@ -115,6 +115,15 @@
   }
   function comoEs(e) {
     var d = e.diseno || {}, filas = [];
+    if (d.taco) {
+      // pedido hecho con el catálogo 3D
+      var TACOS_N = { negro: 'Negros', rosa: 'Rosas', turquesa: 'Turquesa' };
+      filas.push(['Uniforme', esc(e.base || '—')]);
+      filas.push(['Manga', d.manga === 'larga' ? 'Larga' : 'Corta']);
+      filas.push(['Tacos del cliente', TACOS_N[d.taco] || d.taco]);
+      filas.push(['Nombre y número', bolita(d.colorTexto) + esc([d.nombre, d.numero].filter(Boolean).join(' · ') || 'Sin nombre')]);
+      return '<dl class="pn-como">' + filas.map(function (f) { return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>'; }).join('') + '</dl>';
+    }
     filas.push(['Diseño', esc(e.base || (d.foto ? 'Del catálogo' : 'Armado desde cero'))]);
     if (!d.foto) {
       filas.push(['Manga', d.manga === 'larga' ? 'Larga' : 'Corta']);
@@ -164,7 +173,7 @@
   }
 
   /* ---------- uniformes ---------- */
-  function ordenados() { return P.catalogo.filter(function (u) { return !u.borrado; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }); }
+  function ordenados() { return P.catalogo.filter(function (u) { return !u.borrado && u.tipo === '3d'; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }); }
   var conMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   // Lista limpia: tocas la tarjeta y se abre el uniforme; solo quedan afuera las flechas para cambiar el orden.
   function vistaUniformes() {
@@ -174,7 +183,7 @@
       '<div class="pn-lista" id="pn-unis">' + lista.map(function (u, i) {
         var marcas = (u.destacado ? '<span class="pn-marca oro">★ Destacado</span>' : '') + (u.oculto ? '<span class="pn-marca">Oculto</span>' : '');
         return '<div class="pn-fila pn-uni' + (u.oculto ? ' apagado' : '') + '"' + (conMouse ? ' draggable="true"' : '') + ' data-uid="' + esc(u.id) + '">' +
-          '<button type="button" class="pn-abrir" data-edit="' + esc(u.id) + '"><canvas width="120" height="180" data-th="' + esc(u.id) + '"></canvas>' +
+          '<button type="button" class="pn-abrir" data-edit="' + esc(u.id) + '"><img class="pn-th" src="' + esc(u.mini || '') + '" alt="">' +
           '<span class="pn-info"><b>' + esc(u.nombre) + '</b><small>' + esc(u.categoria || 'Sin categoría') + '</small>' + (marcas ? '<span class="pn-marcas">' + marcas + '</span>' : '') + '</span></button>' +
           '<span class="pn-orden">' +
           '<button type="button" class="icon-btn" data-mueve="-1" data-i="' + i + '" aria-label="Subir de lugar"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
@@ -190,8 +199,12 @@
   }
   function porId(id) { return P.catalogo.filter(function (u) { return u.id === id; })[0]; }
   function enlazarUniformes() {
-    $$('canvas[data-th]', panel).forEach(function (c) { var u = porId(c.getAttribute('data-th')); if (u) Kit.render(c, u.tipo === 'foto' ? { foto: u.foto } : u.diseno, 'front'); });
-    $('[data-nuevo]', panel).addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: (P.config.categorias || [])[0] || '', tipo: 'foto', foto: { frente: '', espalda: '', yNombre: 0.2 }, colorTexto: '#111111', nuevo: true }; pintar(0); });
+    $('[data-nuevo]', panel).addEventListener('click', function () {
+      if (ordenados().filter(function (u) { return !u.oculto; }).length >= 10) { A.toast('Ya tienes 10 uniformes en la página. Oculta o manda uno a la papelera para subir otro.'); return; }
+      P.scrollLista = $('.pn', panel).scrollTop;
+      P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: (P.config.categorias || [])[0] || '', tipo: '3d', fotos: { frente: '', espalda: '', short: '' }, colorShort: '', colorCalceta: '', colorTexto: '#111111', etiquetas: { colores: [], pais: '', equipo: '' }, nuevo: true };
+      pintar(0);
+    });
     $('[data-voz]', panel).addEventListener('click', narrar);
     $$('[data-mueve]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -226,45 +239,99 @@
     speechSynthesis.speak(u);
   }
 
-  /* editor de uniforme con fotos del dueño */
+  /* editor de uniforme: el dueño sube sus fotos reales y la página las pone en 3D sola */
+  var COLORES_N = [['blanco', '#f4f4f4'], ['negro', '#151515'], ['gris', '#8a8d93'], ['rojo', '#d7262e'], ['naranja', '#ff8a3d'], ['amarillo', '#ffc61a'], ['dorado', '#c9a227'], ['verde', '#14804a'], ['celeste', '#7fd6e6'], ['azul', '#1f2e7a'], ['morado', '#6b2fb3'], ['rosa', '#f6588a']];
+  var TELAS = ['#f3f3f5', '#151515', '#1f2e7a', '#d7262e', '#14804a', '#ffc61a', '#6b2fb3', '#7fd6e6'];
+  var LETRAS_P = ['#111111', '#FFFFFF', '#1F2E7A', '#FFC61A', '#D7262E'];
+  function bolitas(campo, valor, lista) {
+    return '<div class="colores">' + lista.map(function (c) { return '<button type="button" class="color' + (valor === c ? ' on' : '') + '" style="background:' + c + '" data-' + campo + '="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
+  }
+  function hexDe(rgb) { return '#' + rgb.map(function (v) { return ('0' + Math.round(v).toString(16)).slice(-2); }).join(''); }
   function vistaEditor() {
-    var u = P.editando, cats = P.config.categorias || [];
-    var esFoto = u.tipo === 'foto';
+    var u = P.editando, cats = P.config.categorias || [], f = u.fotos, e = u.etiquetas || (u.etiquetas = { colores: [], pais: '', equipo: '' });
+    function boton(lado, texto, opcional) {
+      return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*" data-foto="' + lado + '"></label>';
+    }
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
-      '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026"></div>' +
-      '<div class="grupo"><label for="ed-cat">Categoría</label><select class="campo" id="ed-cat">' + cats.map(function (c) { return '<option' + (c === u.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div>';
-    if (esFoto) {
-      h += '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el suelo</li><li>De frente, desde arriba</li><li>Con buena luz, sin flash</li><li>Una foto del frente y una de la espalda</li></ul></div>' +
-        '<div class="subir"><span class="btn btn-oro archivo">' + (u.foto.frente ? 'Cambiar frente' : 'Foto del frente') + '<input type="file" accept="image/*" data-foto="frente"></span>' +
-        '<span class="btn btn-oro archivo">' + (u.foto.espalda ? 'Cambiar espalda' : 'Foto de la espalda') + '<input type="file" accept="image/*" data-foto="espalda"></span></div>' +
-        '<div id="ed-aviso"></div>' +
-        '<div class="grupo fila-tam"><span class="etq">Altura del nombre en la espalda</span><div class="tam-btns"><button type="button" class="icon-btn" data-ny="-1" aria-label="Más arriba">↑</button><button type="button" class="icon-btn" data-ny="1" aria-label="Más abajo">↓</button></div></div>' +
-        '<div class="grupo"><span class="etq">Color de nombre y número</span><div class="colores">' + ['#111111', '#FFFFFF', '#1F2E7A', '#FFC61A', '#D7262E'].map(function (c) { return '<button type="button" class="color' + (u.colorTexto === c ? ' on' : '') + '" style="background:' + c + '" data-tx="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>';
-    } else {
-      h += '<p class="nota">Este diseño lo dibujó MOON Digital. Aquí puedes cambiarle el nombre y la categoría.</p>';
-    }
+      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Una del frente y una de la espalda; la del short, si la tienes</li></ul></div>' +
+      '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
+      '<div id="ed-aviso"></div>' +
+      '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
+      '<div class="grupo"><label for="ed-cat">Carpeta</label><select class="campo" id="ed-cat"><option value="">Sin carpeta</option>' + cats.map(function (c) { return '<option' + (c === u.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fila2"><div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div><div class="grupo"><label for="ed-equipo">Equipo</label><input class="campo" id="ed-equipo" maxlength="40" value="' + esc(e.equipo) + '" placeholder="Ej. Chivas"></div></div>' +
+      '<div class="grupo"><span class="etq">Colores del uniforme <small>(se marcan solos con la foto; corrige si hace falta)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
+      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
+      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>';
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
         '<button type="button" class="chip' + (u.destacado ? ' on' : '') + '" data-sw="destacado">★ ' + (u.destacado ? 'Destacado' : 'Destacar') + '</button>' +
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
         '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
     }
-    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (esFoto && !(u.foto.frente && u.foto.espalda) ? ' disabled' : '') + '>Publicar</button></div></div>' +
-      '<div class="pn-prev"><figure><canvas width="500" height="750" id="ed-f"></canvas><figcaption>Frente</figcaption></figure><figure><canvas width="500" height="750" id="ed-b"></canvas><figcaption>Espalda con nombre y número de ejemplo</figcaption></figure></div></div>';
+    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (!f.frente || /^data:/.test(f.frente + f.espalda + f.short) ? ' disabled' : '') + '>Publicar</button></div></div>' +
+      '<div class="pn-prev3d"><div class="vistas pn-vistas3d"><button type="button" class="vista on" data-pv="frente">Frente</button><button type="button" class="vista" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">' + (f.frente ? 'Así se verá en la página, con el nombre y número de ejemplo.' : 'Sube la foto del frente para verlo en 3D.') + '</p></div></div>';
     return h;
   }
+  var mEditor = null, pvVista = 'frente';
+  function imagenP(src) { return new Promise(function (ok) { if (!src) return ok(null); var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { ok(i); }; i.onerror = function () { ok(null); }; i.src = src; }); }
   function previsualizar() {
+    var u = P.editando, c = $('#ed-3d'); if (!c || !u.fotos.frente) return Promise.resolve();
+    return A.cargarMotor().catch(function () {}).then(function () {
+      if (!window.Motor3D) return;
+      if (!mEditor || mEditor.lienzo !== c) { if (mEditor) mEditor.m.destruir(); mEditor = { lienzo: c, p: window.Motor3D.crear(c) }; }
+      return mEditor.p.then(function (m) {
+        mEditor.m = m;
+        return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5' });
+        }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); });
+      });
+    });
+  }
+  // la foto del dueño: se recorta el fondo, se revisa y se sube; de la del frente salen los colores para el buscador
+  function procesarFoto(file, lado) {
     var u = P.editando;
-    var d = u.tipo === 'foto' ? { foto: u.foto, nombre: 'JUANPY', numero: '69', colorTexto: u.colorTexto } : Object.assign({}, u.diseno, { nombre: 'JUANPY', numero: '69' });
-    var f = $('#ed-f'), b = $('#ed-b'); if (f) Kit.render(f, d, 'front'); if (b) Kit.render(b, d, 'back');
+    A.toast('Preparando la foto…', true);
+    return A.cargarArchivo(file).then(function (im) {
+      return A.cargarMotor().catch(function () {}).then(function () { return im; });
+    }).then(function (im) {
+      var av = [], w = im.naturalWidth, h = im.naturalHeight;
+      if (Math.min(w, h) < 800) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
+      if (A.nitidez(im) < 22) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
+      var base = A.aCanvas(im, 1400), cut = window.Motor3D.recortar(base);
+      if (cut.width * cut.height > base.width * base.height * 0.93) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
+      var out = A.aCanvas(cut, 900), data = out.toDataURL('image/webp', 0.86);
+      if (data.indexOf('data:image/webp') !== 0) data = out.toDataURL('image/png');
+      u.fotos[lado] = data;
+      if (lado === 'frente') {
+        u.etiquetas.colores = window.Motor3D.coloresDe(out);
+        if (!u.colorShort) u.colorShort = hexDe(window.Motor3D.colorPrincipal(out));
+        var lum = window.Motor3D.colorPrincipal(out).reduce(function (s, v) { return s + v; }, 0) / 3;
+        if (!u.colorTextoElegido) u.colorTexto = lum > 140 ? '#111111' : '#FFFFFF';
+      }
+      if (lado === 'short') u.colorShort = hexDe(window.Motor3D.colorPrincipal(out));
+      if (!u.colorCalceta || lado === 'short') u.colorCalceta = u.colorShort;
+      P.avisos = av;
+      pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
+      return A.subirConReintento(data, 'catalogo').then(function (url) {
+        u.fotos[lado] = url; A.toast('Foto lista');
+        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+      });
+    }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
   }
   function enlazarEditor() {
     var u = P.editando;
     $('[data-volver]', panel).addEventListener('click', function () { P.editando = null; pintar(P.scrollLista || 0); });
     $('#ed-nombre').addEventListener('input', function (e) { u.nombre = e.target.value; });
     $('#ed-cat').addEventListener('change', function (e) { u.categoria = e.target.value; });
-    $$('[data-ny]', panel).forEach(function (b) { b.addEventListener('click', function () { u.foto.yNombre = Math.max(0.08, Math.min(0.4, (u.foto.yNombre || 0.2) + 0.02 * +b.getAttribute('data-ny'))); previsualizar(); }); });
+    $('#ed-pais').addEventListener('input', function (e) { u.etiquetas.pais = e.target.value; });
+    $('#ed-equipo').addEventListener('input', function (e) { u.etiquetas.equipo = e.target.value; });
+    $$('[data-col]', panel).forEach(function (b) { b.addEventListener('click', function () { var c = b.getAttribute('data-col'), l = u.etiquetas.colores, i = l.indexOf(c); if (i >= 0) l.splice(i, 1); else l.push(c); b.classList.toggle('on', i < 0); }); });
+    [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['tx', 'colorTexto']].forEach(function (par) {
+      $$('[data-' + par[0] + ']', panel).forEach(function (b) { b.addEventListener('click', function () { u[par[1]] = b.getAttribute('data-' + par[0]); if (par[0] === 'tx') u.colorTextoElegido = true; $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
+    });
+    $$('[data-pv]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = b.getAttribute('data-pv'); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); if (mEditor && mEditor.m) mEditor.m.vista(pvVista); }); });
     $$('[data-sw]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
         var k = b.getAttribute('data-sw'), real = porId(u.id); if (!real) return;
@@ -274,34 +341,28 @@
     });
     var pap = $('[data-papelera]', panel);
     if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
-    $$('[data-tx]', panel).forEach(function (b) { b.addEventListener('click', function () { u.colorTexto = b.getAttribute('data-tx'); $$('[data-tx]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
     $$('[data-foto]', panel).forEach(function (inp) {
-      inp.addEventListener('change', function () {
-        var file = inp.files && inp.files[0]; if (!file) return;
-        var lado = inp.getAttribute('data-foto');
-        A.toast('Subiendo foto…');
-        A.cargarArchivo(file).then(function (im) {
-          var av = [], w = im.naturalWidth, h = im.naturalHeight;
-          if (Math.min(w, h) < 900) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
-          if (A.nitidez(im) < 22) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
-          if (w > h * 1.25) av.push('La foto salió acostada. Tómala vertical para que la playera se vea completa.');
-          var c = A.aCanvas(im, 2000), data = c.toDataURL('image/jpeg', 0.9);
-          u.foto[lado] = data; previsualizar();
-          $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
-          return A.subirConReintento(data, 'catalogo').then(function (url) {
-            u.foto[lado] = url; A.toast('Foto lista');
-            var pub = $('[data-publicar]', panel); if (pub && u.foto.frente && u.foto.espalda && !/^data:/.test(u.foto.frente + u.foto.espalda)) pub.disabled = false;
-          });
-        }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
-      });
+      inp.addEventListener('change', function () { var file = inp.files && inp.files[0]; if (file) procesarFoto(file, inp.getAttribute('data-foto')); });
     });
     $('[data-publicar]', panel).addEventListener('click', function () {
+      var btn = this;
       if (!u.nombre.trim()) { A.toast('Ponle un nombre al uniforme.'); $('#ed-nombre').focus(); return; }
-      var i = -1; P.catalogo.forEach(function (x, k) { if (x.id === u.id) i = k; });
-      var limpio = A.clone(u); delete limpio.nuevo;
-      if (i >= 0) P.catalogo[i] = limpio; else { limpio.orden = 0; P.catalogo.unshift(limpio); }
-      P.editando = null; pintar();
-      guardarCatalogo('Publicado en la página');
+      btn.disabled = true; btn.textContent = 'Publicando…';
+      // la foto de estudio del catálogo se hace aquí, una sola vez; así el catálogo carga rápido en cualquier celular
+      previsualizar().then(function () {
+        if (!mEditor || !mEditor.m) return null;
+        mEditor.m.dorsal({ nombre: '', numero: '' });
+        var d = mEditor.m.foto(480, 720, 'frente');
+        mEditor.m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto });
+        return A.subirConReintento(d, 'catalogo');
+      }).then(function (mini) {
+        if (mini) u.mini = mini;
+        var i = -1; P.catalogo.forEach(function (x, k) { if (x.id === u.id) i = k; });
+        var limpio = A.clone(u); delete limpio.nuevo; delete limpio.colorTextoElegido;
+        if (i >= 0) P.catalogo[i] = limpio; else { limpio.orden = 0; P.catalogo.unshift(limpio); }
+        P.editando = null; pintar(P.scrollLista || 0);
+        return guardarCatalogo('Publicado en la página');
+      }).catch(function () { btn.disabled = false; btn.textContent = 'Publicar'; A.toast('No se pudo publicar. Revisa tu conexión e inténtalo otra vez.'); });
     });
     previsualizar();
   }

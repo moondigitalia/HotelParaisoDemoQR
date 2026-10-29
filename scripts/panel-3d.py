@@ -1,0 +1,25 @@
+# El dueño sube un uniforme nuevo con su foto real, lo ve en 3D, lo publica y aparece en el catálogo de la página.
+from playwright.sync_api import sync_playwright
+U='/mnt/user-data/uploads/'; O='/tmp/claude-0/p3d'
+with sync_playwright() as p:
+    b=p.chromium.launch(args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
+    c=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,is_mobile=True,has_touch=True,locale='es-MX'); pg=c.new_page()
+    errs=[]; pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type=='error' and errs.append(m.text))
+    pg.goto('http://localhost:5055/?sinintro#panel'); pg.wait_for_timeout(1500)
+    pg.fill('#pn-codigo','0'); pg.tap('#pn-pin button'); pg.wait_for_timeout(1500)
+    pg.tap('[data-tab="uniformes"]'); pg.wait_for_timeout(800); pg.screenshot(path=O+'-1.png')
+    pg.tap('[data-nuevo]'); pg.wait_for_timeout(800)
+    pg.set_input_files('[data-foto="frente"]', U+'1792450375543_image.png'); pg.wait_for_timeout(9000)
+    pg.set_input_files('[data-foto="espalda"]', U+'1792450375543_image.png'); pg.wait_for_timeout(9000)
+    pg.fill('#ed-nombre','Lila de prueba'); pg.select_option('#ed-cat','Liga MX'); pg.fill('#ed-pais','México'); pg.fill('#ed-equipo','Prueba FC')
+    pg.screenshot(path=O+'-2.png', full_page=False)
+    pg.evaluate("document.querySelector('.pn').scrollTo(0,99999)"); pg.wait_for_timeout(600); pg.screenshot(path=O+'-3.png')
+    print('colores:', pg.evaluate("[...document.querySelectorAll('[data-col].on')].map(b=>b.dataset.col)"))
+    pg.tap('[data-publicar]'); pg.wait_for_timeout(9000); pg.screenshot(path=O+'-4.png')
+    pg.tap('[data-pn-cerrar]'); pg.wait_for_timeout(800)
+    pg.evaluate("document.querySelector('#catalogo').scrollIntoView()"); pg.wait_for_timeout(1500)
+    pg.fill('#c-buscar','morado'); pg.wait_for_timeout(800); pg.screenshot(path=O+'-5.png')
+    n=pg.evaluate("document.querySelectorAll('#c-resultados [data-cat]').length"); print('resultados morado:', n)
+    pg.fill('#c-buscar','rojo'); pg.wait_for_timeout(500); print('resultados rojo:', pg.evaluate("document.querySelectorAll('#c-resultados [data-cat]').length"))
+    pg.fill('#c-buscar','prueba fc'); pg.wait_for_timeout(500); print('resultados equipo:', pg.evaluate("document.querySelectorAll('#c-resultados [data-cat]').length"))
+    print('ERRS', errs[:6]); b.close()
