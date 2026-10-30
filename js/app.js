@@ -905,25 +905,59 @@
   }
   $('#fiesta-cerrar').addEventListener('click', function () { pararSonido(); $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; FIJAR.off(); reiniciar(); });
   /* ---------- catálogo de la página: las mismas carpetas y el mismo buscador que dentro del probador ---------- */
+  /* Catálogo: una sola fila de escudos que se desliza de lado, con una barrita que dice cuánto falta y la píldora
+     "Ver todos". "Ver todos" abre una pantalla con todos los escudos grandes; arriba siempre quedan la búsqueda y las secciones. */
+  function escudoCat(q) {
+    var u = q.items[0], img = q.escudo ? '<img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async">' : '<img class="sin" src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async">';
+    return '<button type="button" class="cat-esc" data-cat="' + esc(u.id) + '"><span class="cat-cara' + (q.escudo ? '' : ' sin-escudo') + '">' + img + (q.items.length > 1 ? '<i class="mini-n">' + q.items.length + '</i>' : '') + '</span><b>' + esc(q.nombre) + '</b></button>';
+  }
+  function enlazarCat(raiz) {
+    $$('[data-cat]', raiz).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-cat'); })[0];
+        if (!u) return; if (catTodo && !catTodo.hidden) cerrarCatTodo(); abrirProbador(u, b);
+      });
+    });
+  }
   function pintarCatalogo() {
     var cont = $('#cat-zona'); if (!cont) return;
-    cont.innerHTML = filtrosHTML('c') + '<div id="c-resultados"></div>';
-    function lista() {
-      var r = $('#c-resultados'), vis = filtrar(catalogoVisible());
-      r.innerHTML = vis.length ? '<div class="cat-grid">' + equiposDe(vis).map(function (q) {
-        var u = q.items[0], cara = q.escudo ? '<span class="cv escudo"><img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="cv"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span>';
-        return '<button type="button" class="cat-item' + (q.escudo ? ' con-escudo' : '') + '" data-cat="' + esc(u.id) + '">' + cara + '<b>' + esc(q.nombre) + '</b><small>' + (q.items.some(function (x) { return x.destacado; }) ? '<span class="estrella">★</span> ' : '') + esc(nUniformes(q.items.length)) + (u.categoria ? ' · ' + esc(u.categoria) : '') + '</small></button>';
-      }).join('') + '</div>' : '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
-      $$('[data-cat]', r).forEach(function (b) {
-        b.addEventListener('click', function () {
-          var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-cat'); })[0];
-          if (u) abrirProbador(u, b);
-        });
-      });
-      acomodar(cont);
+    var qs = equiposDe(catalogoVisible());
+    cont.innerHTML = '<div class="cat-fila" id="cat-fila">' + qs.map(escudoCat).join('') + '</div>' +
+      '<div class="cat-pie"><span class="cat-avance" aria-hidden="true"><i id="cat-avance"></i></span><button type="button" class="btn btn-oro cat-todos" data-ver-todos>' + esc(T('ver_todos')) + ' <span>' + qs.length + '</span></button></div>';
+    enlazarCat(cont);
+    var fila = $('#cat-fila'), barra = $('#cat-avance');
+    function avance() {   // la barrita: su largo es lo que se ve; su lugar, cuánto has recorrido
+      var vis = fila.clientWidth / Math.max(1, fila.scrollWidth), pos = fila.scrollLeft / Math.max(1, fila.scrollWidth - fila.clientWidth);
+      barra.style.width = Math.max(12, vis * 100) + '%'; barra.style.left = ((1 - Math.min(1, vis)) * pos * 100) + '%';
+      barra.parentNode.classList.toggle('lleno', vis >= 0.999);
     }
-    enlazarFiltros(cont, 'c', lista);
-    lista();
+    fila.addEventListener('scroll', avance, { passive: true }); window.addEventListener('resize', avance); avance();
+    $$('img', fila).forEach(function (im) { if (!im.complete) im.addEventListener('load', avance, { once: true }); });
+    $('[data-ver-todos]', cont).addEventListener('click', abrirCatTodo);
+  }
+  var catTodo = null;
+  function abrirCatTodo() {
+    if (!catTodo) {
+      catTodo = document.createElement('div'); catTodo.className = 'capa cat-todo'; catTodo.hidden = true;
+      catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true" aria-label="' + esc(T('cat_t')) + '"><header class="cat-todo-top"><div class="cat-todo-tit"><h2>' + esc(T('cat_t')) + '</h2><button type="button" class="capa-x" data-cerrar-todo aria-label="' + esc(T('cerrar')) + '">×</button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
+      document.body.appendChild(catTodo);
+      $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && !catTodo.hidden) cerrarCatTodo(); });
+    }
+    $('h2', catTodo).textContent = T('cat_t');
+    $('#t-filtros', catTodo).innerHTML = filtrosHTML('t');
+    function lista() {
+      var vis = filtrar(catalogoVisible()), qs = equiposDe(vis), r = $('#t-resultados', catTodo);
+      r.innerHTML = qs.length ? '<div class="cat-todo-grid">' + qs.map(escudoCat).join('') + '</div>' : '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
+      enlazarCat(r);
+    }
+    enlazarFiltros(catTodo, 't', lista); lista();
+    if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
+    $('.cat-todo-in', catTodo).scrollTop = 0;
+  }
+  function cerrarCatTodo() {
+    if (!catTodo || catTodo.hidden) return;
+    catTodo.hidden = true; window.FIJAR.off();
   }
 
   function pintarDatos() {
