@@ -925,3 +925,12 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .tacos-fila:not(.abierta) .taco-c{width:100%;max-width:42px;min-width:0}
 /* "M Sport" en letra cursiva: la última letra se sale de su caja y Safari la recortaba al aparecer la barra */
 .marca-txt i{padding-right:.18em;margin-right:-.18em}
+
+.pn-borrar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 6px}
+.pn-borrar small{flex-basis:100%;color:var(--suave);font-size:13px}
+.pn-borrador{position:fixed;inset:0;z-index:200;background:rgba(6,10,30,.94);display:flex;align-items:center;justify-content:center;padding:12px}
+.pn-borrador-c{display:flex;flex-direction:column;gap:10px;width:min(560px,100%);max-height:100%}
+.pn-borrador-c p{margin:0;font-size:15px;color:#fff}
+.pn-borrador-lienzo{flex:1;min-height:0;display:flex;justify-content:center;background:repeating-conic-gradient(#3a3f55 0 25%,#2a2e40 0 50%) 0 0/20px 20px;border-radius:14px;overflow:hidden}
+.pn-borrador-lienzo canvas{max-width:100%;max-height:calc(100dvh - 190px);touch-action:none;cursor:crosshair}
+.pn-borrador-b{display:flex;gap:8px;justify-content:flex-end}

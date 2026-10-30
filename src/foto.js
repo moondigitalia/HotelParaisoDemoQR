@@ -210,9 +210,11 @@ export function separarConjunto(c, persona) {
   const op = (x, y) => d[(y * W + x) * 4 + 3] > 128;
   const L = new Float32Array(H), R = new Float32Array(H), col = [];
   for (let y = 0; y < H; y++) {
-    let a = -1, b = -1, r = 0, g = 0, bb = 0, n = 0;
-    for (let x = 0; x < W; x++) if (op(x, y)) { if (a < 0) a = x; b = x; if (x % 3 === 0) { const i = (y * W + x) * 4; r += d[i]; g += d[i + 1]; bb += d[i + 2]; n++; } }
-    L[y] = a; R[y] = b; col.push(n ? [r / n, g / n, bb / n] : null);
+    // el color de cada renglón es la mediana, no el promedio: las letras de un patrocinador (blanco sobre azul) no cuentan como cambio de prenda
+    let a = -1, b = -1; const rs = [], gs = [], bs = [];
+    for (let x = 0; x < W; x++) if (op(x, y)) { if (a < 0) a = x; b = x; if (x % 3 === 0) { const i = (y * W + x) * 4; rs.push(d[i]); gs.push(d[i + 1]); bs.push(d[i + 2]); } }
+    const med = (v) => { v.sort((p, q) => p - q); return v[v.length >> 1]; };
+    L[y] = a; R[y] = b; col.push(rs.length ? [med(rs), med(gs), med(bs)] : null);
   }
   // un short de verdad tiene las dos piernas: abajo, al centro, hay un hueco entre ellas
   const piernas = (y0) => {
@@ -232,20 +234,30 @@ export function separarConjunto(c, persona) {
   };
   const k = Math.max(3, Math.round(H * 0.012)), cand = [];
   const prom = (y0, y1) => { const t = [0, 0, 0]; let n = 0; for (let y = y0; y < y1; y++) if (col[y]) { t[0] += col[y][0]; t[1] += col[y][1]; t[2] += col[y][2]; n++; } return n ? t.map((v) => v / n) : null; };
-  for (let y = Math.round(H * 0.4); y < Math.round(H * 0.78); y++) {
+  // con alguien puesto y short del mismo color que la playera, el color no sirve para cortar (un logo blanco lo engaña): solo el dobladillo
+  const tela = prom(Math.round(H * 0.2), Math.round(H * 0.4)), abajoC = prom(Math.round(H * 0.92), H);
+  const tono = (c) => { const t = c[0] + c[1] + c[2] + 1; return [c[0] / t, c[1] / t, c[2] / t]; };   // el tono sin la luz: un short en sombra sigue siendo del mismo color
+  const mismoColor = persona && tela && abajoC && (Math.abs(tela[0] - abajoC[0]) + Math.abs(tela[1] - abajoC[1]) + Math.abs(tela[2] - abajoC[2]) < 70 || tono(tela).reduce((s2, v, i) => s2 + Math.abs(v - tono(abajoC)[i]), 0) < 0.26);
+  for (let y = Math.round(H * 0.4); y < Math.round(H * (mismoColor ? 0.94 : 0.78)) - k; y++) {   // con alguien puesto y todo del mismo color, la foto suele cortar el short: el dobladillo queda más abajo
     if (L[y - k] < 0 || L[y + k] < 0) continue;
     // 1) el dobladillo: las dos orillas se meten de golpe
     const s = Math.min(L[y + k] - L[y - k], R[y - k] - R[y + k]);
     // 2) cambia el color de golpe (playera amarilla, short negro)
     const ar = prom(y - 4 * k, y - k), ab = prom(y + k, y + 4 * k);
-    const cc = ar && ab ? Math.abs(ar[0] - ab[0]) + Math.abs(ar[1] - ab[1]) + Math.abs(ar[2] - ab[2]) : 0;
-    const cv = persona ? 28 : 140; // con alguien puesto, playera y short suelen ser del mismo color: basta la sombra del dobladillo
+    let cc = ar && ab ? Math.abs(ar[0] - ab[0]) + Math.abs(ar[1] - ab[1]) + Math.abs(ar[2] - ab[2]) : 0;
+    const cv = persona ? 28 : 140;
+    // mismo color: el corte es donde abajo ya es el short (su tono exacto, con su sombra) y arriba todavía no
+    const dz = (p, q) => Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]);
+    if (mismoColor) { const dab = ab ? dz(ab, abajoC) : 999, dar = ar ? dz(ar, abajoC) : 0; cc = dab < dar * 0.5 ? dar - dab : 0; } // con alguien puesto, playera y short suelen ser del mismo color: basta la sombra del dobladillo
     cand.push({ y, p: Math.max(s / (W * (persona ? 0.025 : 0.04)), cc / cv), pc: cc / cv });
   }
   cand.sort((a, b) => b.p - a.p);
   // del dobladillo a la cintura del short el ancho cambia poco; de la manga al torso cambia muchísimo (eso no es un corte)
   const anchoEn = (y) => R[y] - L[y];
-  const elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : piernas(c2.y)));   // abajo tiene que verse un short (piernas o que se abra): un patrocinador de otro color (AKRON) no es un corte
+  if (mismoColor) cand.sort((a2, b2) => (b2.p >= 1) - (a2.p >= 1) || a2.y - b2.y);   // mismo color: el primer dobladillo claro de arriba hacia abajo (más abajo ya es el short)
+  let elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : piernas(c2.y)));   // abajo tiene que verse un short (piernas o que se abra): un patrocinador de otro color (AKRON) no es un corte
+  // playera y short del mismo color (blanco con blanco): si nada es claro, el dobladillo más marcado de la parte de abajo
+  if (!elegido && mismoColor) elegido = cand.filter((c2) => c2.y > H * 0.6 && c2.p >= 0.3 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * 1.2).sort((a2, b2) => b2.p - a2.p)[0];
   if (!elegido) return null;
   const corte = elegido.y;
   const parte = (y0, y1) => { const o = lienzo(W, y1 - y0); o.getContext('2d').drawImage(c, 0, -y0); return recortar(o); };
@@ -438,7 +450,8 @@ export function deFrente(c) {
   for (let y = 0; y < H; y += 2) for (let x = 0; x < W / 2; x += 2) { const a = op(x, y), b = op(W - 1 - x, y); if (a && b) inter++; if (a || b) uni++; }
   // el cuello: lo más alto de la playera debe quedar al centro
   let cx = 0, n = 0;
-  for (let y = 0; y < H * 0.04; y++) for (let x = 0; x < W; x++) if (op(x, y)) { cx += x; n++; }
+  // (el centro de los hombros, no solo lo más alto: una etiqueta colgando del cuello no lo mueve)
+  for (let y = 0; y < H * 0.12; y++) for (let x = 0; x < W; x++) if (op(x, y)) { cx += x; n++; }
   const cuello = n ? Math.abs(cx / n - W / 2) / W : 0.5;
   return Math.max(0, (uni ? inter / uni : 0) - cuello * 2);
 }

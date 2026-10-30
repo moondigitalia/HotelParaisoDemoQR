@@ -399,6 +399,7 @@
       '<div class="pn-editor"><div class="pn-form">' +
       '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Puedes subir varias fotos de cada lado: usamos la mejor. Si el short o las calcetas vienen en la misma foto, los separamos solos</li><li>Quita la etiqueta que cuelga antes de tomar la foto</li></ul></div>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
+      ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
       '<div id="ed-aviso"></div>' +
       '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -424,6 +425,73 @@
     return h;
   }
   var mEditor = null, pvVista = 'frente';
+  // borrador: el dueño pinta con el dedo lo que no es de la playera (etiqueta colgando, gancho, mancha) y se rellena
+  // con lo que lo rodea: si alrededor hay tela, queda tela; si alrededor no hay nada (arriba del cuello), queda transparente
+  function rellenar(c, m) {
+    var W = c.width, H = c.height, g = c.getContext('2d'), img = g.getImageData(0, 0, W, H), d = img.data, n = W * H;
+    var pr = new Float32Array(n * 4), falta = new Uint8Array(n), pend = [], k;
+    for (k = 0; k < n; k++) { var a = d[k * 4 + 3] / 255; pr[k * 4] = d[k * 4] * a; pr[k * 4 + 1] = d[k * 4 + 1] * a; pr[k * 4 + 2] = d[k * 4 + 2] * a; pr[k * 4 + 3] = a; if (m[k]) { falta[k] = 1; pend.push(k); } }
+    var V = [-1, 1, -W, W, -W - 1, -W + 1, W - 1, W + 1];
+    while (pend.length) {   // de la orilla hacia adentro: cada vuelta llena el anillo que ya tiene vecinos conocidos
+      var listos = [], sig = [];
+      pend.forEach(function (k2) {
+        var x = k2 % W, t = [0, 0, 0, 0], c2 = 0;
+        V.forEach(function (v) { var j = k2 + v, xj = j % W; if (j < 0 || j >= n || Math.abs(xj - x) > 1 || falta[j]) return; t[0] += pr[j * 4]; t[1] += pr[j * 4 + 1]; t[2] += pr[j * 4 + 2]; t[3] += pr[j * 4 + 3]; c2++; });
+        if (c2) listos.push([k2, t, c2]); else sig.push(k2);
+      });
+      if (!listos.length) break;
+      listos.forEach(function (l) { var j = l[0]; for (var q = 0; q < 4; q++) pr[j * 4 + q] = l[1][q] / l[2]; falta[j] = 0; });
+      pend = sig;
+    }
+    for (var vuelta = 0; vuelta < 3; vuelta++) for (k = 0; k < n; k++) if (m[k]) {   // se suaviza solo lo pintado, para que no queden rayas
+      var x = k % W, t2 = [0, 0, 0, 0], c3 = 0;
+      for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) { var xx = x + dx, j2 = k + dy * W + dx; if (xx < 0 || xx >= W || j2 < 0 || j2 >= n) continue; for (var q2 = 0; q2 < 4; q2++) t2[q2] += pr[j2 * 4 + q2]; c3++; }
+      for (var q3 = 0; q3 < 4; q3++) pr[k * 4 + q3] = t2[q3] / c3;
+    }
+    for (k = 0; k < n; k++) if (m[k]) { var al = pr[k * 4 + 3]; if (al < 0.5) { d[k * 4 + 3] = 0; continue; } d[k * 4] = pr[k * 4] / al; d[k * 4 + 1] = pr[k * 4 + 1] / al; d[k * 4 + 2] = pr[k * 4 + 2] / al; d[k * 4 + 3] = 255; }
+    g.putImageData(img, 0, 0);
+    var x0 = W, y0 = H, x1 = -1, y1 = -1;   // se ajusta el cuadro a la prenda (si se quitó algo de la orilla, como un gancho)
+    for (k = 0; k < n; k++) if (d[k * 4 + 3] > 40) { var xk = k % W, yk = (k - xk) / W; if (xk < x0) x0 = xk; if (xk > x1) x1 = xk; if (yk < y0) y0 = yk; if (yk > y1) y1 = yk; }
+    if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === W - 1 && y1 === H - 1)) return c;
+    var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(c, -x0, -y0); return o;
+  }
+  function borrador(u, lado) {
+    imagenP(u.fotos[lado]).then(function (im) {
+      if (!im) { A.toast('No se pudo abrir la foto. Intenta otra vez.'); return; }
+      var c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
+      var W = c.width, H = c.height, m = new Uint8Array(W * H), trazos = [];
+      var cap = document.createElement('div'); cap.className = 'pn-borrador';
+      cap.innerHTML = '<div class="pn-borrador-c"><p><b>Pinta con el dedo</b> lo que hay que quitar (etiqueta, gancho, mancha). Pinta un poquito más grande que la cosa.</p>' +
+        '<div class="pn-borrador-lienzo"><canvas></canvas></div>' +
+        '<div class="pn-borrador-b"><button type="button" class="btn btn-linea" data-b="atras">Deshacer</button><button type="button" class="btn btn-linea" data-b="no">Cancelar</button><button type="button" class="btn btn-oro" data-b="si">Listo</button></div></div>';
+      document.body.appendChild(cap);
+      var v = cap.querySelector('canvas'), vg = v.getContext('2d'); v.width = W; v.height = H;
+      var radio = Math.max(6, Math.round(Math.max(W, H) * 0.022));
+      function dibujar() {
+        vg.clearRect(0, 0, W, H); vg.drawImage(c, 0, 0);
+        vg.fillStyle = 'rgba(255,60,80,.55)';
+        trazos.forEach(function (t) { t.forEach(function (p) { vg.beginPath(); vg.arc(p[0], p[1], radio, 0, 7); vg.fill(); }); });
+      }
+      dibujar();
+      var activo = null;
+      function punto(e) { var r = v.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; }
+      function agrega(p) { var t = activo, u2 = t[t.length - 1]; if (u2) { var dd = Math.hypot(p[0] - u2[0], p[1] - u2[1]), pasos = Math.ceil(dd / (radio * 0.4)); for (var i = 1; i < pasos; i++) t.push([u2[0] + (p[0] - u2[0]) * i / pasos, u2[1] + (p[1] - u2[1]) * i / pasos]); } t.push(p); dibujar(); }
+      v.addEventListener('pointerdown', function (e) { e.preventDefault(); v.setPointerCapture(e.pointerId); activo = []; trazos.push(activo); agrega(punto(e)); });
+      v.addEventListener('pointermove', function (e) { if (activo) { e.preventDefault(); agrega(punto(e)); } });
+      ['pointerup', 'pointercancel'].forEach(function (ev) { v.addEventListener(ev, function () { activo = null; }); });
+      cap.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-b]'); if (!b) return; var q = b.getAttribute('data-b');
+        if (q === 'atras') { trazos.pop(); dibujar(); return; }
+        if (q === 'no' || !trazos.length) { cap.remove(); return; }
+        trazos.forEach(function (t) { t.forEach(function (p) { var r2 = radio * radio; for (var y = Math.max(0, Math.floor(p[1] - radio)); y <= Math.min(H - 1, p[1] + radio); y++) for (var x = Math.max(0, Math.floor(p[0] - radio)); x <= Math.min(W - 1, p[0] + radio); x++) if ((x - p[0]) * (x - p[0]) + (y - p[1]) * (y - p[1]) <= r2) m[y * W + x] = 1; }); });
+        cap.remove(); A.toast('Quitando…', true);
+        setTimeout(function () {
+          var out = rellenar(c, m);
+          ponerFoto(u, lado, out).then(function () { pintar(); A.toast('Listo. Revisa cómo quedó en la vista 3D.'); }, function () { pintar(); A.toast('No se pudo subir. Revisa tu internet y vuelve a intentar.'); });
+        }, 30);
+      });
+    });
+  }
   function imagenP(src) { return new Promise(function (ok) { if (!src) return ok(null); var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { ok(i); }; i.onerror = function () { ok(null); }; i.src = src; }); }
   function previsualizar() {
     var u = P.editando, c = $('#ed-3d'); if (!c || !u.fotos.frente) return Promise.resolve();
@@ -481,12 +549,13 @@
   function analizar(file, lado) {
     var M = window.Motor3D;
     return A.cargarArchivo(file).then(function (im) {
-      var base = A.aCanvas(im, 1400), r = { av: [], chica: Math.min(im.naturalWidth, im.naturalHeight) < 600, movida: A.nitidez(im) < 22 };
+      var base = A.aCanvas(im, 1400), r = { nombre: file.name, av: [], chica: Math.min(im.naturalWidth, im.naturalHeight) < 600, movida: A.nitidez(im) < 22 };
       return M.piezasIA(base).then(function (pz) {
         // en la casilla del short: si la foto trae también la playera, se toma solo el short
         if (lado === 'short') { var sp = pz.short ? null : M.separarConjunto(pz.playera); pz = { playera: pz.short || (sp && sp.short) || pz.playera }; }
         var cut = pz.playera;
-        r.sinFondo = cut.width * cut.height > base.width * base.height * 0.93;
+        // sin fondo = casi toda la foto quedó como prenda (no basta con que la prenda llene el cuadro: sus orillas sí se quitaron)
+        r.sinFondo = (function () { var t = A.aCanvas(cut, 120), d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data, n = 0; for (var i = 3; i < d.length; i += 4) if (d[i] > 128) n++; return n / (d.length / 4) * (cut.width * cut.height) / (base.width * base.height) > 0.9; })();
         r.persona = lado !== 'short' && M.tienePersona(cut);
         if (r.persona) {
           // se confirma con la piel (cabeza arriba de los hombros); si no hay, era una playera con tonos raros, no una persona
@@ -497,7 +566,8 @@
         if (sep) { cut = sep.playera; pz.short = sep.short; }
         r.cut = cut; r.short = pz.short || null; r.calceta = (pz.short || r.persona) ? pz.calceta || null : null;   // calcetas solo en una foto del uniforme completo (en una playera sola, una pieza suelta no son calcetas)
         // la mejor foto: de frente y derecha, grande, sin persona
-        r.nota = lado === 'short' ? cut.width * cut.height : M.deFrente(cut) - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
+        r.frente = lado === 'short' ? 1 : M.deFrente(cut);
+        r.nota = lado === 'short' ? cut.width * cut.height : r.frente - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
         return r;
       });
     });
@@ -513,13 +583,14 @@
     }).then(function (lista) {
       if (!lista.length) throw new Error('sin fotos');
       lista.sort(function (x, y) { return y.nota - x.nota; });
+      try { window.__fotos = lista.map(function (x) { return { f: x.nombre, nota: +x.nota.toFixed(3), persona: !!x.persona, chica: !!x.chica, sinFondo: !!x.sinFondo, short: !!x.short, w: x.cut.width, h: x.cut.height }; }); } catch (e) {}
       var r = lista[0], av = [], cut = r.cut, tareas = [];
       if (lista.length > 1) av.push('De ' + lista.length + ' fotos usamos la que viene más de frente.');
       if (r.sinFondo) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
       if (r.chica) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
       if (r.movida) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
       if (r.persona) av.push('La foto traía a alguien con el uniforme puesto: tomamos solo la ropa.');
-      if (lado !== 'short' && r.nota < 0.86) av.push('La playera viene un poco de lado y puede verse chueca. Si tienes una foto de frente, súbela aquí.');
+      if (lado !== 'short' && r.frente < 0.78) av.push('La playera viene un poco de lado y puede verse chueca. Si tienes una foto de frente, súbela aquí.');
       if (lado === 'espalda' && M.tieneDorsal(cut, M.coloresBase(cut))) {
         // solo el nombre y el número: los patrocinadores de arriba (junto al cuello) y de abajo se quedan
         cut = M.limpiarTela(cut, M.coloresBase(cut), true);
@@ -624,6 +695,7 @@
     });
     var pap = $('[data-papelera]', panel);
     if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
+    $$('[data-borrar]', panel).forEach(function (b) { b.addEventListener('click', function () { borrador(u, b.getAttribute('data-borrar')); }); });
     $$('[data-foto]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () { if (inp.files && inp.files.length) procesarFoto(inp.files, inp.getAttribute('data-foto')); });
     });

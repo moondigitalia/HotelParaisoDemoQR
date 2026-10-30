@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 R='/home/claude/m-sport/scripts/.fuentes/raw/'
 CASOS=[
  {'id':'america','cat':'Liga MX','frente':['am_rica.webp','America_completo.jpg','Am_rica_frente_a_Playa.webp'],'espalda':['Am_rica_reverso_playera.webp'],'equipo':'América'},
- {'id':'cruzazul','cat':'Liga MX','frente':['Cruzazul_frente.webp','Cruz_azul__completo_azul.webp'],'espalda':['Cruz_azul_reversa.webp','Cruz_azul_completa_reversa.webp'],'equipo':'Cruz Azul'},
+ {'id':'cruzazul','cat':'Liga MX','frente':['Cruzazul_frente.webp','Cruz_azul__completo_azul.webp','Cruz_azul_completa._Omitir_etiqueta.webp','cz_frente_limpio.webp'],'espalda':['Cruz_azul_reversa.webp','Cruz_azul_completa_reversa.webp','cz_espalda_limpia.png'],'equipo':'Cruz Azul'},
  {'id':'chivas','cat':'Liga MX','frente':['Uniforme_chivas_rojo_frente.webp'],'espalda':['Uniforme_chivas_rojo_atr_s.webp','chivas_espalda2.webp'],'short':['Short_Chivas_frente_.png'],'equipo':'Chivas'},
  {'id':'barca','cat':'Europa','frente':['barca_frente.jpg','barca_completo.jpg','barca_camisa2.jpg'],'espalda':['barca_atras.jpg'],'equipo':'Barcelona'},
  {'id':'barcam','cat':'Europa','frente':['barca_morado_completo.jpg','barca_morado_camisa.jpg','barca_morado_frente.webp'],'equipo':'Barcelona morado'},
@@ -35,7 +35,7 @@ with sync_playwright() as p:
             if fs[lado]:
                 pg.set_input_files('[data-foto="%s"]'%lado,[R+f for f in fs[lado]]); pg.wait_for_function("document.querySelector('#ed-aviso') && !document.querySelector('.toast.fijo')",timeout=10000) if False else None
                 pg.wait_for_timeout(7000*len(fs[lado])+4000)
-                avisos.append(lado+': '+pg.evaluate("document.querySelector('#ed-aviso').innerText").replace('\n\n',' | '))
+                avisos.append(lado+': '+pg.evaluate("document.querySelector('#ed-aviso').innerText").replace('\n\n',' | ')); print(caso['id'],lado,fs[lado],pg.evaluate('JSON.stringify(window.__fotos)'),flush=True)
         pg.evaluate("document.querySelector('.pn').scrollTo(0,99999)"); pg.wait_for_timeout(1800)
         pg.screenshot(path=O+caso['id']+'-f.png'); pg.tap('[data-pv="espalda"]'); pg.wait_for_timeout(2200); pg.screenshot(path=O+caso['id']+'-e.png')
         res.append((caso, avisos, errs)); c.close()
