@@ -119,12 +119,17 @@
      El motor (Three.js propio) se carga solo cuando hace falta. Mientras carga, y en teléfonos sin 3D,
      se ve la foto de estudio que la página guardó al publicar el uniforme. */
   var lienzo = $('#lienzo3d'), respaldo = $('#lienzo-respaldo'), motor = null, motorP = null, sin3D = false;
+  // el 3D no compite con la entrada ni con la primera pintura: arranca al terminar la entrada, al abrir el probador,
+  // o cuando el teléfono queda libre. Mientras, se ve la foto de estudio del uniforme.
+  var abrir3D, puerta3D = new Promise(function (ok) { abrir3D = ok; });
+  window.addEventListener('load', function () { setTimeout(function () { (window.requestIdleCallback || setTimeout)(function () { abrir3D(); }, { timeout: 2500 }); }, document.getElementById('intro') ? 3600 : 300); });
+  function cargarMotorYa() { abrir3D(); return cargarMotor(); }
   function cargarMotor() {
     if (motorP) return motorP;
-    motorP = new Promise(function (ok, no) {
+    motorP = puerta3D.then(function () { return new Promise(function (ok, no) {
       if (window.Motor3D) return ok();
       var s = document.createElement('script'); s.src = '/js/motor3d.js?v=' + (window.VERSION || '1'); s.onload = ok; s.onerror = no; document.head.appendChild(s);
-    }).then(function () { return document.fonts && document.fonts.load ? document.fonts.load('700 100px "Saira Extra Condensed"').catch(function () {}) : null; })
+    }); }).then(function () { return document.fonts && document.fonts.load ? document.fonts.load('700 100px "Saira Extra Condensed"').catch(function () {}) : null; })
       .then(function () { return window.Motor3D.crear(lienzo); })
       .then(function (m) { motor = m; return m; })
       .catch(function (e) { sin3D = true; throw e; });
@@ -162,7 +167,9 @@
     p.style.transform = 'translateX(' + b.offsetLeft + 'px)';
   }
   window.addEventListener('resize', function () { moverPulgar(); if (motor) motor.redibujar(); });
+  function enfocar(que) { if (motor && motor.enfoque) motor.enfoque(que); }
   function cambiarVista(v) {
+    enfocar('cuerpo');
     if (v === S.vista) return;
     S.vista = v;
     $$('.vista').forEach(function (b) { var on = b.getAttribute('data-vista') === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -279,6 +286,7 @@
     var lista = pasos();
     S.paso = Math.max(0, Math.min(lista.length - 1, S.paso));
     var id = lista[S.paso];
+    probador.setAttribute('data-paso', id);   // el uniforme se ve más grande en los pasos de elegir; en los de escribir cede lugar
     if (!tablero.classList.contains('en-pasos')) {
       tablero.classList.add('en-pasos');
       tablero.innerHTML = '<div class="paso-vista" id="paso-vista"></div>' +
@@ -327,6 +335,7 @@
     var lista = pasos(), antes_ = S.paso;
     S.paso = Math.max(0, Math.min(lista.length - 1, i));
     if (S.paso === antes_) return;
+    enfocar('cuerpo');
     pintarTablero(S.paso > antes_ ? 1 : -1); verVistaDe(lista[S.paso]); guardarBorrador();
   }
   function enlazarComunes() {
@@ -409,7 +418,7 @@
       return filtrosHTML('p') + '<div id="p-resultados">' + tarjetasUniformes(filtrar(catalogoVisible())) + '</div>';
     },
     tacos: function () {
-      var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(q.nombre) + '</span><div class="chips llenar">' + q.items.map(function (u) {
+      var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(T('version')) + '</span><div class="chips llenar">' + q.items.map(function (u) {
         return '<button type="button" class="chip' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '">' + esc(versionDe(u)) + '</button>';
       }).join('') + '</div></div>' : '';
       return vers + '<div class="grupo' + (vers ? '' : ' g0') + '"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
@@ -417,7 +426,7 @@
         '<div class="grupo"><span class="etq">' + esc(T('tus_tacos')) + '</span><div class="chips llenar tacos">' + ['negro', 'rosa', 'turquesa'].map(function (t) {
           var c = TACO_COLOR[t];
           return '<button type="button" class="chip chip-taco' + (S.d.taco === t ? ' on' : '') + '" data-taco="' + t + '"><i style="background:linear-gradient(135deg,' + c[0] + ' 55%,' + c[1] + ' 55%)"></i>' + esc(T('taco_' + t)) + '</button>';
-        }).join('') + '</div></div>' + (vers ? '' : '<p class="nota-corta">' + esc(T('tacos_s')) + '</p>');   // con local/visitante no cabe la nota en un celular chico
+        }).join('') + '</div></div><p class="nota-corta">' + esc(T('tacos_s')) + '</p>';
     },
     dorsal: function () {
       return '<div class="fila2 g0"><div><label class="etq" for="f-nombre">' + esc(T('nombre_espalda')) + '</label><input class="campo" id="f-nombre" maxlength="16" autocomplete="off" placeholder="' + esc(T('ej_nombre')) + '" value="' + esc(S.d.nombre || '') + '"></div>' +
@@ -498,14 +507,14 @@
       $$('[data-version]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
           var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-version'); })[0]; if (!u || u.id === S.baseId) return;
-          usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador();
+          usarBase(u); cambiarVista('frente'); enfocar('cuerpo'); dibujar(); guardarBorrador();
           $$('[data-version]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
           $$('[data-manga]', tablero).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-manga') === S.d.manga); });
         });
       });
       $$('[data-manga]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
-          S.d.manga = b.getAttribute('data-manga');
+          S.d.manga = b.getAttribute('data-manga'); enfocar('cuerpo');
           $$('[data-manga]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
           dibujar(); guardarBorrador();
         });
@@ -514,6 +523,7 @@
         b.addEventListener('click', function () {
           S.d.taco = b.getAttribute('data-taco');
           $$('[data-taco]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
+          enfocar('tacos');   // la cámara baja sola a los pies: los tacos se ven sin abrir pantalla completa
           dibujar(); guardarBorrador();
         });
       });
@@ -789,6 +799,7 @@
   var estudio = $('#estudio'), lugarEstudio = estudio.parentNode, probador = $('#probador'), hueco = document.createElement('div');
   var ancla = null;
   function abrirProbador(u, el) {
+    abrir3D();
     ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
     if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); S.paso = 1; }   // se abre directo en su uniforme (ahí están local / visitante)
     if (probador.hidden) {
@@ -828,6 +839,7 @@
     if (probador.hidden && si) return;
     if (si === probador.classList.contains('grande')) return;
     if (si && !esCelular()) return;
+    enfocar('cuerpo');   // en grande siempre se ve el uniforme completo
     var desde = escenario.getBoundingClientRect().height;
     probador.classList.toggle('grande', si);
     escenario.style.height = '';
@@ -940,6 +952,6 @@
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
 
-  window.APP = { T: T, esc: esc, clone: clone, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotor, get motor() { return motor; }, S: S, get lang() { return lang; } };
+  window.APP = { T: T, esc: esc, clone: clone, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
   iniciar();
 })();

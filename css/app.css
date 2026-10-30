@@ -741,3 +741,27 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .pn-escudo input{display:none}
 .pn-escudo-img{width:64px;height:64px;border-radius:50%;background:#f4f5f9;display:grid;place-items:center;color:#121633;font-size:26px;overflow:hidden;box-shadow:inset 0 0 0 3px rgba(255,198,26,.55)}
 .pn-escudo-img img{width:72%;height:72%;object-fit:contain}
+
+/* ---------- celular: el uniforme se ve grande mientras eliges (sin tener que abrir pantalla completa) ---------- */
+.probador .escenario .lienzo-wrap{height:auto}                       /* en grande el campo llena todo, sin franja oscura abajo */
+@media (max-width:980px){
+  .probador .escenario{height:max(250px,min(58vh,calc(100vh - 300px)));height:max(250px,min(58dvh,calc(100dvh - 300px)))}
+  .probador .paso-num{display:none}                                   /* los puntitos de la barra ya dicen en qué paso vas */
+  .probador .tablero.en-pasos .paso-vista{padding-top:12px}
+  .probador .paso-cab h3{font-size:26px;margin:0 0 6px}
+  /* opciones en un renglón: la etiqueta a la izquierda, las píldoras a la derecha */
+  .probador .paso-cuerpo[data-paso="tacos"] .grupo{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:8px;margin:0 0 8px}
+  .probador .paso-cuerpo[data-paso="tacos"] .grupo .etq{font-size:13px;line-height:1.15;margin:0}
+  .probador .paso-cuerpo[data-paso="tacos"] .chips.llenar .chip{min-height:40px;font-size:13.5px;padding:4px 8px}
+  .probador .paso-cuerpo[data-paso="tacos"] .chip-taco i{width:18px;height:18px}
+  .probador .paso-cuerpo[data-paso="tacos"] .nota-corta{display:none}
+}
+@media (max-width:980px){
+  .probador .paso-cuerpo[data-paso="tacos"] .chips.llenar{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+  .probador .paso-cuerpo[data-paso="tacos"] .chips.llenar .chip{width:100%;min-width:0;font-size:12.5px;padding:4px 6px;gap:5px}
+}
+@media (max-width:980px){
+  .probador.grande .tablero.en-pasos .paso-vista{padding-top:0;padding-bottom:0}
+  .probador[data-paso="dorsal"] .escenario,.probador[data-paso="equipo"] .escenario,.probador[data-paso="listo"] .escenario{height:max(190px,min(46vh,calc(100vh - 410px)));height:max(190px,min(46dvh,calc(100dvh - 410px)))}
+  .probador:not(.grande) .escenario{transition:height var(--medio) var(--curva)}
+}

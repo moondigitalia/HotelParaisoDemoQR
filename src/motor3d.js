@@ -81,7 +81,7 @@ function fondoEstudio() {
 export async function crear(canvas, opt = {}) {
   const base = opt.base || '/assets/3d/';
   const baja = opt.baja != null ? opt.baja : gamaBaja();
-  const r = new THREE.WebGLRenderer({ canvas, antialias: !baja, preserveDrawingBuffer: true, alpha: false, powerPreference: baja ? 'low-power' : 'default' });
+  const r = new THREE.WebGLRenderer({ canvas, antialias: !baja, preserveDrawingBuffer: false, alpha: false, powerPreference: baja ? 'low-power' : 'default' });
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, baja ? 1.25 : 2));
   r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.NeutralToneMapping; r.toneMappingExposure = 1.0;
   r.shadowMap.enabled = true; r.shadowMap.type = baja ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
@@ -95,7 +95,9 @@ export async function crear(canvas, opt = {}) {
     if (aspecto > ai) { const k = ai / aspecto; campo.repeat.set(1, k); campo.offset.set(0, (1 - k) * 0.42); }
     else { const k = aspecto / ai; campo.repeat.set(k, 1); campo.offset.set((1 - k) / 2, 0); }
   }
-  const pmrem = new THREE.PMREMGenerator(r); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.35;
+  // luz de ambiente: en teléfonos sencillos una luz de cielo/piso (instantánea) en lugar del cuarto de reflejos (pesado de preparar)
+  if (baja) scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a4a2a, 0.9));
+  else { const pmrem = new THREE.PMREMGenerator(r); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.35; pmrem.dispose(); }
   const cam = new THREE.PerspectiveCamera(22, 2 / 3, 0.1, 100);
   const key = new THREE.SpotLight(0xffffff, 42, 0, Math.PI / 6, 0.6, 1.2); key.position.set(1.2, 5, 4); key.castShadow = true; key.shadow.mapSize.set(baja ? 1024 : 2048, baja ? 1024 : 2048); key.shadow.radius = 6; key.shadow.blurSamples = 12; scene.add(key);
   const rimL = new THREE.DirectionalLight(0x9fb4ff, 1.4); rimL.position.set(-4, 2, -3); scene.add(rimL);
@@ -112,7 +114,7 @@ export async function crear(canvas, opt = {}) {
 
   // estado
   const E = {
-    manga: 'corta', taco: 'negro', vista: 0, // vista: 0 frente, PI espalda
+    manga: 'corta', taco: 'negro', vista: 0, zoom: 0, // vista: 0 frente, PI espalda; zoom: 0 completo, 1 tacos de cerca
     fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
@@ -265,9 +267,9 @@ diffuseColor.rgb *= base;`);
   function aplicarFotos() {
     const f = E.fotos.frente;
     if (f) {
-      uni.uFoto.value = textura(f);
+      poner(uni.uFoto, textura(f));
       const [fx0, fw] = E.torso || torsoFoto(f, 0.30); uni.uTorsoF.value.set(fx0, fw);
-      uni.uManga.value = textura(telaManga(f, fx0), true);
+      poner(uni.uManga, textura(telaManga(f, fx0), true));
     }
     pintarEspalda();
     pintarShort();
@@ -306,7 +308,7 @@ diffuseColor.rgb *= base;`);
     const c = document.createElement('canvas'); c.width = shortBase.width; c.height = shortBase.height; const g = c.getContext('2d');
     if (s) g.drawImage(shortBase, 0, 0); else { g.fillStyle = E.colorShort; g.fillRect(0, 0, c.width, c.height); }
     if (E.numeroShort && d.numero && window.Kit) window.Kit.drawNumber(g, d.numero, c.width * 0.17, c.height * 0.74, c.height * 0.11, d.color, false, c.width * 0.11);
-    uni.uHayShort.value = 1; uni.uShortTex.value = textura(c);
+    uni.uHayShort.value = 1; poner(uni.uShortTex, textura(c));
   }
   // la espalda lleva el nombre y el número del cliente encima de la foto
   function pintarEspalda() {
@@ -321,7 +323,7 @@ diffuseColor.rgb *= base;`);
       window.Kit.drawName(g, d.nombre, cx, H * (0.24 + dy), H * 0.075, d.color, ancho * 0.72);
       window.Kit.drawNumber(g, d.numero, cx, H * (0.29 + dy), H * 0.33, d.color, d.sello !== false, ancho * 0.72);
     }
-    uni.uEspalda.value = textura(c);
+    poner(uni.uEspalda, textura(c));
     const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew);
   }
 
@@ -342,9 +344,23 @@ diffuseColor.rgb *= base;`);
     cam.aspect = w / hin;
     if (arriba || abajo) cam.setViewOffset(w, hin, 0, -arriba, w, h); else cam.clearViewOffset();
     cam.updateProjectionMatrix(); encuadrarFondo(w / h);
-    // encuadre: el uniforme completo, con aire
-    const dist = 6.2 * Math.max(1, (2 / 3) / cam.aspect);
-    cam.position.set(Math.sin(E.vista) * dist, 1.0, Math.cos(E.vista) * dist); cam.lookAt(0, 0.92, 0);
+    // encuadre: el uniforme completo, con aire; con "zoom" la cámara baja a los pies para ver los tacos de cerca
+    const distC = 5.7 * Math.max(1, (2 / 3) / cam.aspect), distP = 2.5 * Math.max(1, 1.2 / cam.aspect), z = E.zoom;
+    const dist = distC + (distP - distC) * z, ang = E.vista + 0.55 * z, alto = 1.0 + (0.55 - 1.0) * z, mira = 0.92 + (0.24 - 0.92) * z;
+    cam.position.set(Math.sin(ang) * dist, alto, Math.cos(ang) * dist); cam.lookAt(0, mira, 0.04 * z);
+  }
+  // acercar a los tacos y regresar al uniforme completo, con su propio tiempo (sin brincos)
+  let animZoom = null;
+  function zoomA(destino, ms) {
+    if (animZoom) cancelAnimationFrame(animZoom);
+    if (Math.abs(E.zoom - destino) < 0.001) return;
+    const desde = E.zoom, t0 = performance.now(); ms = ms || 700;
+    const paso = (ahora) => {
+      const k = Math.min(1, (ahora - t0) / ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      E.zoom = desde + (destino - desde) * e; dibujar();
+      animZoom = k < 1 ? requestAnimationFrame(paso) : null;
+    };
+    animZoom = requestAnimationFrame(paso);
   }
   let pendiente = false, animando = null;
   function dibujar() {
@@ -372,6 +388,8 @@ diffuseColor.rgb *= base;`);
   const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => pedir()) : null;
   if (ro) ro.observe(canvas);
 
+  let dorsalPend = false;
+  function poner(u, t) { if (u.value && u.value !== t && u.value.dispose) u.value.dispose(); u.value = t; }
   const api = {
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
@@ -381,15 +399,21 @@ diffuseColor.rgb *= base;`);
     },
     async manga(m) { if (m === E.manga && kit) return; E.manga = m; await ponerModelo(); },
     async taco(t) { if (t === E.taco) return; E.taco = t; tacos.forEach((g) => raiz.remove(g)); tacos = []; await ponerTacos(); pedir(); },
-    dorsal(d) { Object.assign(E.dorsal, d); pintarEspalda(); pintarShort(); pedir(); },
+    dorsal(d) {
+      Object.assign(E.dorsal, d);
+      if (dorsalPend) return; dorsalPend = true;
+      requestAnimationFrame(() => { if (!dorsalPend) return; dorsalPend = false; pintarEspalda(); pintarShort(); pedir(); });
+    },
     // con "reducir movimiento" también gira igual (estándar de Moon: se ve y se siente igual)
+    enfoque(que) { zoomA(que === 'tacos' ? 1 : 0); },
     vista(v, animar) { const dest = v === 'espalda' ? Math.PI : 0; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
     redibujar: pedir,
     // imagen para el folio o el catálogo
     foto(w, h, v) {
+      if (dorsalPend) { dorsalPend = false; pintarEspalda(); pintarShort(); }   // la foto lleva el nombre recién escrito
       const antes = E.vista; E.vista = v === 'espalda' ? Math.PI : 0;
       const pw = canvas.style.width, ph = canvas.style.height, ratio = r.getPixelRatio();
-      r.setPixelRatio(1); r.setSize(w, h, false); encuadre(w, h, [0, 0]);
+      const z0 = E.zoom; E.zoom = 0; r.setPixelRatio(1); r.setSize(w, h, false); encuadre(w, h, [0, 0]); E.zoom = z0;
       r.render(scene, cam);
       const url = canvas.toDataURL('image/jpeg', 0.88);
       r.setPixelRatio(ratio); E.vista = antes; canvas.style.width = pw; canvas.style.height = ph; dibujar();
