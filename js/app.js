@@ -32,7 +32,7 @@
   // en iPhone (sobre todo los viejos) arrastrar al llegar al final de una ventana encimada mueve la página de atrás:
   // solo se deja arrastrar lo que de verdad tiene para dónde moverse
   (function () {
-    var y0 = 0;
+    var y0 = 0, x0 = 0;
     function rodante(el, tope) {
       for (; el && el !== tope.parentNode; el = el.parentNode) {
         if (el.nodeType !== 1) continue;
@@ -41,13 +41,16 @@
       }
       return null;
     }
-    document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) y0 = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) { y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; } }, { passive: true });
     // pellizcar para hacer zoom (iPhone ignora user-scalable=no): con algo abierto encima no se hace zoom a la pantalla
     ['gesturestart', 'gesturechange'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (document.body.style.position) e.preventDefault(); }, { passive: false }); });
     document.addEventListener('touchmove', function (e) {
       if (!document.body.style.position || e.touches.length !== 1) return;   // solo cuando hay algo abierto encima
       var capa = e.target.closest && e.target.closest('.panel,.probador,.capa,.fiesta,.pn-borrador'); if (!capa) { e.preventDefault(); return; }
       if (e.target.closest('input[type=range],canvas')) return;
+      // deslizar de lado una fila que se mueve de lado (las píldoras de secciones, una fila de escudos): se deja
+      var dx = e.touches[0].clientX - x0, dy0 = e.touches[0].clientY - y0;
+      if (Math.abs(dx) > Math.abs(dy0)) { for (var h = e.target; h && h !== capa.parentNode; h = h.parentNode) { if (h.nodeType !== 1) continue; var ox = getComputedStyle(h).overflowX; if ((ox === 'auto' || ox === 'scroll') && h.scrollWidth > h.clientWidth + 1) return; } }
       var r = rodante(e.target, capa), dy = e.touches[0].clientY - y0;
       if (!r) { e.preventDefault(); return; }
       if ((dy > 0 && r.scrollTop <= 0) || (dy < 0 && r.scrollTop + r.clientHeight >= r.scrollHeight - 1)) e.preventDefault();
@@ -937,7 +940,7 @@
     $$('[data-cat]', raiz).forEach(function (b) {
       b.addEventListener('click', function () {
         var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-cat'); })[0];
-        if (!u) return; if (catTodo && !catTodo.hidden) cerrarCatTodo(); abrirProbador(u, b);
+        if (!u) return; if (catTodo && catTodo._abierto) cerrarCatTodo(); abrirProbador(u, b);
       });
     });
   }
@@ -964,11 +967,13 @@
   var catTodo = null;
   function armarCatTodo() {
     if (!catTodo) {
-      catTodo = document.createElement('div'); catTodo.className = 'capa cat-todo'; catTodo.hidden = true;
+      // no se esconde con display:none: el iPhone no prepara las imágenes de algo escondido así y al abrir las pintaba de a poco.
+      // Se queda invisible y sin tocarse (pero ya pintado), y al abrir solo aparece
+      catTodo = document.createElement('div'); catTodo.className = 'capa cat-todo oculta'; catTodo.setAttribute('aria-hidden', 'true'); catTodo.inert = true;
       catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true"><header class="cat-todo-top"><div class="cat-todo-tit"><h2></h2><button type="button" class="capa-x" data-cerrar-todo>×</button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
       document.body.appendChild(catTodo);
       $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && !catTodo.hidden) cerrarCatTodo(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && catTodo._abierto) cerrarCatTodo(); });
     }
     $('.cat-todo-in', catTodo).setAttribute('aria-label', T('cat_t')); $('[data-cerrar-todo]', catTodo).setAttribute('aria-label', T('cerrar'));
     $('h2', catTodo).textContent = T('cat_t');
@@ -985,11 +990,11 @@
   function abrirCatTodo() {
     armarCatTodo();   // si ya está armado igual, no cambia nada
     $('#t-resultados', catTodo).scrollTop = 0;
-    if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
+    if (!catTodo._abierto) { catTodo._abierto = true; window.FIJAR.on(); catTodo.inert = false; catTodo.removeAttribute('aria-hidden'); catTodo.classList.remove('oculta'); }
   }
   function cerrarCatTodo() {
-    if (!catTodo || catTodo.hidden) return;
-    catTodo.hidden = true; window.FIJAR.off();
+    if (!catTodo || !catTodo._abierto) return;
+    catTodo._abierto = false; catTodo.classList.add('oculta'); catTodo.inert = true; catTodo.setAttribute('aria-hidden', 'true'); window.FIJAR.off();
   }
 
   function pintarDatos() {
