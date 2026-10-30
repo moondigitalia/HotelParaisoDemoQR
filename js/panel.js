@@ -417,10 +417,10 @@
       '<div class="pn-editor"><div class="pn-form">' +
       '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div>' +
-      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
+      (angosto ? prev : '') +
       '<div id="ed-aviso"></div>' +
       ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
-      (angosto ? prev : '') +
+      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
       equipoHTML(u, cats) +
@@ -445,7 +445,7 @@
     }
     var listo = f.frente && f.short && !/^data:/.test(f.frente + f.espalda + f.short);   // el short siempre con foto: lleva logo y a veces diseño
     var falta = !f.frente ? 'Primero sube la foto del frente.' : !f.short ? 'Falta la foto del short. Si viene en la misma foto que la playera, la separamos sola.' : '';
-    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (falta ? '<small class="pn-falta">' + falta + '</small>' : '') + '</div></div>' +
+    h += '<div class="subir pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (falta ? '<small class="pn-falta">' + falta + '</small>' : '') + '</div></div>' +
       (angosto ? '' : prev) + '</div>';
     return h;
   }
@@ -642,9 +642,10 @@
       if (lado === 'frente' && !u.colorTextoElegido) u.colorTexto = colorLetras(cut);
       P.avisos = av;
       pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
+      var pv = $('.pn-prev3d', panel); if (pv && !pv.hidden) setTimeout(function () { pv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);   // que vea su uniforme en 3D sin buscarlo
       return Promise.all(tareas).then(function () {
         A.toast('Foto lista');
-        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) { pub.disabled = false; pub.parentNode.classList.add("listo"); var fl = $(".pn-falta", panel); if (fl) fl.remove(); }
         previsualizar();
       });
     }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });

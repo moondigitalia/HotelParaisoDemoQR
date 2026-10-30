@@ -42,6 +42,8 @@
       return null;
     }
     document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) y0 = e.touches[0].clientY; }, { passive: true });
+    // pellizcar para hacer zoom (iPhone ignora user-scalable=no): con algo abierto encima no se hace zoom a la pantalla
+    ['gesturestart', 'gesturechange'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (document.body.style.position) e.preventDefault(); }, { passive: false }); });
     document.addEventListener('touchmove', function (e) {
       if (!document.body.style.position || e.touches.length !== 1) return;   // solo cuando hay algo abierto encima
       var capa = e.target.closest && e.target.closest('.panel,.probador,.capa,.fiesta,.pn-borrador'); if (!capa) { e.preventDefault(); return; }
