@@ -25,6 +25,7 @@ CHEQUEO = r'''() => {
   });
   document.querySelectorAll('#tablero button, #tablero .chip, #tablero label, #tablero .etq, #tablero h3, #tablero span, #tablero p').forEach(e=>{
     if (!e.offsetParent) return;
+    const sv=e.closest('.sec-vista'); if (sv) { const a=sv.getBoundingClientRect(), b0=e.getBoundingClientRect(); if (b0.left>=a.right-1||b0.right<=a.left+1) return; }   // equipos de otra página de la sección: escondidos a propósito
     const cs=getComputedStyle(e);
     if ((cs.overflow==='hidden'||cs.textOverflow==='ellipsis'||cs.whiteSpace==='nowrap') && e.scrollWidth>e.clientWidth+1 && e.clientWidth>0) fallas.push('texto cortado: '+(e.textContent||'').trim().slice(0,30));
     const b=e.getBoundingClientRect(); if (b.width && b.right>vw+1) fallas.push('se sale de la pantalla: '+(e.textContent||'').trim().slice(0,30));

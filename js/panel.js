@@ -253,7 +253,7 @@
     var oculto = !visibleEq(e);
     var cara = e.escudo ? '<span class="pn-esc"><img src="' + esc(e.escudo) + '" alt=""></span>' : '<img class="pn-th" src="' + esc((e.items[0] || {}).mini || '') + '" alt="">';
     return '<div class="pn-fila pn-uni' + (oculto ? ' apagado' : '') + '"><button type="button" class="pn-abrir" data-eq="' + esc(e.clave) + '">' + cara +
-      '<span class="pn-info"><b>' + esc(e.nombre || 'Sin nombre') + '</b><small>' + (e.items.length === 1 ? '1 uniforme' : e.items.length + ' uniformes') + (oculto ? ' · oculto' : '') + '</small></span></button>' +
+      '<span class="pn-info"><b>' + esc(e.nombre || 'Sin nombre') + '</b><small>' + (e.items.length === 1 ? '1 uniforme' : e.items.length + ' uniformes') + (oculto ? ' · oculto' : '') + '</small></span><span class="pn-ir" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span></button>' +
       '<span class="pn-orden"><button type="button" class="icon-btn" data-eq-mueve="-1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Subir equipo"' + (ei === 0 ? ' disabled' : '') + '>↑</button>' +
       '<button type="button" class="icon-btn" data-eq-mueve="1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Bajar equipo"' + (ei === n - 1 ? ' disabled' : '') + '>↓</button></span></div>';
   }
@@ -320,16 +320,16 @@
       '<div class="fila2"><div class="grupo"><label for="eq-nombre">Nombre del equipo</label><input class="campo" id="eq-nombre" maxlength="40" value="' + esc(e.nombre) + '"></div>' +
       '<div class="grupo"><span class="etq">Escudo</span><label class="pn-escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label></div></div>' +
       '<div class="grupo"><label for="eq-sec">Sección</label><select class="campo" id="eq-sec">' + secs.map(function (s) { return '<option' + (s === e.sec ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '<option value=""' + (e.sec ? '' : ' selected') + '>Sin sección</option></select></div>' +
-      '<div class="grupo"><span class="etq">Sus uniformes <small>(el primero es el que se ve primero)</small></span><div class="pn-lista">' + e.items.map(function (u, i) {
+      '<div class="grupo"><span class="etq">Sus uniformes <small>(toca uno para cambiar sus fotos o colores; el primero es el que se ve primero)</small></span><div class="pn-lista">' + e.items.map(function (u, i) {
         return '<div class="pn-fila pn-uni' + (u.oculto ? ' apagado' : '') + '"><button type="button" class="pn-abrir" data-edit="' + esc(u.id) + '"><img class="pn-th" src="' + esc(u.mini || '') + '" alt="">' +
-          '<span class="pn-info"><b>' + esc(u.version || u.nombre) + '</b><small>' + esc(u.nombre) + (u.oculto ? ' · oculto' : '') + '</small></span></button>' +
+          '<span class="pn-info"><b>' + esc(u.version || u.nombre) + '</b><small>' + esc(u.nombre) + (u.oculto ? ' · oculto' : '') + '</small></span><span class="pn-editar">✎ Editar</span></button>' +
           '<span class="pn-orden"><button type="button" class="icon-btn" data-ver-mueve="-1" data-i="' + i + '" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
           '<button type="button" class="icon-btn" data-ver-mueve="1" data-i="' + i + '" aria-label="Bajar"' + (i === e.items.length - 1 ? ' disabled' : '') + '>↓</button></span></div>';
       }).join('') + '</div><button type="button" class="btn btn-linea" data-ver-nueva>+ Otra versión de este equipo</button></div>' +
       '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
       '<button type="button" class="chip' + (oculto ? ' on' : '') + '" data-eq-oculto>' + (oculto ? 'Equipo oculto · tocar para mostrar' : 'Ocultar equipo') + '</button>' +
       '<button type="button" class="chip" data-eq-papelera>Mandar el equipo a la papelera</button></div></div>' +
-      '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-eq-guardar>Guardar</button></div></div>';
+      '<div class="subir pn-publicar listo"><button type="button" class="btn btn-oro btn-xl" data-eq-guardar>Guardar</button></div></div>';
   }
   function enlazarEquipo() {
     var gr = arbol(), e = equipoDe(gr, P.equipo); if (!e) return;
@@ -388,11 +388,35 @@
   var TELAS = ['#f3f3f5', '#151515', '#1f2e7a', '#d7262e', '#14804a', '#ffc61a', '#6b2fb3', '#7fd6e6'];
   var LETRAS_P = ['#111111', '#FFFFFF', '#1F2E7A', '#FFC61A', '#D7262E'];
   // colores a un toque y, al final, cualquier color (el de la foto, el que sea): nunca se queda corto
-  function bolitas(campo, valor, lista) {
-    var v = String(valor || '').toLowerCase(), l = lista.slice(), propio = v && !l.some(function (c) { return c.toLowerCase() === v; });
-    if (propio) l.unshift(valor);
-    return '<div class="colores">' + l.map(function (c) { return '<button type="button" class="color' + (v === c.toLowerCase() ? ' on' : '') + '" style="background:' + c + '" data-' + campo + '="' + c + '" aria-label="' + c + '"></button>'; }).join('') +
-      '<label class="color color-mas" aria-label="Otro color"><input type="color" data-cc="' + campo + '" value="' + (/^#[0-9a-f]{6}$/i.test(valor || '') ? valor : '#ffffff') + '"></label></div>';
+  // colores del panel: una sola barra con todos los colores de uniforme; se desliza el dedo y la muestra cambia en vivo
+  var PN_BARRA = ['#ffffff', '#b9bec8', '#ffd400', '#c9a23a', '#ff8a00', '#ff2a2a', '#8e1b24', '#f6588a', '#7b3fe4', '#1f4fd1', '#1c2a6b', '#7cc6f0', '#16b0b5', '#3ccf4e', '#0d6b34', '#141518'];
+  function rgbH(h) { return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); }); }
+  function colorEn(k) {
+    k = Math.max(0, Math.min(1, k)); var n = PN_BARRA.length - 1, x = k * n, i = Math.min(n - 1, Math.floor(x)), t = x - i, a = rgbH(PN_BARRA[i]), b = rgbH(PN_BARRA[i + 1]);
+    return hexDe(a.map(function (v, j) { return v + (b[j] - v) * t; }));
+  }
+  function lugarDe(hex) {
+    if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return 0.5; var c = rgbH(hex), mejor = 1e9, k = 0.5;
+    for (var i = 0; i <= 300; i++) { var q = rgbH(colorEn(i / 300)), d = Math.abs(q[0] - c[0]) + Math.abs(q[1] - c[1]) + Math.abs(q[2] - c[2]); if (d < mejor) { mejor = d; k = i / 300; } }
+    return k;
+  }
+  function bolitas(campo, valor) {
+    var hay = /^#[0-9a-f]{6}$/i.test(valor || ''), k = lugarDe(valor);
+    return '<div class="pn-barra" data-barra-campo="' + campo + '"><span class="pn-barra-muestra"' + (hay ? ' style="background:' + valor + '"' : '') + '></span>' +
+      '<div class="barra-color" role="slider" tabindex="0" aria-label="Color" style="background:linear-gradient(90deg,' + PN_BARRA.map(function (c, i) { return c + ' ' + (i * 100 / (PN_BARRA.length - 1)) + '%'; }).join(',') + ')">' +
+      '<i class="barra-pulgar" style="left:' + (k * 100) + '%;' + (hay ? 'background:' + valor : 'opacity:.55') + '"></i></div></div>';
+  }
+  // en vivo: al deslizar cambia la muestra (y el 3D poco a poco); al soltar se guarda el color
+  function enlazarBarras(alMover, alSoltar) {
+    $$('[data-barra-campo]', panel).forEach(function (cj) {
+      var campo = cj.getAttribute('data-barra-campo'), barra = $('.barra-color', cj), pul = $('.barra-pulgar', cj), mu = $('.pn-barra-muestra', cj), id = null, x0 = 0, w = 1, col = null;
+      function mover(k) { k = Math.max(0, Math.min(1, k)); col = colorEn(k); pul.style.left = (k * 100) + '%'; pul.style.background = col; pul.style.opacity = ''; mu.style.background = col; if (alMover) alMover(campo, col); }
+      barra.addEventListener('pointerdown', function (e) { var r = barra.getBoundingClientRect(); x0 = r.left; w = r.width; id = e.pointerId; try { barra.setPointerCapture(id); } catch (_) {} barra.classList.add('tocando'); mover((e.clientX - x0) / w); });
+      barra.addEventListener('pointermove', function (e) { if (e.pointerId === id) mover((e.clientX - x0) / w); });
+      function soltar(e) { if (e.pointerId !== id) return; id = null; barra.classList.remove('tocando'); if (col && alSoltar) alSoltar(campo, col); }
+      barra.addEventListener('pointerup', soltar); barra.addEventListener('pointercancel', soltar);
+      barra.addEventListener('keydown', function (e) { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; e.preventDefault(); mover(parseFloat(pul.style.left) / 100 + (e.key === 'ArrowRight' ? 0.02 : -0.02)); if (alSoltar) alSoltar(campo, col); });
+    });
   }
   function hexDe(rgb) { return '#' + rgb.map(function (v) { return ('0' + Math.round(v).toString(16)).slice(-2); }).join(''); }
   function equipoHTML(u, cats) {
@@ -426,16 +450,17 @@
       equipoHTML(u, cats) +
       '<div class="grupo"><label for="ed-version">Versión</label><div class="pn-version"><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local">' +
       ['Local', 'Visitante', 'Tercera'].map(function (v) { return '<button type="button" class="chip' + (u.version === v ? ' on' : '') + '" data-ver="' + v + '">' + v + '</button>'; }).join('') + '</div></div>' +
+      '<p class="pn-paso"><b>3</b> Calcetas <small>(no llevan foto: escoge su color)</small></p>' +
+      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta) + '</div>' +
+      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
       '<details class="pn-mas" data-mas-op' + (P.masAbierto ? ' open' : '') + '><summary>Más opciones <small>(ya vienen listas)</small></summary>' +
       '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y versión)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
       '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div>' +
       '<div class="grupo"><span class="etq">Manga con la que se ve primero <small>(el cliente puede cambiarla)</small></span><div class="chips llenar"><button type="button" class="chip' + (u.manga !== 'larga' ? ' on' : '') + '" data-mg="corta">Corta</button><button type="button" class="chip' + (u.manga === 'larga' ? ' on' : '') + '" data-mg="larga">Larga</button></div></div>' +
-      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
-      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
-      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
+      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto) + '</div>' +
       '<div class="grupo"><span class="etq">Número chico en el short</span><div class="chips llenar"><button type="button" class="chip' + (u.numeroShort ? ' on' : '') + '" data-ns="1">Sí</button><button type="button" class="chip' + (!u.numeroShort ? ' on' : '') + '" data-ns="0">No</button></div></div>' +
       '<div class="grupo"><span class="etq">Colores para el buscador <small>(se marcan solos con la foto)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
-      (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(toca un color y se hace la copia)</small></span>' + bolitas('oc', '', TELAS) + '</div>' : '') +
+      (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(desliza hasta el color y suelta: se hace la copia)</small></span>' + bolitas('oc', '') + '</div>' : '') +
       '</details>';
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
@@ -708,21 +733,14 @@
       subirEscudo(file).then(function (url) { u.escudo = url; var box = $('.pn-escudo-img', panel); if (box) box.innerHTML = '<img src="' + esc(url) + '" alt="">'; });
     });
     $$('[data-col]', panel).forEach(function (b) { b.addEventListener('click', function () { var c = b.getAttribute('data-col'), l = u.etiquetas.colores, i = l.indexOf(c); if (i >= 0) l.splice(i, 1); else l.push(c); b.classList.toggle('on', i < 0); }); });
-    [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['fr', 'colorFranja'], ['tx', 'colorTexto']].forEach(function (par) {
-      $$('[data-' + par[0] + ']', panel).forEach(function (b) { b.addEventListener('click', function () { u[par[1]] = b.getAttribute('data-' + par[0]); if (par[0] === 'tx') u.colorTextoElegido = true; $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
-    });
-    $$('[data-oc]', panel).forEach(function (b) { b.addEventListener('click', function () { otroColor(b.getAttribute('data-oc')); }); });
-    // "otro color": el selector de colores del celular; la vista previa se actualiza al soltar
-    var espera = null;
-    [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['fr', 'colorFranja'], ['tx', 'colorTexto']].forEach(function (par) {
-      var inp = $('[data-cc="' + par[0] + '"]', panel); if (!inp) return;
-      inp.addEventListener('input', function () {
-        u[par[1]] = inp.value; if (par[0] === 'tx') u.colorTextoElegido = true;
-        $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.remove('on'); }); inp.parentNode.classList.add('on'); inp.parentNode.style.background = inp.value;
-        clearTimeout(espera); espera = setTimeout(previsualizar, 250);
-      });
-    });
-    var occ = $('[data-cc="oc"]', panel); if (occ) occ.addEventListener('change', function () { otroColor(occ.value); });
+    var CAMPO = { ca: 'colorCalceta', fr: 'colorFranja', tx: 'colorTexto', sh: 'colorShort' }, espera = null;
+    enlazarBarras(function (campo, col) {
+      if (campo === 'oc') return;
+      u[CAMPO[campo]] = col; if (campo === 'tx') u.colorTextoElegido = true;
+      if (campo === 'fr') { var sin = $('[data-fr=""]', panel); if (sin) sin.classList.remove('on'); }
+      clearTimeout(espera); espera = setTimeout(previsualizar, 180);   // el 3D sigue al dedo sin trabarse
+    }, function (campo, col) { if (campo === 'oc') otroColor(col); else { clearTimeout(espera); previsualizar(); } });
+    var sinF = $('[data-fr=""]', panel); if (sinF) sinF.addEventListener('click', function () { u.colorFranja = ''; sinF.classList.add('on'); var p2 = $('[data-barra-campo="fr"] .barra-pulgar', panel); if (p2) p2.style.opacity = '.55'; var m2 = $('[data-barra-campo="fr"] .pn-barra-muestra', panel); if (m2) m2.style.background = ''; previsualizar(); });
     $$('[data-pv]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = b.getAttribute('data-pv'); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); if (mEditor && mEditor.m) mEditor.m.vista(pvVista); }); });
     $$('[data-sw]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -950,19 +968,30 @@
   // Entrada del dueño: mantener presionado el logo 2 segundos. No es un enlace, así que el iPhone
   // no ofrece abrirlo en otra pestaña ni muestra vista previa.
   // (también el logo grande de la portada: arriba de la página el logo de la barra no se ve)
-  var marca = $('#marca'), reloj = 0;
-  function entrada(el) {
+  var marca = $('#marca'), reloj = 0, aro = null;
+  // al mantener el dedo aparece un círculo justo donde está el dedo y se va llenando en 2 segundos (azul sobre amarillo, dorado sobre azul)
+  function aroEn(x, y, color) {
+    quitarAro();
+    aro = document.createElement('div'); aro.className = 'toque-aro'; aro.style.left = x + 'px'; aro.style.top = y + 'px'; aro.style.setProperty('--c', color);
+    aro.innerHTML = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" class="fondo"/><circle cx="32" cy="32" r="26" class="lleno"/></svg>';
+    document.body.appendChild(aro); void aro.offsetWidth; aro.classList.add('va');
+  }
+  function quitarAro() { if (aro) { aro.remove(); aro = null; } }
+  function entrada(el, color) {
     if (!el) return;
-    function soltar() { clearTimeout(reloj); el.classList.remove('cargando'); }
+    var x0 = 0, y0 = 0;
+    function soltar() { clearTimeout(reloj); el.classList.remove('cargando'); quitarAro(); }
     el.addEventListener('pointerdown', function (e) {
       if (e.button && e.button !== 0) return;
-      el.classList.add('cargando');
+      x0 = e.clientX; y0 = e.clientY;
+      el.classList.add('cargando'); if (color) aroEn(e.clientX, e.clientY, color);
       reloj = setTimeout(function () { soltar(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
     });
+    el.addEventListener('pointermove', function (e) { if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 12) soltar(); });   // si mueve el dedo, está deslizando la página
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { el.addEventListener(ev, soltar); });
     el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   }
-  entrada(marca); entrada($('#portada-logo'));
+  entrada(marca); entrada($('.portada-in'), '#1F2E7A');   // arriba de la página: toda la parte amarilla del logo y el nombre
   marca.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   if (location.hash === '#panel') abrir();
   window.addEventListener('hashchange', function () { if (location.hash === '#panel') abrir(); });

@@ -535,21 +535,41 @@
   function versionDe(u) { if (u.version) return u.version; var i = String(u.nombre).lastIndexOf('·'); return i >= 0 ? u.nombre.slice(i + 1).trim() : u.nombre; }
   function nUniformes(n) { return n === 1 ? T('un_uniforme') : T('n_uniformes').replace('{n}', n); }
   function caraEquipo(q) {
+    // sin escudo: el mismo círculo, con la playera del equipo adentro (nunca un recuadro distinto a los demás)
     return q.escudo ? '<span class="mini-foto escudo"><img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async"></span>'
-      : '<span class="mini-foto"><img src="' + esc(q.items[0].mini) + '" alt="" loading="lazy" decoding="async"></span>';
+      : '<span class="mini-foto escudo sin-escudo"><img src="' + esc(q.items[0].mini) + '" alt="" loading="lazy" decoding="async"></span>';
   }
   // paso 1: los equipos por sección (Liga MX, Europa, Países…), un renglón por sección con su nombre al lado
   function tarjetaEquipo(q) {
     var actual = equipoDeId(S.baseId), on = actual && actual.clave === q.clave;
     var n = q.items.length > 1 ? '<i class="mini-n" aria-label="' + esc(nUniformes(q.items.length)) + '">' + q.items.length + '</i>' : '';
-    return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '"><span class="mini-cara">' + caraEquipo(q) + n + '</span><span class="mini-nom">' + esc(q.nombre) + '</span></button>';
+    return '<button type="button" class="mini con-escudo' + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '"><span class="mini-cara">' + caraEquipo(q) + n + '</span><span class="mini-nom' + (q.nombre.length > 11 ? ' largo' : '') + '">' + esc(q.nombre) + '</span></button>';
   }
+  // una sección con más de 3 equipos no crece hacia abajo (el uniforme se achicaría): se ven de 3 en 3 y una flecha dorada pasa a los siguientes
+  function filaSeccion(eqs) {
+    if (eqs.length <= 3) return '<div class="mini-grid">' + eqs.map(tarjetaEquipo).join('') + '</div>';
+    var pags = [], actual = equipoDeId(S.baseId), ini = 0;
+    for (var i = 0; i < eqs.length; i += 3) pags.push(eqs.slice(i, i + 3));
+    pags.forEach(function (pg, k) { if (actual && pg.some(function (q) { return q.clave === actual.clave; })) ini = k; });
+    var n = pags.length;
+    return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%;transform:translateX(' + (-ini * 100 / n) + '%)">' +
+      pags.map(function (pg) { return '<div class="mini-grid" style="flex-basis:' + (100 / n) + '%">' + pg.map(tarjetaEquipo).join('') + '</div>'; }).join('') + '</div></div>' +
+      '<button type="button" class="sec-mas' + (ini === n - 1 ? ' atras' : '') + '" data-sec-mas aria-label="' + esc(T('mas_equipos')) + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i><small>' + esc(ini === n - 1 ? T('volver') : '+' + (eqs.length - (ini + 1) * 3 > 0 ? eqs.length - (ini + 1) * 3 : 0)) + '</small></button>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-sec-mas]'); if (!b) return;
+    var v = b.parentNode.querySelector('.sec-vista'), n = +v.getAttribute('data-pags'), p = (+v.getAttribute('data-pag') + 1) % n, tot = v.querySelectorAll('[data-equipo]').length;
+    v.setAttribute('data-pag', p); v.firstChild.style.transform = 'translateX(' + (-p * 100 / n) + '%)';
+    b.classList.toggle('atras', p === n - 1);
+    var resto = tot - (p + 1) * 3; b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto;
+  });
   function tarjetasPorSeccion(lista) {
     var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
     var grupos = secs.map(function (c) { return [c, lista.filter(function (u) { return u.categoria === c; })]; });
     if (sin.length) grupos.push(['', sin]);
     return '<div class="secciones">' + grupos.map(function (g) {
-      return '<div class="seccion"><span class="etq">' + esc(g[0]) + '</span><div class="mini-grid">' + equiposDe(g[1]).map(tarjetaEquipo).join('') + '</div></div>';
+      var eqs = equiposDe(g[1]);
+      return '<div class="seccion' + (eqs.length > 3 ? ' paginada' : '') + '"><span class="etq">' + esc(g[0]) + '</span>' + filaSeccion(eqs) + '</div>';
     }).join('') + '</div>';
   }
   function tarjetasUniformes(lista) {
@@ -1025,17 +1045,20 @@
     enfocar('cuerpo');   // en grande siempre se ve el uniforme completo
     var desde = escenario.getBoundingClientRect().height;
     probador.classList.toggle('grande', si);
+    probador.classList.remove('achicando');
     escenario.style.height = '';
     if (!si) ajustarEscenario();
-    var hasta = si ? altoGrande() : escenario.getBoundingClientRect().height;
+    var hasta = si ? altoGrande() : escenario.getBoundingClientRect().height;   // al regresar: el alto que le toca junto a los pasos
     pintarLupa();
     if (sinAnim) { escenario.style.height = si ? hasta + 'px' : ''; return; }
+    // al achicar, el alto automático de los pasos (con !important) brincaba de golpe: mientras dura la animación manda el alto que le damos
+    if (!si) probador.classList.add('achicando');
     escenario.classList.remove('creciendo');
     escenario.style.height = desde + 'px'; void escenario.offsetHeight;
     escenario.classList.add('creciendo');
     escenario.style.height = hasta + 'px';
     var listo = false;
-    function fin() { if (listo) return; listo = true; escenario.classList.remove('creciendo'); if (!probador.classList.contains('grande')) { escenario.style.height = ''; ajustarEscenario(); } moverPulgar(); }
+    function fin() { if (listo) return; listo = true; escenario.classList.remove('creciendo'); probador.classList.remove('achicando'); if (!probador.classList.contains('grande')) { escenario.style.height = ''; ajustarEscenario(); } moverPulgar(); }
     escenario.addEventListener('transitionend', function te(e) { if (e.target === escenario) { escenario.removeEventListener('transitionend', te); fin(); } });
     setTimeout(fin, 700);
   }

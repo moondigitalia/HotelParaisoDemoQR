@@ -808,7 +808,8 @@ input[type=range]{width:100%;accent-color:var(--oro)}
    y el uniforme se queda con todo lo demás. Sin cuentas, sin scroll, sin avisos de "ver más". */
 @media (max-width:980px){
   .probador:not(.grande) .estudio{display:flex;flex-direction:column;height:100%}
-  .probador:not(.grande) .escenario{flex:1 1 auto;height:auto!important;min-height:150px}
+  .probador:not(.grande):not(.achicando) .escenario{flex:1 1 auto;height:auto!important;min-height:150px}
+  .probador.achicando .escenario{flex:none;min-height:0}
   .probador:not(.grande) .tablero{flex:0 1 auto;min-height:0}
   .probador:not(.grande) .tablero.en-pasos .paso-vista{flex:0 1 auto;min-height:0}
   .probador .mas-abajo,.probador .mas-wrap::after{display:none!important}
@@ -997,3 +998,42 @@ details.pn-mas[open] summary{margin-bottom:6px}
 .pn-publicar.listo .btn{box-shadow:0 10px 30px rgba(255,198,26,.35)}
 .pn{touch-action:pan-y}
 .pn input,.pn textarea,.pn select{touch-action:manipulation}
+/* equipo sin escudo: el mismo círculo que los demás, con su playera adentro */
+.mini-foto.escudo.sin-escudo{background:#0c0d10;overflow:hidden}
+.mini-foto.escudo.sin-escudo img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;transform:scale(1.9);transform-origin:50% 22%}
+/* sin recuadros al tocar un escudo: el aviso de "aquí estás" es el mismo círculo dorado */
+.mini.con-escudo:focus,.mini.con-escudo:focus-visible{outline:none}
+.mini.con-escudo:focus-visible .mini-foto.escudo{box-shadow:inset 0 0 0 4px var(--oro),0 0 0 4px rgba(255,198,26,.35)}
+/* sección con más de 3 equipos: de 3 en 3, con flecha */
+.seccion.paginada{grid-template-columns:64px minmax(0,1fr) 34px}
+.sec-vista{overflow:hidden;min-width:0}
+.sec-pista{display:flex;transition:transform var(--medio) var(--curva)}
+.sec-pista>.mini-grid{flex:0 0 auto;min-width:0}
+.sec-mas{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;color:var(--oro);padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sec-mas:focus{outline:none}
+.sec-mas i{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--oro);color:#0A1033;box-shadow:0 4px 14px rgba(255,198,26,.35);transition:transform var(--medio) var(--curva)}
+.sec-mas i svg{width:18px;height:18px}
+.sec-mas.atras i{transform:rotate(180deg)}
+.sec-mas small{font:800 11px/1 var(--display,inherit);letter-spacing:.02em;color:var(--oro)}
+.inicio-equipos .seccion.paginada{grid-template-columns:96px minmax(0,1fr) 40px}
+.pn-editar{margin-left:auto;flex:none;padding:8px 12px;border-radius:999px;background:rgba(255,198,26,.14);color:var(--oro);font-weight:800;font-size:13px;white-space:nowrap}
+.pn-ir{margin-left:auto;flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:rgba(255,198,26,.14);color:var(--oro)}
+.pn-ir svg{width:16px;height:16px}
+.probador .paso-cuerpo[data-paso="diseno"] .mini.con-escudo .mini-nom.largo,.inicio-equipos .mini.con-escudo .mini-nom.largo{font-size:9.5px;letter-spacing:-.01em}
+
+/* colores del panel: una barra para deslizar, con su muestra al lado */
+.pn-barra{display:flex;align-items:center;gap:12px;padding:6px 0}
+.pn-barra-muestra{flex:none;width:38px;height:38px;border-radius:50%;background:repeating-conic-gradient(#3a3f55 0 25%,#2a2e40 0 50%) 0 0/12px 12px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.pn-barra .barra-color{height:30px}
+.pn-franja{display:flex;flex-direction:column;gap:6px}
+.pn-franja .chip{align-self:flex-start}
+
+/* entrada del dueño: el círculo que se llena donde está el dedo */
+.toque-aro{position:fixed;z-index:400;width:76px;height:76px;margin:-38px 0 0 -38px;pointer-events:none;opacity:0;transform:scale(.6);transition:opacity .2s,transform .25s var(--curva)}
+.toque-aro.va{opacity:1;transform:scale(1)}
+.toque-aro svg{width:100%;height:100%;transform:rotate(-90deg)}
+.toque-aro circle{fill:none;stroke-width:5;stroke-linecap:round}
+.toque-aro .fondo{stroke:var(--c);opacity:.22}
+.toque-aro .lleno{stroke:var(--c);stroke-dasharray:164;stroke-dashoffset:164}
+.toque-aro.va .lleno{transition:stroke-dashoffset 1.95s linear;stroke-dashoffset:0}
+.portada-in{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
