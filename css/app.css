@@ -699,3 +699,45 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .probador .lienzo3d{--aire-arriba:66px;--aire-abajo:12px}
 @media (max-width:980px){.probador .lienzo3d{--aire-arriba:50px;--aire-abajo:8px}}
 .color.sin{background:transparent;color:var(--suave);font-size:15px;box-shadow:inset 0 0 0 1px var(--linea)}
+
+/* ---------- escenario de la página: el campo llena toda la tarjeta redonda (sin recuadro dentro del recuadro) ---------- */
+.escenario{padding:0;gap:0;background:var(--noche)}
+.escenario::after{display:none}
+.escenario .lienzo-wrap{height:min(640px,calc(100vh - 180px))}
+.escenario .vistas{position:absolute;z-index:3;top:16px;left:50%;transform:translateX(-50%)}
+.escenario::before{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;background:linear-gradient(to bottom,rgba(10,16,51,.5) 0,rgba(10,16,51,0) 90px)}
+.lienzo3d{--aire-arriba:64px;--aire-abajo:10px}
+.lienzo-respaldo{object-fit:cover}
+@media (max-width:980px){
+  .escenario .lienzo-wrap{height:min(54vh,440px)}
+  .escenario .vistas{top:12px}
+  .lienzo3d{--aire-arriba:54px;--aire-abajo:8px}
+}
+@media (max-width:420px){ .escenario .lienzo-wrap{height:min(52vh,400px)} }
+
+/* ---------- equipos con escudo ---------- */
+.mini-foto.escudo{aspect-ratio:1/1;border-radius:50%;background:#f4f5f9;box-shadow:inset 0 0 0 3px var(--oro-suave,rgba(255,198,26,.55));display:grid;place-items:center}
+.mini-foto.escudo img{width:70%;height:70%;object-fit:contain}
+.mini-n{font-size:11px;color:var(--oro);font-weight:700;margin-top:-2px}
+.cat-item .cv.escudo{aspect-ratio:1/1;border-radius:50%;background:#f4f5f9;box-shadow:inset 0 0 0 4px rgba(255,198,26,.55);display:grid;place-items:center}
+.cat-item .cv.escudo img{width:70%;height:70%;aspect-ratio:auto;object-fit:contain;border-radius:0}
+.versiones{margin-top:12px}
+.chip-version{gap:8px}
+.chip-version img{width:22px;height:33px;object-fit:cover;border-radius:6px}
+/* con escudo no hay tarjeta alrededor: solo el círculo y el nombre (nada de recuadro sobre recuadro) */
+.mini.con-escudo,.cat-item.con-escudo{background:transparent;border-color:transparent;box-shadow:none;padding-left:0;padding-right:0}
+.cat-item.con-escudo{align-items:center;text-align:center}
+.cat-item.con-escudo b{min-height:0}
+.mini.con-escudo .mini-foto.escudo{transition:box-shadow var(--rapido) var(--curva),transform var(--rapido) var(--curva)}
+.mini.con-escudo.on{border-color:transparent}
+.mini.con-escudo.on .mini-foto.escudo{box-shadow:inset 0 0 0 4px var(--oro),0 0 0 3px rgba(255,198,26,.25);transform:scale(1.03)}
+.cat-item.con-escudo:hover{transform:none}
+.cat-item.con-escudo:hover .cv.escudo{box-shadow:inset 0 0 0 4px var(--oro)}
+.versiones{margin-top:16px}
+.cat-item.con-escudo .cv.escudo{width:100%;max-width:220px;align-self:center}
+.mini.con-escudo .mini-foto.escudo{width:100%}
+.paso-cuerpo .grupo.versiones{margin-top:18px}
+.pn-escudo{display:inline-flex;cursor:pointer}
+.pn-escudo input{display:none}
+.pn-escudo-img{width:64px;height:64px;border-radius:50%;background:#f4f5f9;display:grid;place-items:center;color:#121633;font-size:26px;overflow:hidden;box-shadow:inset 0 0 0 3px rgba(255,198,26,.55)}
+.pn-escudo-img img{width:72%;height:72%;object-fit:contain}

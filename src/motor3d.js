@@ -157,8 +157,9 @@ if (t > uZonas.z - 0.01) {
     float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0); if (atras) sx = 1.0 - sx;
     vec4 s = texture2D(uShortTex, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w));
     // atrás solo van las franjas de los lados: escudos y logos del short van al frente
+    vec3 sc = s.rgb / max(s.a, 0.004);
     if (atras) s.a *= 1.0 - smoothstep(0.09, 0.12, sx) * (1.0 - smoothstep(0.88, 0.91, sx));
-    base = mix(uShort, s.rgb / max(s.a, 0.004), s.a);
+    base = mix(uShort, sc, s.a);
   }
 } else {
   base = uSock;
@@ -265,12 +266,11 @@ diffuseColor.rgb *= base;`);
     const f = E.fotos.frente;
     if (f) {
       uni.uFoto.value = textura(f);
-      const [fx0, fw] = torsoFoto(f, 0.30); uni.uTorsoF.value.set(fx0, fw);
+      const [fx0, fw] = E.torso || torsoFoto(f, 0.30); uni.uTorsoF.value.set(fx0, fw);
       uni.uManga.value = textura(telaManga(f, fx0), true);
     }
     pintarEspalda();
-    const s = E.fotos.short;
-    uni.uHayShort.value = s ? 1 : 0; if (s) uni.uShortTex.value = textura(enderezarShort(s));
+    pintarShort();
     uni.uShort.value.set(E.colorShort); uni.uSock.value.set(E.colorCalceta);
     uni.uHayFranja.value = E.colorFranja ? 1 : 0; if (E.colorFranja) uni.uFranja.value.set(E.colorFranja);
     pedir();
@@ -293,13 +293,28 @@ diffuseColor.rgb *= base;`);
     }
     huecos.set(src, mejor); return mejor;
   }
+  // el short: su foto (enderezada) y, si el uniforme lo lleva, el número chico abajo en la pierna
+  let shortBase = null, shortBaseDe = null;
+  function pintarShort() {
+    const s = E.fotos.short, d = E.dorsal;
+    if (!s && !E.numeroShort) { uni.uHayShort.value = 0; return; }
+    if (shortBaseDe !== s || !shortBase) {
+      if (s) shortBase = enderezarShort(s);
+      else { shortBase = document.createElement('canvas'); shortBase.width = 600; shortBase.height = 440; }
+      shortBaseDe = s;
+    }
+    const c = document.createElement('canvas'); c.width = shortBase.width; c.height = shortBase.height; const g = c.getContext('2d');
+    if (s) g.drawImage(shortBase, 0, 0); else { g.fillStyle = E.colorShort; g.fillRect(0, 0, c.width, c.height); }
+    if (E.numeroShort && d.numero && window.Kit) window.Kit.drawNumber(g, d.numero, c.width * 0.17, c.height * 0.74, c.height * 0.11, d.color, false, c.width * 0.11);
+    uni.uHayShort.value = 1; uni.uShortTex.value = textura(c);
+  }
   // la espalda lleva el nombre y el número del cliente encima de la foto
   function pintarEspalda() {
     const src = E.fotos.espalda || E.fotos.frente; if (!src) return;
     const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const g = c.getContext('2d');
     if (!E.fotos.espalda) { g.translate(c.width, 0); g.scale(-1, 1); }
     g.drawImage(src, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
-    const [bx0, bw] = torsoFoto(c, 0.30);
+    const [bx0, bw] = E.torso ? (E.fotos.espalda ? E.torso : [1 - E.torso[0] - E.torso[1], E.torso[1]]) : torsoFoto(c, 0.30);
     const cx = (bx0 + bw / 2) * c.width, ancho = bw * c.width, d = E.dorsal;
     if (window.Kit && (d.nombre || d.numero)) {
       const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
@@ -307,7 +322,7 @@ diffuseColor.rgb *= base;`);
       window.Kit.drawNumber(g, d.numero, cx, H * (0.29 + dy), H * 0.33, d.color, d.sello !== false, ancho * 0.72);
     }
     uni.uEspalda.value = textura(c);
-    const [ex0, ew] = torsoFoto(c, 0.30); uni.uTorsoB.value.set(ex0, ew);
+    const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew);
   }
 
   // ---- dibujar: solo cuando algo cambia ----
@@ -360,13 +375,13 @@ diffuseColor.rgb *= base;`);
   const api = {
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
-      if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || '';
+      if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || ''; E.numeroShort = !!o.numeroShort; E.torso = Array.isArray(o.torso) ? o.torso : null;
       const m = o.manga || E.manga;
       if (!kit || m !== E.manga) { E.manga = m; await ponerModelo(); } else aplicarFotos();
     },
     async manga(m) { if (m === E.manga && kit) return; E.manga = m; await ponerModelo(); },
     async taco(t) { if (t === E.taco) return; E.taco = t; tacos.forEach((g) => raiz.remove(g)); tacos = []; await ponerTacos(); pedir(); },
-    dorsal(d) { Object.assign(E.dorsal, d); pintarEspalda(); pedir(); },
+    dorsal(d) { Object.assign(E.dorsal, d); pintarEspalda(); pintarShort(); pedir(); },
     // con "reducir movimiento" también gira igual (estándar de Moon: se ve y se siente igual)
     vista(v, animar) { const dest = v === 'espalda' ? Math.PI : 0; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
     redibujar: pedir,

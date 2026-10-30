@@ -73,6 +73,7 @@
   function uniformeActual() { var l = catalogoVisible(); return l.filter(function (u) { return u.id === S.baseId; })[0] || l[0] || null; }
   function usarBase(u) {
     S.baseId = u.id;
+    if (u.manga === 'larga' || u.manga === 'corta') S.d.manga = u.manga;   // el uniforme viene así de fábrica (el cliente lo puede cambiar)
     if (!S.d.colorTexto || S.d.colorAuto) { S.d.colorTexto = u.colorTexto || '#111111'; S.d.colorAuto = true; }
   }
 
@@ -85,7 +86,7 @@
   };
   function normal(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); }
   function textoBuscable(u) {
-    var e = u.etiquetas || {}, partes = [u.nombre, u.categoria, e.pais, e.equipo];
+    var e = u.etiquetas || {}, partes = [u.nombre, u.categoria, e.pais, e.equipo, e.otros, u.version];
     (e.colores || []).forEach(function (c) { partes = partes.concat(COLORES_NOMBRE[c] || [c]); });
     return normal(partes.join(' '));
   }
@@ -136,11 +137,11 @@
     return imgCache[url];
   }
   var cola = Promise.resolve(), puesto = null;
-  function config(u, d) { return { frente: u.fotos.frente, espalda: u.fotos.espalda, short: u.fotos.short, manga: d.manga, colorShort: u.colorShort, colorCalceta: u.colorCalceta, colorFranja: u.colorFranja || '', taco: d.taco, nombre: d.nombre, numero: d.numero, color: d.colorTexto || u.colorTexto || '#111111' }; }
+  function config(u, d) { return { frente: u.fotos.frente, espalda: u.fotos.espalda, short: u.fotos.short, manga: d.manga, colorShort: u.colorShort, colorCalceta: u.colorCalceta, colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, taco: d.taco, nombre: d.nombre, numero: d.numero, color: d.colorTexto || u.colorTexto || '#111111' }; }
   function aplicar(m, c) {
     return Promise.all([imagen(c.frente), imagen(c.espalda), imagen(c.short)]).then(function (im) {
       var clave = c.frente + '|' + c.espalda + '|' + c.short + '|' + c.manga;
-      var p = clave !== puesto ? m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: c.manga, colorShort: c.colorShort, colorCalceta: c.colorCalceta, colorFranja: c.colorFranja }) : Promise.resolve();
+      var p = clave !== puesto ? m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: c.manga, colorShort: c.colorShort, colorCalceta: c.colorCalceta, colorFranja: c.colorFranja, numeroShort: c.numeroShort, torso: c.torso }) : Promise.resolve();
       puesto = clave;
       return p.then(function () { return m.taco(c.taco); }).then(function () { m.dorsal({ nombre: c.nombre, numero: c.numero, color: c.color, sello: true }); });
     });
@@ -371,7 +372,36 @@
     listo: function () { return '<h3>' + esc(T('p_listo')) + '</h3>'; }
   };
   var TACO_COLOR = { negro: ['#141518', '#2b8a94'], rosa: ['#f6588a', '#c9f23a'], turquesa: ['#f4f6f8', '#16b0b5'] };
+  /* ---------- equipos: se ve el escudo; al tocarlo salen sus uniformes (local, visita…) ---------- */
+  function claveEquipo(u) { var e = (u.etiquetas || {}).equipo; return e ? 'e:' + normal(e) : 'u:' + u.id; }
+  function equiposDe(lista) {
+    var m = {}, out = [];
+    lista.forEach(function (u) {
+      var k = claveEquipo(u);
+      if (!m[k]) { m[k] = { clave: k, nombre: (u.etiquetas || {}).equipo || u.nombre, escudo: '', items: [] }; out.push(m[k]); }
+      m[k].items.push(u); if (!m[k].escudo && u.escudo) m[k].escudo = u.escudo;
+    });
+    return out;
+  }
+  function equipoDeId(id) { var u = catalogoVisible().filter(function (x) { return x.id === id; })[0]; if (!u) return null; var k = claveEquipo(u); return equiposDe(catalogoVisible()).filter(function (q) { return q.clave === k; })[0]; }
+  function versionDe(u) { if (u.version) return u.version; var i = String(u.nombre).lastIndexOf('·'); return i >= 0 ? u.nombre.slice(i + 1).trim() : u.nombre; }
+  function nUniformes(n) { return n === 1 ? T('un_uniforme') : T('n_uniformes').replace('{n}', n); }
+  function caraEquipo(q) {
+    return q.escudo ? '<span class="mini-foto escudo"><img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async"></span>'
+      : '<span class="mini-foto"><img src="' + esc(q.items[0].mini) + '" alt="" loading="lazy" decoding="async"></span>';
+  }
   function tarjetasUniformes(lista) {
+    if (!lista.length) return '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
+    var actual = equipoDeId(S.baseId), qs = equiposDe(lista);
+    var vers = actual && actual.items.length > 1 ? '<div class="grupo g0 versiones"><span class="etq">' + esc(actual.nombre) + '</span><div class="chips llenar">' + actual.items.map(function (u) {
+      return '<button type="button" class="chip chip-version' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '">' + esc(versionDe(u)) + '</button>';
+    }).join('') + '</div></div>' : '';
+    return vers + '<div class="mini-grid" id="mini-grid">' + qs.map(function (q) {
+      var on = actual && actual.clave === q.clave;
+      return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '">' + caraEquipo(q) + '<span>' + esc(q.nombre) + '</span>' + (q.items.length > 1 ? '<small class="mini-n">' + esc(nUniformes(q.items.length)) + '</small>' : '') + '</button>';
+    }).join('') + '</div>';
+  }
+  function tarjetasUniformesViejo(lista) {
     if (!lista.length) return '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
     return '<div class="mini-grid" id="mini-grid">' + lista.map(function (u) {
       return '<button type="button" class="mini' + (u.id === S.baseId ? ' on' : '') + '" data-base="' + esc(u.id) + '"><span class="mini-foto"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span><span>' + esc(u.nombre) + '</span></button>';
@@ -429,6 +459,18 @@
 
   /* ---- enlaces de cada paso ---- */
   function enlazarTarjetas(raiz, alElegir) {
+    $$('[data-equipo]', raiz).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var q = equiposDe(catalogoVisible()).filter(function (x) { return x.clave === b.getAttribute('data-equipo'); })[0];
+        if (q) alElegir(q.items[0], b, true);
+      });
+    });
+    $$('[data-version]', raiz).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-version'); })[0];
+        if (u) alElegir(u, b, true);
+      });
+    });
     $$('[data-base]', raiz).forEach(function (b) {
       b.addEventListener('click', function () {
         var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-base'); })[0];
@@ -440,7 +482,11 @@
   }
   var ENLACES = {
     diseno: function () {
-      function elegir(u) { if (u.id === S.baseId) return; usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador(); }
+      function elegir(u, b, repinta) {
+        var mismo = u.id === S.baseId;
+        if (!mismo) { usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador(); }
+        if (repinta) repintar();
+      }
       function repintar() {
         var r = $('#p-resultados'); if (!r) return;
         r.innerHTML = tarjetasUniformes(filtrar(catalogoVisible()));
@@ -648,8 +694,9 @@
     cont.innerHTML = filtrosHTML('c') + '<div id="c-resultados"></div>';
     function lista() {
       var r = $('#c-resultados'), vis = filtrar(catalogoVisible());
-      r.innerHTML = vis.length ? '<div class="cat-grid">' + vis.map(function (u) {
-        return '<button type="button" class="cat-item" data-cat="' + esc(u.id) + '"><span class="cv"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span><b>' + esc(u.nombre) + '</b><small>' + (u.destacado ? '<span class="estrella">★</span> ' : '') + esc(u.categoria || T('todos')) + ' · ' + esc(T('personalizar')) + '</small></button>';
+      r.innerHTML = vis.length ? '<div class="cat-grid">' + equiposDe(vis).map(function (q) {
+        var u = q.items[0], cara = q.escudo ? '<span class="cv escudo"><img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async"></span>' : '<span class="cv"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span>';
+        return '<button type="button" class="cat-item' + (q.escudo ? ' con-escudo' : '') + '" data-cat="' + esc(u.id) + '">' + cara + '<b>' + esc(q.nombre) + '</b><small>' + (q.items.some(function (x) { return x.destacado; }) ? '<span class="estrella">★</span> ' : '') + esc(nUniformes(q.items.length)) + (u.categoria ? ' · ' + esc(u.categoria) : '') + '</small></button>';
       }).join('') + '</div>' : '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
       $$('[data-cat]', r).forEach(function (b) {
         b.addEventListener('click', function () {
@@ -736,7 +783,7 @@
   var ancla = null;
   function abrirProbador(u, el) {
     ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
-    if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); S.paso = 1; }
+    if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); var q = equipoDeId(u.id); S.paso = q && q.items.length > 1 ? 0 : 1; }   // con varias versiones se abre donde se elige cuál
     if (probador.hidden) {
       hueco.style.height = estudio.offsetHeight + 'px'; lugarEstudio.insertBefore(hueco, estudio);
       $('#probador-cuerpo').appendChild(estudio);

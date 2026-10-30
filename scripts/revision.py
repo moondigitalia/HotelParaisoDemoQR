@@ -72,7 +72,7 @@ def correr():
             pg.fill('#p-buscar','zzzz'); pg.wait_for_timeout(500); revisa('diseño (buscar sin resultados)')
             if not pg.query_selector('#p-resultados .vacio'): todo.append((nom,'buscar sin resultados no avisa','diseno',['falta el aviso']))
             pg.fill('#p-buscar','morado'); pg.wait_for_timeout(500)
-            if not pg.query_selector('#p-resultados [data-base]'): todo.append((nom,'buscar "morado" no encontró el lila','diseno',['0 resultados']))
+            if not pg.query_selector('#p-resultados [data-equipo]'): todo.append((nom,'buscar "morado" no encontró el lila','diseno',['0 resultados']))
             pg.fill('#p-buscar',''); pg.wait_for_timeout(400)
             sig(); revisa('manga y tacos')
             pg.click('[data-taco="rosa"]'); pg.wait_for_timeout(1500); pg.click('[data-manga="larga"]'); pg.wait_for_timeout(3000); revisa('manga larga, tacos rosas')

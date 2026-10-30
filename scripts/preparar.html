@@ -10,7 +10,7 @@
   out.colores=Motor3D.coloresDe(cut.frente);
   out.cshort=cut.short?Motor3D.colorPrincipal(cut.short):null;
   const m=await Motor3D.crear(document.getElementById('a'),{baja:false});
-  await m.uniforme({frente:cut.frente,espalda:cut.espalda,short:cut.short,manga:P.get('manga')||'corta',colorShort:P.get('cs'),colorCalceta:P.get('cc'),colorFranja:P.get('fr')||''});
+  await m.uniforme({frente:cut.frente,espalda:cut.espalda,short:cut.short,manga:P.get('manga')||'corta',colorShort:P.get('cs'),colorCalceta:P.get('cc'),colorFranja:P.get('fr')||'',numeroShort:P.has('ns'),torso:P.get('tor')?P.get('tor').split(',').map(Number):null});
   await m.taco(P.get('taco')||'negro');
   m.dorsal({nombre:P.get('n')||'',numero:P.get('num')||'',color:P.get('ct')||'#111111',sello:true});
   out.vf=m.foto(600,900,'frente'); out.ve=m.foto(600,900,'espalda');

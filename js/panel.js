@@ -259,12 +259,15 @@
       '<div id="ed-aviso"></div>' +
       '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
       '<div class="grupo"><label for="ed-cat">Carpeta</label><select class="campo" id="ed-cat"><option value="">Sin carpeta</option>' + cats.map(function (c) { return '<option' + (c === u.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fila2"><div class="grupo"><label for="ed-version">Versión</label><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local, Visitante"></div>' +
+      '<div class="grupo"><span class="etq">Escudo del equipo <small>(opcional)</small></span><label class="pn-escudo"><span class="pn-escudo-img">' + (u.escudo ? '<img src="' + esc(u.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo></label></div></div>' +
       '<div class="fila2"><div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div><div class="grupo"><label for="ed-equipo">Equipo</label><input class="campo" id="ed-equipo" maxlength="40" value="' + esc(e.equipo) + '" placeholder="Ej. Chivas"></div></div>' +
       '<div class="grupo"><span class="etq">Colores del uniforme <small>(se marcan solos con la foto; corrige si hace falta)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
       '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
       '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
+      '<div class="grupo"><span class="etq">Número chico en el short</span><div class="chips llenar"><button type="button" class="chip' + (u.numeroShort ? ' on' : '') + '" data-ns="1">Sí</button><button type="button" class="chip' + (!u.numeroShort ? ' on' : '') + '" data-ns="0">No</button></div></div>' +
       (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(toca un color y se hace la copia)</small></span>' + bolitas('oc', '', TELAS) + '</div>' : '');
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
@@ -286,7 +289,7 @@
       return mEditor.p.then(function (m) {
         mEditor.m = m;
         return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
-          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '' });
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort });
         }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); });
       });
     });
@@ -344,7 +347,7 @@
     Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
       var M = window.Motor3D, cf = A.aCanvas(im[0], 1000), base = M.coloresBase(cf);
       var nuevo = A.clone(u); nuevo.id = 'u' + Date.now().toString(36); nuevo.nuevo = true; delete nuevo.destacado; delete nuevo.oculto;
-      nuevo.nombre = ''; nuevo.mini = '';
+      nuevo.nombre = ''; nuevo.mini = ''; nuevo.version = '';
       var mapa = function (hex) { var c = document.createElement('canvas'); c.width = c.height = 1; var g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 1, 1); return hexDe(Array.from(M.recolorear(c, base, rgb).getContext('2d').getImageData(0, 0, 1, 1).data).slice(0, 3)); };
       ['colorShort', 'colorCalceta', 'colorFranja', 'colorTexto'].forEach(function (k) { if (nuevo[k]) nuevo[k] = mapa(nuevo[k]); });
       var lados = ['frente', 'espalda', 'short'];
@@ -365,6 +368,18 @@
     $('#ed-cat').addEventListener('change', function (e) { u.categoria = e.target.value; });
     $('#ed-pais').addEventListener('input', function (e) { u.etiquetas.pais = e.target.value; });
     $('#ed-equipo').addEventListener('input', function (e) { u.etiquetas.equipo = e.target.value; });
+    $('#ed-version').addEventListener('input', function (e) { u.version = e.target.value; });
+    $$('[data-ns]', panel).forEach(function (b) { b.addEventListener('click', function () { u.numeroShort = b.getAttribute('data-ns') === '1'; $$('[data-ns]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
+    // el escudo: se le quita el fondo si lo trae y se sube; todos los uniformes del mismo equipo lo comparten
+    var inEsc = $('[data-escudo]', panel);
+    if (inEsc) inEsc.addEventListener('change', function () {
+      var file = inEsc.files && inEsc.files[0]; if (!file) return;
+      A.toast('Preparando el escudo…', true);
+      A.cargarArchivo(file).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return im; }); }).then(function (im) {
+        var c = window.Motor3D.recortar(A.aCanvas(im, 700)), r = prepararCanvas(c);
+        return A.subirConReintento(r.data, 'catalogo').then(function (url) { u.escudo = url; A.toast('Escudo listo'); var box = $('.pn-escudo-img', panel); if (box) box.innerHTML = '<img src="' + esc(url) + '" alt="">'; });
+      }).catch(function () { A.toast('No se pudo subir el escudo. Inténtalo otra vez.'); });
+    });
     $$('[data-col]', panel).forEach(function (b) { b.addEventListener('click', function () { var c = b.getAttribute('data-col'), l = u.etiquetas.colores, i = l.indexOf(c); if (i >= 0) l.splice(i, 1); else l.push(c); b.classList.toggle('on', i < 0); }); });
     [['sh', 'colorShort'], ['ca', 'colorCalceta'], ['fr', 'colorFranja'], ['tx', 'colorTexto']].forEach(function (par) {
       $$('[data-' + par[0] + ']', panel).forEach(function (b) { b.addEventListener('click', function () { u[par[1]] = b.getAttribute('data-' + par[0]); if (par[0] === 'tx') u.colorTextoElegido = true; $$('[data-' + par[0] + ']', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });

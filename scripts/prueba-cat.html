@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/css/fonts.css"><canvas id="a" style="width:360px;height:540px"></canvas>
+<script src="/js/kit.js"></script><script src="/js/catalogo-base.js"></script><script src="/js/motor3d.js"></script>
+<script>
+// Vista de prueba de un uniforme del catálogo tal como lo carga la página (sin recortar), frente y espalda con nombre
+(async()=>{
+  const P=new URLSearchParams(location.search), u=CATALOGO_BASE.find(x=>x.id===P.get('id'));
+  const ld=s=>s?new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.src=s;}):null;
+  const m=await Motor3D.crear(document.getElementById('a'),{baja:false});
+  await m.uniforme({frente:await ld(u.fotos.frente), espalda:await ld(u.fotos.espalda), short:await ld(u.fotos.short), manga:P.get('manga')||u.manga||'corta', colorShort:u.colorShort, colorCalceta:u.colorCalceta, colorFranja:u.colorFranja, numeroShort:u.numeroShort, torso:u.torso});
+  await m.taco('negro'); m.dorsal({nombre:'JUANPY',numero:'69',color:u.colorTexto,sello:true});
+  window.R=[m.foto(600,900,'frente'),m.foto(600,900,'espalda')]; document.title='listo';
+})();
+</script>
