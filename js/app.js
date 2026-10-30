@@ -550,7 +550,7 @@
   function filaSeccion(eqs) {
     if (eqs.length <= 3) return '<div class="mini-grid">' + eqs.map(tarjetaEquipo).join('') + '</div>';
     var pags = [], actual = equipoDeId(S.baseId), ini = 0;
-    pags = renglones(eqs, 3);   // 4 equipos → 2 y 2; 5 → 3 y 2: ninguno se queda solo
+    pags = renglones(eqs, 3);   // de 3 en 3; la última página, centrada
     pags.forEach(function (pg, k) { if (actual && pg.some(function (q) { return q.clave === actual.clave; })) ini = k; });
     var n = pags.length;
     return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%;transform:translateX(' + (-ini * 100 / n) + '%)">' +
@@ -907,11 +907,10 @@
   /* ---------- catálogo de la página: las mismas carpetas y el mismo buscador que dentro del probador ---------- */
   /* Catálogo: una sola fila de escudos que se desliza de lado, con una barrita que dice cuánto falta y la píldora
      "Ver todos". "Ver todos" abre una pantalla con todos los escudos grandes; arriba siempre quedan la búsqueda y las secciones. */
-  // renglones parejos: nunca un elemento solo en su renglón. Se reparten entre los renglones necesarios (7 en 3 por renglón → 3, 2, 2)
-  function renglones(items, C) {
-    var n = items.length; if (!n) return [];
-    C = Math.max(1, Math.min(C, n)); var r = Math.ceil(n / C), base = Math.floor(n / r), extra = n % r, out = [], k = 0;
-    for (var i = 0; i < r; i++) { var t = base + (i < extra ? 1 : 0); out.push(items.slice(k, k + t)); k += t; }
+  // renglones: llenos de izquierda a derecha y el último centrado
+  function renglones(items, C) {   // renglones llenos; el último, si queda incompleto, va centrado (3 y 1 al centro)
+    var out = []; C = Math.max(1, C);
+    for (var i = 0; i < items.length; i += C) out.push(items.slice(i, i + C));
     return out;
   }
   function pintarRenglones(cont, items, minAncho, gap) {
