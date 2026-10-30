@@ -173,7 +173,7 @@ export async function crear(canvas, opt = {}) {
   // estado
   const E = {
     manga: 'corta', taco: 'negro', vista: 0, zoom: 0, // vista: 0 frente, PI espalda; zoom: 0 completo, 1 tacos de cerca
-    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', ajNum: [1, 1, 0],
+    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', ajNom: [1, 0, 0, 1], ajNum: [1, 0, 0, 1], sel: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
   let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null;
@@ -186,7 +186,8 @@ export async function crear(canvas, opt = {}) {
     uAjF: { value: new THREE.Vector3(1, 0, 0) }, uAjB: { value: new THREE.Vector3(1, 0, 0) }, uAjS: { value: new THREE.Vector3(1, 0, 0) },
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
     uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
-    uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 }
+    uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 },
+    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -196,6 +197,7 @@ export async function crear(canvas, opt = {}) {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
+uniform float uSel; uniform vec4 uSelCaja;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;
 // de dónde de la foto sale cada punto de la playera, renglón por renglón: el torso del modelo con el torso de la foto y lo que
@@ -210,7 +212,7 @@ float xFoto(float u, float m0, float m1, vec2 tor, vec2 ph) {
       .replace('#include <map_fragment>', `
 if (vMundo.y < uCorte) discard;
 float t = (vMundo.y - uZonas.x) / uZonas.y;
-vec3 base;
+vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
 // el uniforme no se mueve (gira la cámara): lo que mira hacia atrás usa la foto de la espalda
 bool atras = vNormMundo.z < 0.0;
 if (t > uZonas.z - 0.01) {
@@ -223,7 +225,7 @@ if (t > uZonas.z - 0.01) {
     vec2 ph = atras ? vec2(leer2(4.5 / 6.0, vr), leer2(5.5 / 6.0, vr)) : vec2(leer2(2.5 / 6.0, vr), leer2(3.5 / 6.0, vr));
     uv.x = xFoto(ux, m0, m1, tor, ph);
   }
-  vec2 uv0 = uv;
+  vec2 uv0 = uv; uvSel = uv0; zona = 1.0;
   vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el dueño acomodó: más grande/chica y movida (el nombre y número no se mueven)
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) f.a = 0.0;
@@ -231,7 +233,7 @@ if (t > uZonas.z - 0.01) {
   base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
   if (atras) { vec4 nd = texture2D(uDorsal, uv0); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }
 } else if (t > uShortBot) {
-  base = uShort;
+  base = uShort; zona = 2.0;
   if (uHayShort > 0.5) {
     // el short: la foto es solo del frente, así que va solo en lo que mira al frente.
     // Los lados y atrás van del color que más tiene el short: la foto no los muestra y estirarla los duplica en rayas.
@@ -247,6 +249,20 @@ if (t > uZonas.z - 0.01) {
 } else {
   base = uSock;
   if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
+}
+// panel: la pieza escogida se ve normal y todo lo demás en blanco y negro, apagado
+if (uSel > 0.5) {
+  bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0);
+  float halo = 0.0;
+  if (uSel > 3.5 && zona == 1.0 && atras && uvSel.x > uSelCaja.x && uvSel.x < uSelCaja.z && uvSel.y > uSelCaja.y && uvSel.y < uSelCaja.w) {
+    // nombre o número: solo las letras quedan encendidas, con un contorno dorado alrededor (nada de cuadros)
+    float a0 = texture2D(uDorsal, uvSel).a, o = 0.007, o2 = 0.005;
+    float g = max(max(texture2D(uDorsal, uvSel + vec2(o, 0.0)).a, texture2D(uDorsal, uvSel - vec2(o, 0.0)).a), max(texture2D(uDorsal, uvSel + vec2(0.0, o)).a, texture2D(uDorsal, uvSel - vec2(0.0, o)).a));
+    g = max(g, max(max(texture2D(uDorsal, uvSel + vec2(o2, o2)).a, texture2D(uDorsal, uvSel - vec2(o2, o2)).a), max(texture2D(uDorsal, uvSel + vec2(o2, -o2)).a, texture2D(uDorsal, uvSel + vec2(-o2, o2)).a)));
+    on = a0 > 0.4; halo = on ? 0.0 : smoothstep(0.15, 0.6, g);
+  }
+  if (!on) base = vec3(dot(base, vec3(0.299, 0.587, 0.114))) * 0.42;
+  base = mix(base, vec3(1.0, 0.776, 0.102), halo);
 }
 diffuseColor.rgb *= base;`);
   };
@@ -299,7 +315,7 @@ diffuseColor.rgb *= base;`);
       const r = Math.min(RENG - 1, Math.floor((1 - vv) * RENG)), u = (v.x - tx0) / tw; if (u < L[r]) L[r] = u; if (u > R[r]) R[r] = u;
     }
     for (let r = 0; r < RENG; r++) if (L[r] > R[r]) { let k = 1; while (k < RENG && !((r - k >= 0 && L[r - k] <= R[r - k]) || (r + k < RENG && L[r + k] <= R[r + k]))) k++; const q = r - k >= 0 && L[r - k] <= R[r - k] ? r - k : r + k; if (q >= 0 && q < RENG) { L[r] = L[q]; R[r] = R[q]; } else { L[r] = 0; R[r] = 1; } }
-    texRenglones(renCanvas, 0, L, R, -1.5, 2.5); renListo.m = true; subirRen();
+    texRenglones(renCanvas, 0, L, R, -1.5, 2.5); renListo.m = true; subirRen(); modeloRen = { L: suave(L), R: suave(R) };
     // la calceta empieza donde termina el hueco de la rodilla: su punto más alto bajo el short
     let top = -1e9; const lim = shortBot - 0.01 * zonas.YH;
     for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld); if (v.y < lim && v.y > top) top = v.y; }
@@ -415,21 +431,43 @@ diffuseColor.rgb *= base;`);
     }
     const [bx0, bw] = E.torso ? (E.fotos.espalda ? E.torso : [1 - E.torso[0] - E.torso[1], E.torso[1]]) : torsoFoto(c, 0.30);
     const cx = (bx0 + bw / 2) * c.width, ancho = bw * c.width, d = E.dorsal;
-    // nombre y número en su propia capa: se quedan en su lugar aunque el dueño mueva o agrande la foto
-    const cd = document.createElement('canvas'); cd.width = c.width; cd.height = c.height; const gd = cd.getContext('2d');
-    if (window.Kit && (d.nombre || d.numero)) {
-      const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
-      // lo que el dueño acomodó para este uniforme: tamaño, ancho y altura del nombre y el número (juntos, para que no se encimen)
-      const [ts, ta, ty] = E.ajNum, top = 0.2 + dy - ty;
-      gd.save(); gd.translate(cx, 0); gd.scale(ta, 1); gd.translate(-cx, 0);
-      window.Kit.drawName(gd, d.nombre, cx, H * top, H * 0.075 * ts, d.color, ancho * 0.72 * ts);
-      window.Kit.drawNumber(gd, d.numero, cx, H * (top + 0.045 * ts), H * 0.31 * ts, d.color, d.sello !== false, ancho * 0.72 * ts);
-      gd.restore();
-    }
-    poner(uni.uEspalda, textura(c)); poner(uni.uDorsal, textura(cd));
+    dorsalBase = { src, c, cx, ancho };
+    poner(uni.uEspalda, textura(c)); pintarDorsal();
     const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew); texRenglones(renCanvas, 2, ...renglonesFoto(c, [ex0, ew]), 0, 1); renListo.b = true; subirRen();
   }
 
+  // nombre y número: cada uno en su lugar y con lo que el dueño le acomodó (tamaño, ancho y posición, por separado).
+  // Van en su propia capa: si el dueño mueve la foto, no se mueven; si mueve el número, la foto no se vuelve a calcular.
+  let dorsalBase = null, modeloRen = null; const cajas = { nombre: null, numero: null };
+  function pintarDorsal() {
+    if (!dorsalBase) return;
+    const { src, c, cx, ancho } = dorsalBase, d = E.dorsal, W = c.width, H = c.height;
+    const cd = document.createElement('canvas'); cd.width = W; cd.height = H; const gd = cd.getContext('2d');
+    cajas.nombre = cajas.numero = null;
+    if (window.Kit && (d.nombre || d.numero)) {
+      const dy = huecoDorsal(src, c, cx, ancho);
+      const [ns, nx, ny, na] = E.ajNom, [ms, mx, my, ma] = E.ajNum;
+      const yN = H * (0.2 + dy - ny), tN = H * 0.075 * ns, wN = ancho * 0.72 * ns * na, xN = cx + mx * 0 + nx * W;
+      gd.save(); gd.translate(xN, 0); gd.scale(na, 1); gd.translate(-xN, 0);
+      if (d.nombre) window.Kit.drawName(gd, d.nombre, xN, yN, tN, d.color, ancho * 0.72 * ns);
+      gd.restore();
+      const yM = H * (0.245 + dy - my), tM = H * 0.31 * ms, wM = ancho * 0.72 * ms * ma, xM = cx + mx * W;
+      gd.save(); gd.translate(xM, 0); gd.scale(ma, 1); gd.translate(-xM, 0);
+      if (d.numero) window.Kit.drawNumber(gd, d.numero, xM, yM, tM, d.color, d.sello !== false, ancho * 0.72 * ms);
+      gd.restore();
+      // dónde quedó cada uno (en la medida de la foto, 0 abajo y 1 arriba) para encontrarlo al tocarlo y para iluminarlo
+      const caja = (x0, y0, x1, y1) => [x0 / W, 1 - y1 / H, x1 / W, 1 - y0 / H];
+      if (d.nombre) cajas.nombre = caja(xN - wN / 2 - 0.02 * W, yN - tN * 1.15, xN + wN / 2 + 0.02 * W, yN + tN * 0.35);
+      if (d.numero) cajas.numero = caja(xM - wM / 2 - 0.02 * W, yM - 0.01 * H, xM + wM / 2 + 0.02 * W, yM + tM * 1.02);
+    }
+    poner(uni.uDorsal, textura(cd)); marcarSel();
+  }
+  const SEL = { frente: 1, espalda: 2, short: 3, nombre: 4, numero: 5 };
+  function marcarSel() {
+    uni.uSel.value = SEL[E.sel] || 0;
+    const k = cajas[E.sel]; if (k) uni.uSelCaja.value.set(k[0], k[1], k[2], k[3]); else uni.uSelCaja.value.set(0, 0, 0, 0);
+    pedir();
+  }
   // ---- dibujar: solo cuando algo cambia ----
   // El campo llena todo el lienzo; el uniforme se acomoda en la zona libre (la página dice cuánto aire dejar
   // arriba y abajo con --aire-arriba / --aire-abajo, para que los botones encimados no le tapen nada).
@@ -517,7 +555,7 @@ diffuseColor.rgb *= base;`);
     dorsal(d) {
       Object.assign(E.dorsal, d);
       if (dorsalPend) return; dorsalPend = true;
-      requestAnimationFrame(() => { if (!dorsalPend) return; dorsalPend = false; pintarEspalda(); pintarShort(); pedir(); });
+      requestAnimationFrame(() => { if (!dorsalPend) return; dorsalPend = false; if (dorsalBase) pintarDorsal(); else pintarEspalda(); pintarShort(); pedir(); });
     },
     // con "reducir movimiento" también gira igual (estándar de Moon: se ve y se siente igual)
     enfoque(que) { zoomA(que === 'tacos' ? 1 : 0); },
@@ -560,14 +598,41 @@ diffuseColor.rgb *= base;`);
       };
       canvas.addEventListener('pointerup', fin); canvas.addEventListener('pointercancel', fin);
       // el toque que termina un deslizón no cuenta como toque (no abre ni cierra la pantalla grande)
-      canvas.addEventListener('click', (e) => { if (tragar) { tragar = false; e.stopPropagation(); e.preventDefault(); } }, true);
+      canvas.addEventListener('click', (e) => { if (tragar) { tragar = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
     },
     // acomodo de cada foto: [tamaño, mover a los lados, mover arriba/abajo]; instantáneo (solo se repinta)
+    // panel: ilumina una pieza ('frente', 'espalda', 'short', 'nombre', 'numero' o '' para ninguna)
+    seleccionar(p) { E.sel = p || ''; marcarSel(); },
+    // panel: qué pieza hay bajo el dedo (o null si tocó fuera del uniforme)
+    piezaEn(px, py) {
+      // el rayo del dedo se cruza con el plano del cuerpo (el uniforme está quieto en el centro); con la silueta del modelo,
+      // renglón por renglón, se sabe si cayó en la playera, el short o fuera
+      if (!zonas || !modeloRen) return null;
+      const rc = canvas.getBoundingClientRect(), v = new THREE.Vector2(((px - rc.left) / rc.width) * 2 - 1, -((py - rc.top) / rc.height) * 2 + 1);
+      cam.updateMatrixWorld(); const ray = new THREE.Raycaster(); ray.setFromCamera(v, cam);
+      const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p)) return null;
+      const atras = Math.cos(E.vista) < 0, t = (p.y - zonas.Y0) / zonas.YH, C = uni.uCaja.value;
+      if (t > zonas.hem - 0.01) {
+        const vv = (p.y - C.y) / C.w; if (vv > 1.02) return null;
+        const r = Math.max(0, Math.min(RENG - 1, Math.floor((1 - vv) * RENG))), u = (p.x - C.x) / C.z;
+        if (u < modeloRen.L[r] - 0.04 || u > modeloRen.R[r] + 0.04) return null;
+        if (!atras) return 'frente';
+        const tor = uni.uTorsoB.value, x = tor.x + (1 - u) * tor.y, dentro = (k) => k && x > k[0] && x < k[2] && vv > k[1] && vv < k[3];
+        if (dentro(cajas.numero)) return 'numero';
+        if (dentro(cajas.nombre)) return 'nombre';
+        return 'espalda';
+      }
+      const S = uni.uShortCaja.value;
+      if (t > zonas.shortBot) return p.x > S.x - 0.03 && p.x < S.x + S.z + 0.03 ? 'short' : null;
+      return t > 0 && p.x > S.x && p.x < S.x + S.z ? 'calcetas' : null;
+    },
     congelar(si) { congelado = !!si; if (!si && debeDibujo) { debeDibujo = false; pedir(); } },
     ajuste(aj) {
       aj = aj || {};
-      const n = Array.isArray(aj.numero) ? [+aj.numero[0] || 1, +aj.numero[1] || 1, +aj.numero[2] || 0] : [1, 1, 0];
-      if (n.join() !== E.ajNum.join()) { E.ajNum = n; if (E.fotos.frente) pintarEspalda(); }
+      // nombre y número: [tamaño, mover a los lados, mover arriba/abajo, ancho], cada uno por su lado
+      const leer = (v) => Array.isArray(v) && v.length === 4 ? [+v[0] || 1, +v[1] || 0, +v[2] || 0, +v[3] || 1] : [1, 0, 0, 1];
+      const nn = leer(aj.nombre), mm = leer(aj.numero);
+      if (nn.join() !== E.ajNom.join() || mm.join() !== E.ajNum.join()) { E.ajNom = nn; E.ajNum = mm; pintarDorsal(); }
       [['frente', uni.uAjF], ['espalda', uni.uAjB], ['short', uni.uAjS]].forEach(([k, u]) => { const v = Array.isArray(aj[k]) ? aj[k] : [1, 0, 0]; u.value.set(+v[0] || 1, +v[1] || 0, +v[2] || 0); });
       pedir();
     },

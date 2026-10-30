@@ -18,7 +18,7 @@
 /* una imagen no se muestra hasta que ya cargó: así el iPhone no pinta el rectangulito con contorno mientras la carga */
 (function(){function ok(e){var t=e.target;if(t&&t.tagName==='IMG')t.classList.add('ok')}document.addEventListener('load',ok,true);try{new MutationObserver(function(l){l.forEach(function(m){var t=m.target;if(m.type==='attributes'){if(t.tagName==='IMG'&&!t.complete)t.classList.remove('ok');return}m.addedNodes.forEach(function(n){if(n.nodeType!==1)return;var L=n.tagName==='IMG'?[n]:n.querySelectorAll('img');for(var i=0;i<L.length;i++)if(L[i].complete&&L[i].naturalWidth)L[i].classList.add('ok')})})}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']})}catch(_){};document.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='IMG')t.classList.add('mal')},true)})()</script>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=51">
+<link rel="stylesheet" href="/css/app.css?v=52">
 </head>
 <body>
 
@@ -202,11 +202,11 @@
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=51"></script>
-<script>window.VERSION="51"</script>
-<script src="/js/kit.js?v=51"></script>
-<script src="/js/catalogo-base.js?v=51"></script>
-<script src="/js/app.js?v=51"></script>
-<script src="/js/panel.js?v=51" defer></script>
+<script src="/js/i18n.js?v=52"></script>
+<script>window.VERSION="52"</script>
+<script src="/js/kit.js?v=52"></script>
+<script src="/js/catalogo-base.js?v=52"></script>
+<script src="/js/app.js?v=52"></script>
+<script src="/js/panel.js?v=52" defer></script>
 </body>
 </html>

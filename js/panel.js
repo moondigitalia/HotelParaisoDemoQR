@@ -179,7 +179,7 @@
     var f = P.folios[P.detalle], n = totalDe(f), todos = [];
     f.equipos.forEach(function (e) { (e.jugadores && e.jugadores.length ? e.jugadores : [{}]).forEach(function (j) { todos.push(j); }); });
     var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-    var h = '<button type="button" class="link-x" data-volver>← Todos los folios</button>' +
+    var h = '<button type="button" class="link-x" data-volver>← Volver a todos los folios</button>' +
       '<div class="pn-det-top"><h3 class="pn-h">' + esc(f.id) + '</h3><small>' + esc(fecha) + '</small></div>' +
       '<div class="pn-resumen"><div class="pn-total"><b>' + n + '</b><span>' + (n === 1 ? 'uniforme' : 'uniformes') + (f.equipos.length > 1 ? '<br>en ' + f.equipos.length + ' equipos' : '') + '</span></div>' +
       '<div class="pn-tallas"><span class="etq">Tallas</span><div>' + tallasDe(todos) + '</div></div></div>' +
@@ -333,7 +333,7 @@
     var gr = arbol(), e = equipoDe(gr, P.equipo), secs = P.config.categorias || [];
     if (!e) { P.equipo = null; return vistaUniformes(); }
     var oculto = !visibleEq(e);
-    return '<button type="button" class="link-x" data-volver-eq>← Uniformes</button><h3 class="pn-h">' + esc(e.nombre || 'Equipo') + '</h3><div class="pn-form">' +
+    return '<button type="button" class="link-x" data-volver-eq>← Volver a todos los uniformes</button><h3 class="pn-h">' + esc(e.nombre || 'Equipo') + '</h3><div class="pn-form">' +
       '<div class="fila2"><div class="grupo"><label for="eq-nombre">Nombre del equipo</label><input class="campo" id="eq-nombre" maxlength="40" value="' + esc(e.nombre) + '"></div>' +
       '<div class="grupo"><span class="etq">Escudo</span><label class="pn-escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label>' + (e.escudo ? '<button type="button" class="chip pn-mini-chip" data-esc-acomodar>⤢ Acomodar</button>' : '') + '</div></div>' +
       '<div class="grupo"><label for="eq-sec">Sección</label><select class="campo" id="eq-sec">' + secs.map(function (s) { return '<option' + (s === e.sec ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '<option value=""' + (e.sec ? '' : ' selected') + '>Sin sección</option></select></div>' +
@@ -464,15 +464,13 @@
     }
     // arriba lo único que hace falta: fotos → cómo se ve → equipo y versión → Publicar. Lo demás ya viene listo, en "Más opciones"
     var angosto = window.innerWidth <= 980;   // en celular la vista 3D va justo debajo de las fotos; en compu, a un lado
-    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">Así se verá en la página, con un nombre y número de ejemplo.</p></div>';
-    var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
+    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><div class="pn-ctl" id="pn-ctl"><p class="pn-ctl-ayuda">☝ Toca una parte del uniforme para acomodarla o cambiar su foto: la playera, el short, el nombre o el número.</p></div></div>';
+    var h = '<button type="button" class="link-x" data-volver>← Volver ' + (P.equipo ? 'al equipo' : 'a todos los uniformes') + '</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
       '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div>' +
       (angosto ? prev : '') +
       '<div id="ed-aviso"></div>' +
-      ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
-      (f.frente ? '<div class="pn-borrar">' + ['frente', 'espalda', 'short', 'numero'].filter(function (l) { return f[l] || l === 'espalda' || l === 'numero'; }).map(function (l) { return '<button type="button" class="chip" data-acomodar="' + l + '">⤢ Acomodar ' + ({ frente: 'frente', espalda: 'espalda', short: 'short', numero: 'nombre y número' })[l] + '</button>'; }).join('') + '<small>Si una foto queda chueca o muy justa, o el nombre y número quedan muy grandes, chicos o fuera de lugar, acomódalos viendo el 3D.</small></div>' : '') +
       '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -536,40 +534,64 @@
     var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(c, -x0, -y0); return o;
   }
   // acomodar: la foto se mueve y cambia de tamaño sobre el uniforme en 3D, con botones grandes (dejarlos apretados repite)
-  function acomodar(u, lado) {
-    if (!mEditor || !mEditor.m) { A.toast('Espera a que se vea el 3D.'); return; }
-    var m = mEditor.m, num = lado === 'numero', base = num ? [1, 1, 0] : [1, 0, 0]; u.ajuste = u.ajuste || {}; var v = (u.ajuste[lado] || base).slice(), antes = v.slice();
-    pvVista = lado === 'espalda' || num ? 'espalda' : 'frente'; m.vista(pvVista); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === pvVista); });
-    var pv = $('.pn-prev3d', panel); if (pv) pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    var hoja = document.createElement('div'); hoja.className = 'pn-acomodo';
-    hoja.innerHTML = '<p><b>Acomoda ' + ({ frente: 'el frente', espalda: 'la espalda', short: 'el short', numero: 'el nombre y el número' })[lado] + '</b> · míralo en el 3D</p>' +
-      (num ? '<div class="pn-acomodo-l tres"><span>Tamaño</span><span>Ancho</span><span>Altura</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chico">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
-        '<button type="button" data-aj="x-" aria-label="Más angosto">→←</button><button type="button" data-aj="x+" aria-label="Más ancho">←→</button><button type="button" data-aj="y+" aria-label="Más arriba">↑</button><button type="button" data-aj="y-" aria-label="Más abajo">↓</button></div>'
-      : '<div class="pn-acomodo-l"><span>Tamaño</span><span>Mover</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chica">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
-      '<button type="button" data-aj="x-">←</button><button type="button" data-aj="y+">↑</button><button type="button" data-aj="y-">↓</button><button type="button" data-aj="x+">→</button></div>') +
-      '<div class="pn-acomodo-f"><button type="button" class="btn btn-linea" data-aj="0">Como estaba</button><button type="button" class="btn btn-oro" data-aj="ok">Listo</button></div>';
-    panel.appendChild(hoja);
-    function poner() { u.ajuste[lado] = v.map(function (n) { return Math.round(n * 1000) / 1000; }); m.ajuste(u.ajuste); }
-    function paso(k) {
-      if (num) {   // nombre y número: tamaño, ancho y altura, con límites para que nunca se salgan de la playera
-        if (k === 'z-') v[0] = Math.max(0.6, v[0] - 0.03); if (k === 'z+') v[0] = Math.min(1.35, v[0] + 0.03);
-        if (k === 'x-') v[1] = Math.max(0.65, v[1] - 0.03); if (k === 'x+') v[1] = Math.min(1.4, v[1] + 0.03);
-        if (k === 'y+') v[2] = Math.min(0.12, v[2] + 0.01); if (k === 'y-') v[2] = Math.max(-0.15, v[2] - 0.01);
-        return poner();
-      }
-      if (k === 'z-') v[0] = Math.max(0.6, v[0] - 0.03); if (k === 'z+') v[0] = Math.min(1.7, v[0] + 0.03);
-      if (k === 'x-') v[1] = Math.max(-0.3, v[1] - 0.01); if (k === 'x+') v[1] = Math.min(0.3, v[1] + 0.01);
-      if (k === 'y+') v[2] = Math.min(0.3, v[2] + 0.01); if (k === 'y-') v[2] = Math.max(-0.3, v[2] - 0.01);
-      poner();
-    }
+  /* ---------- tocar el uniforme para editarlo ----------
+     El 3D es el control: se toca una pieza (playera de frente o de espalda, short, nombre o número), esa pieza brilla y lo demás
+     se apaga, y abajo salen sus controles: mover, tamaño (y ancho en nombre y número), cambiar su foto o quitarle algo. */
+  var pnSel = '', NOM_PIEZA = { frente: 'Playera · frente', espalda: 'Playera · espalda', short: 'Short', nombre: 'Nombre', numero: 'Número' };
+  function tocarPieza(e) {
+    if (!mEditor || !mEditor.m || !mEditor.m.piezaEn) return;
+    var p = mEditor.m.piezaEn(e.clientX, e.clientY);
+    elegirPieza(p && p !== 'calcetas' ? p : '');
+  }
+  function elegirPieza(p) {
+    var m = mEditor && mEditor.m; if (!m) return;
+    pnSel = p; m.seleccionar(p);
+    var lado = p === 'espalda' || p === 'nombre' || p === 'numero' ? 'espalda' : p ? 'frente' : null;
+    if (lado && lado !== pvVista) { pvVista = lado; m.vista(lado); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === lado); }); }
+    pintarCtl();
+  }
+  function pintarCtl() {
+    var ctl = $('#pn-ctl', panel), u = P.editando; if (!ctl || !u) return;
+    if (!pnSel) { ctl.innerHTML = '<p class="pn-ctl-ayuda">☝ Toca una parte del uniforme para acomodarla o cambiar su foto: la playera, el short, el nombre o el número.</p>'; return; }
+    var txt = pnSel === 'nombre' || pnSel === 'numero', foto = !txt;
+    var fl = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
+    // un control redondo para mover (como el de un control de videojuego) y a su lado píldoras para el tamaño y el ancho
+    ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>' + NOM_PIEZA[pnSel] + '</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>' +
+      '<div class="pn-ctl-zona"><div class="pn-pad">' +
+      '<button type="button" class="ar" data-ctl="y+" aria-label="Más arriba">' + fl('M6 15l6-6 6 6') + '</button>' +
+      '<button type="button" class="ab" data-ctl="y-" aria-label="Más abajo">' + fl('M6 9l6 6 6-6') + '</button>' +
+      '<button type="button" class="iz" data-ctl="x-" aria-label="A la izquierda">' + fl('M15 6l-6 6 6 6') + '</button>' +
+      '<button type="button" class="de" data-ctl="x+" aria-label="A la derecha">' + fl('M9 6l6 6-6 6') + '</button>' +
+      '<span class="pn-pad-c">Mover</span></div>' +
+      '<div class="pn-pildora"><button type="button" data-ctl="z+" aria-label="Más grande">' + fl('M12 6v12M6 12h12') + '</button><span>Tamaño</span><button type="button" data-ctl="z-" aria-label="Más chico">' + fl('M6 12h12') + '</button></div>' +
+      (txt ? '<div class="pn-pildora"><button type="button" data-ctl="a+" aria-label="Más ancho">' + fl('M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4') + '</button><span>Ancho</span><button type="button" data-ctl="a-" aria-label="Más angosto">' + fl('M3 12h6M21 12h-6M6 9l3 3-3 3M18 9l-3 3 3 3') + '</button></div>' : '') +
+      '</div><div class="pn-ctl-extra">' + (foto ? '<button type="button" class="chip" data-ctl="foto">Cambiar foto</button>' : '') + (pnSel === 'frente' || pnSel === 'espalda' ? '<button type="button" class="chip" data-ctl="quitar">Quitar algo</button>' : '') +
+      '<button type="button" class="chip" data-ctl="0">Como estaba</button></div>';
     var rep = null;
-    $$('[data-aj]', hoja).forEach(function (b) {
-      var k = b.getAttribute('data-aj');
-      if (k === 'ok') return b.addEventListener('click', function () { hoja.remove(); var pub = $('[data-publicar]', panel); A.toast(pub && !pub.disabled ? 'Listo. Toca ' + pub.textContent.trim() + ' para que se vea en la página.' : 'Listo.'); });
-      if (k === '0') return b.addEventListener('click', function () { v = base.slice(); poner(); });
-      b.addEventListener('pointerdown', function (e) { e.preventDefault(); paso(k); clearInterval(rep); var t0 = setTimeout(function () { rep = setInterval(function () { paso(k); }, 70); }, 350); b._t = t0; });
+    $$('[data-ctl]', ctl).forEach(function (b) {
+      var k = b.getAttribute('data-ctl');
+      if (k === 'listo') return b.addEventListener('click', function () { elegirPieza(''); });
+      if (k === 'foto') return b.addEventListener('click', function () { var inp = $('[data-foto="' + pnSel + '"]', panel); if (inp) inp.click(); });
+      if (k === 'quitar') return b.addEventListener('click', function () { borrador(u, pnSel); });
+      if (k === '0') return b.addEventListener('click', function () { if (u.ajuste) delete u.ajuste[pnSel]; mEditor.m.ajuste(u.ajuste || {}); });
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); pasoPieza(u, k); clearInterval(rep); b._t = setTimeout(function () { rep = setInterval(function () { pasoPieza(u, k); }, 70); }, 350); });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(b._t); clearInterval(rep); }); });
     });
+  }
+  function pasoPieza(u, k) {
+    var txt = pnSel === 'nombre' || pnSel === 'numero', lim = function (n, a, b) { return Math.max(a, Math.min(b, n)); };
+    u.ajuste = u.ajuste || {}; var v = (u.ajuste[pnSel] || (txt ? [1, 0, 0, 1] : [1, 0, 0])).slice();
+    if (txt) {   // nombre y número: [tamaño, a los lados, arriba/abajo, ancho], con límites para que nunca se salgan de la playera
+      if (k === 'z-') v[0] = lim(v[0] - 0.03, 0.6, 1.5); if (k === 'z+') v[0] = lim(v[0] + 0.03, 0.6, 1.5);
+      if (k === 'x-') v[1] = lim(v[1] - 0.01, -0.15, 0.15); if (k === 'x+') v[1] = lim(v[1] + 0.01, -0.15, 0.15);
+      if (k === 'y+') v[2] = lim(v[2] + 0.01, -0.2, 0.15); if (k === 'y-') v[2] = lim(v[2] - 0.01, -0.2, 0.15);
+      if (k === 'a-') v[3] = lim(v[3] - 0.03, 0.6, 1.5); if (k === 'a+') v[3] = lim(v[3] + 0.03, 0.6, 1.5);
+    } else {     // la foto: [tamaño, a los lados, arriba/abajo]
+      if (k === 'z-') v[0] = lim(v[0] - 0.03, 0.6, 1.7); if (k === 'z+') v[0] = lim(v[0] + 0.03, 0.6, 1.7);
+      if (k === 'x-') v[1] = lim(v[1] - 0.01, -0.3, 0.3); if (k === 'x+') v[1] = lim(v[1] + 0.01, -0.3, 0.3);
+      if (k === 'y+') v[2] = lim(v[2] + 0.01, -0.3, 0.3); if (k === 'y-') v[2] = lim(v[2] - 0.01, -0.3, 0.3);
+    }
+    u.ajuste[pnSel] = v.map(function (n) { return Math.round(n * 1000) / 1000; }); mEditor.m.ajuste(u.ajuste);
   }
   function borrador(u, lado) {
     imagenP(u.fotos[lado]).then(function (im) {
@@ -618,6 +640,7 @@
         mEditor = { lienzo: c, p: window.Motor3D.crear(c).then(function (m) {
           // deslizar a los lados también voltea la vista previa
           if (m.deslizable) m.deslizable(function (v) { pvVista = v; $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === v); }); });   // girar solo deslizando dentro del cuadro del 3D
+          c.addEventListener('click', tocarPieza); pnSel = '';   // tocar una pieza del uniforme la escoge para acomodarla
           return m;
         }) };
       }
@@ -885,8 +908,6 @@
     });
     var pap = $('[data-papelera]', panel);
     if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
-    $$('[data-acomodar]', panel).forEach(function (b) { b.addEventListener('click', function () { acomodar(u, b.getAttribute('data-acomodar')); }); });
-    $$('[data-borrar]', panel).forEach(function (b) { b.addEventListener('click', function () { borrador(u, b.getAttribute('data-borrar')); }); });
     $$('[data-foto]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () { if (inp.files && inp.files.length) procesarFoto(inp.files, inp.getAttribute('data-foto')); });
     });

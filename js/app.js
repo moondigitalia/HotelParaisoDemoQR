@@ -956,31 +956,36 @@
     fila.addEventListener('scroll', avance, { passive: true }); window.addEventListener('resize', avance); avance();
     $$('img', fila).forEach(function (im) { if (!im.complete) im.addEventListener('load', avance, { once: true }); });
     $('[data-ver-todos]', cont).addEventListener('click', abrirCatTodo);
+    armarCatTodo();   // "Ver todos" queda listo desde ahorita, escondido
   }
+  // "Ver todos": se arma UNA vez, escondido, en cuanto se pinta el catálogo (sus escudos se cargan desde antes).
+  // Al tocar "Ver todos" solo se enseña: no se mide, no se reacomoda ni se crea nada en ese momento.
+  // Los renglones (llenos y el último centrado) los hace el estilo solito, sin cálculos.
   var catTodo = null;
-  function abrirCatTodo() {
+  function armarCatTodo() {
     if (!catTodo) {
       catTodo = document.createElement('div'); catTodo.className = 'capa cat-todo'; catTodo.hidden = true;
-      catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true" aria-label="' + esc(T('cat_t')) + '"><header class="cat-todo-top"><div class="cat-todo-tit"><h2>' + esc(T('cat_t')) + '</h2><button type="button" class="capa-x" data-cerrar-todo aria-label="' + esc(T('cerrar')) + '">×</button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
+      catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true"><header class="cat-todo-top"><div class="cat-todo-tit"><h2></h2><button type="button" class="capa-x" data-cerrar-todo>×</button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
       document.body.appendChild(catTodo);
       $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && !catTodo.hidden) cerrarCatTodo(); });
-      alCambiarAncho(function () { var rr = $('#t-resultados', catTodo); if (!catTodo.hidden && rr._pinta) rr._pinta(); });
     }
+    $('.cat-todo-in', catTodo).setAttribute('aria-label', T('cat_t')); $('[data-cerrar-todo]', catTodo).setAttribute('aria-label', T('cerrar'));
     $('h2', catTodo).textContent = T('cat_t');
-    $('#t-filtros', catTodo).innerHTML = filtrosHTML('t');
-    function lista() {
-      var vis = filtrar(catalogoVisible()), qs = equiposDe(vis), r = $('#t-resultados', catTodo);
-      if (!qs.length) { r.innerHTML = '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>'; return; }
-      // la cuadrícula se queda: solo se cambian los escudos si cambió lo que se ve (no se vuelven a crear al abrir otra vez)
-      var g = $('.cat-todo-grid', r); if (!g) { r.innerHTML = '<div class="cat-todo-grid"></div>'; g = $('.cat-todo-grid', r); }
-      var pinta = function () { if (pintarRenglones(g, qs.map(escudoCat), window.innerWidth >= 900 ? 140 : 100, 14)) enlazarCat(r); };
-      pinta(); r._pinta = pinta;
-    }
-    // primero se abre y luego se acomodan los escudos una sola vez, ya con el ancho real (antes se acomodaban dos veces y parpadeaban)
-    if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
-    enlazarFiltros(catTodo, 't', lista); lista();
+    var fh = filtrosHTML('t'), fc = $('#t-filtros', catTodo);
+    if (fc._html !== fh) { fc.innerHTML = fh; fc._html = fh; enlazarFiltros(catTodo, 't', listaTodo); }
+    listaTodo();
+  }
+  function listaTodo() {
+    var qs = equiposDe(filtrar(catalogoVisible())), r = $('#t-resultados', catTodo);
+    var html = qs.length ? '<div class="cat-todo-grid">' + qs.map(escudoCat).join('') + '</div>' : '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
+    if (r._html === html) return;
+    r.innerHTML = html; r._html = html; enlazarCat(r);
+  }
+  function abrirCatTodo() {
+    armarCatTodo();   // si ya está armado igual, no cambia nada
     $('#t-resultados', catTodo).scrollTop = 0;
+    if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
   }
   function cerrarCatTodo() {
     if (!catTodo || catTodo.hidden) return;
