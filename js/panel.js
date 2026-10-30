@@ -495,7 +495,7 @@
         }
         var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
         if (sep) { cut = sep.playera; pz.short = sep.short; }
-        r.cut = cut; r.short = pz.short || null; r.calceta = pz.calceta || null;
+        r.cut = cut; r.short = pz.short || null; r.calceta = (pz.short || r.persona) ? pz.calceta || null : null;   // calcetas solo en una foto del uniforme completo (en una playera sola, una pieza suelta no son calcetas)
         // la mejor foto: de frente y derecha, grande, sin persona
         r.nota = lado === 'short' ? cut.width * cut.height : M.deFrente(cut) - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
         return r;

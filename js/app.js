@@ -349,15 +349,30 @@
   }
   // Si en algún celular (Safari mide distinto) el paso aún no cabe con el uniforme ya en su mínimo, el paso se
   // encoge parejo lo justo para caber: nunca hay que recorrer nada ni rebota la pantalla.
+  // Además se vuelve a medir cada vez que algo del paso cambia de tamaño después de pintarse (en Safari los escudos y las
+  // letras terminan de cargar después y el paso crecía cuando ya se había medido: de ahí salía el scroll).
+  var vigiaPaso = null, pasoVigilado = null;
+  function medirPaso(c) {
+    var alto = c.clientHeight, todo = c.scrollHeight, hijos = Array.prototype.slice.call(c.children);
+    if (todo > alto + 1 && alto > 40) {
+      var k0 = parseFloat(c.getAttribute('data-k')) || 1, k = Math.max(0.6, k0 * (alto - 2) / todo);
+      c.setAttribute('data-k', k); hijos.forEach(function (h) { h.style.zoom = k; });
+    }
+    c.classList.toggle('cabe', c.scrollHeight <= c.clientHeight + 1);
+  }
   function encajar() {
     var c = $('#paso-cuerpo'); if (!c || probador.hidden || probador.classList.contains('grande')) return;
-    var hijos = Array.prototype.slice.call(c.children);
-    hijos.forEach(function (h) { h.style.zoom = ''; });
-    requestAnimationFrame(function () {
-      var alto = c.clientHeight, todo = c.scrollHeight;
-      if (todo > alto + 1 && alto > 40) { var k = Math.max(0.7, (alto - 2) / todo); hijos.forEach(function (h) { h.style.zoom = k; }); }
-      requestAnimationFrame(function () { c.classList.toggle('cabe', c.scrollHeight <= c.clientHeight + 1); });
-    });
+    c.removeAttribute('data-k'); Array.prototype.forEach.call(c.children, function (h) { h.style.zoom = ''; });
+    requestAnimationFrame(function () { medirPaso(c); });
+    if (pasoVigilado !== c && typeof ResizeObserver === 'function') {
+      if (vigiaPaso) vigiaPaso.disconnect();
+      var pend = false;
+      vigiaPaso = new ResizeObserver(function () { if (pend) return; pend = true; requestAnimationFrame(function () { pend = false; if (document.body.contains(c)) medirPaso(c); }); });
+      vigiaPaso.observe(c); Array.prototype.forEach.call(c.children, function (h) { vigiaPaso.observe(h); });
+      pasoVigilado = c;
+    }
+    $$('img', c).forEach(function (im) { if (!im.complete) im.addEventListener('load', function () { medirPaso(c); }, { once: true }); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (document.body.contains(c)) medirPaso(c); });
   }
   window.addEventListener('resize', function () { ajustarEscenario(); });
   function vigilarMas() {
@@ -397,9 +412,18 @@
     return '<div class="paso"><h3>' + esc(T('inicio_t2')) + '</h3><p class="nota-corta">' + esc(T('inicio_p2')) + '</p><div class="caminos">' +
       (hay ? '<button type="button" class="camino camino-sigue" data-camino="seguir"><span class="ico">' + icono('lapiz') + '</span><div><b>' + esc(T('seguir_armando')) + '</b><span>' + esc(T('seguir_armando_p')) + '</span></div></button>' : '') +
       '<button type="button" class="camino" data-camino="catalogo"><span class="ico">' + icono('lista') + '</span><div><b>' + esc(T('inicio_a')) + '</b><span>' + esc(T('inicio_a_p2')) + '</span></div></button>' +
-      '</div></div>';
+      '</div>' +
+      // en computadora sobra alto junto al uniforme: ahí mismo se ven los equipos, y tocar uno abre su uniforme
+      '<div class="inicio-equipos"><p class="kicker">' + esc(T('p_diseno2')) + '</p>' + tarjetasPorSeccion(catalogoVisible()) + '</div></div>';
   }
   function enlazarInicio() {
+    $$('.inicio-equipos [data-equipo]', tablero).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var q = equiposDe(catalogoVisible()).filter(function (x) { return x.clave === b.getAttribute('data-equipo'); })[0]; if (!q) return;
+        S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = '';
+        abrirProbador(q.items[0], b);
+      });
+    });
     $$('[data-camino]', tablero).forEach(function (b) {
       b.addEventListener('click', function () {
         if (b.getAttribute('data-camino') !== 'seguir') { S.modo = 'catalogo'; S.paso = 0; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; var u = uniformeActual(); if (u) usarBase(u); }

@@ -245,7 +245,7 @@ export function separarConjunto(c, persona) {
   cand.sort((a, b) => b.p - a.p);
   // del dobladillo a la cintura del short el ancho cambia poco; de la manga al torso cambia muchísimo (eso no es un corte)
   const anchoEn = (y) => R[y] - L[y];
-  const elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : c2.pc >= 1.5 || piernas(c2.y)));
+  const elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : piernas(c2.y)));   // abajo tiene que verse un short (piernas o que se abra): un patrocinador de otro color (AKRON) no es un corte
   if (!elegido) return null;
   const corte = elegido.y;
   const parte = (y0, y1) => { const o = lienzo(W, y1 - y0); o.getContext('2d').drawImage(c, 0, -y0); return recortar(o); };
@@ -397,6 +397,18 @@ export async function piezasIA(im) {
     comps.push({ a, x0: x0 * s, y0: y0 * s, x1: Math.min(w, (x1 + 1) * s), y1: Math.min(h, (y1 + 1) * s) });
   }
   comps.sort((p, q) => q.a - p.a);
+  // una playera de rayas blancas sobre fondo blanco puede salir en pedazos pegados: los pedazos que quedan encima o
+  // justo debajo de la pieza grande, a lo ancho de ella, son la misma prenda (el short separado de verdad se vuelve a
+  // separar después si tiene piernas)
+  if (comps.length > 1) {
+    const P0 = comps[0];
+    for (let i = comps.length - 1; i >= 1; i--) {
+      const c = comps[i], solapa = Math.min(P0.x1, c.x1) - Math.max(P0.x0, c.x0), hueco = Math.max(c.y0 - P0.y1, P0.y0 - c.y1);
+      if (solapa > (c.x1 - c.x0) * 0.6 && hueco < h * 0.015) {
+        P0.a += c.a; P0.x0 = Math.min(P0.x0, c.x0); P0.y0 = Math.min(P0.y0, c.y0); P0.x1 = Math.max(P0.x1, c.x1); P0.y1 = Math.max(P0.y1, c.y1); comps.splice(i, 1);
+      }
+    }
+  }
   const base = lienzo(w, h); base.getContext('2d').drawImage(im, 0, 0, w, h);
   const parte = (c) => { const pad = 8, X0 = Math.max(0, c.x0 - pad), Y0 = Math.max(0, c.y0 - pad), X1 = Math.min(w, c.x1 + pad), Y1 = Math.min(h, c.y1 + pad);
     const o = lienzo(X1 - X0, Y1 - Y0); o.getContext('2d').drawImage(base, -X0, -Y0);
