@@ -198,7 +198,6 @@
   function porId(id) { return P.catalogo.filter(function (u) { return u.id === id; })[0]; }
   function enlazarUniformes() {
     $('[data-nuevo]', panel).addEventListener('click', function () {
-      if (ordenados().filter(function (u) { return !u.oculto; }).length >= 10) { A.toast('Ya tienes 10 uniformes en la página. Oculta o manda uno a la papelera para subir otro.'); return; }
       P.scrollLista = $('.pn', panel).scrollTop;
       P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: (P.config.categorias || [])[0] || '', tipo: '3d', fotos: { frente: '', espalda: '', short: '' }, colorShort: '', colorCalceta: '', colorTexto: '#111111', etiquetas: { colores: [], pais: '', equipo: '' }, nuevo: true };
       pintar(0);
@@ -336,16 +335,22 @@
     var M = window.Motor3D;
     return A.cargarArchivo(file).then(function (im) {
       var base = A.aCanvas(im, 1400), r = { av: [], chica: Math.min(im.naturalWidth, im.naturalHeight) < 600, movida: A.nitidez(im) < 22 };
-      return (lado === 'short' ? M.recortarIA(base).then(function (c) { return { playera: c }; }) : M.piezasIA(base)).then(function (pz) {
+      return M.piezasIA(base).then(function (pz) {
+        // en la casilla del short: si la foto trae también la playera, se toma solo el short
+        if (lado === 'short') { var sp = pz.short ? null : M.separarConjunto(pz.playera); pz = { playera: pz.short || (sp && sp.short) || pz.playera }; }
         var cut = pz.playera;
         r.sinFondo = cut.width * cut.height > base.width * base.height * 0.93;
         r.persona = lado !== 'short' && M.tienePersona(cut);
-        if (r.persona) { var q = M.quitarPersona(cut); if (q) { cut = q; if (q.calceta && !pz.calceta) pz.calceta = q.calceta; } }
+        if (r.persona) {
+          // se confirma con la piel (cabeza arriba de los hombros); si no hay, era una playera con tonos raros, no una persona
+          var q = M.quitarPersona(cut); r.persona = !!q;
+          if (q) { cut = q; pz.short = null; if (q.calceta && !pz.calceta) pz.calceta = q.calceta; }   // con alguien puesto, las piezas sueltas son piernas, no un short
+        }
         var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
         if (sep) { cut = sep.playera; pz.short = sep.short; }
         r.cut = cut; r.short = pz.short || null; r.calceta = pz.calceta || null;
         // la mejor foto: de frente y derecha, grande, sin persona
-        r.nota = lado === 'short' ? cut.width * cut.height : M.deFrente(cut) - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0);
+        r.nota = lado === 'short' ? cut.width * cut.height : M.deFrente(cut) - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
         return r;
       });
     });
@@ -430,7 +435,9 @@
       var file = inEsc.files && inEsc.files[0]; if (!file) return;
       A.toast('Preparando el escudo…', true);
       A.cargarArchivo(file).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return im; }); }).then(function (im) {
-        var c = window.Motor3D.recortar(A.aCanvas(im, 700)), r = prepararCanvas(c);
+        // con la IA: sirve igual un logo sobre fondo blanco que un escudo bordado en la playera
+        return window.Motor3D.recortarIA(A.aCanvas(im, 700)).then(function (c) { return prepararCanvas(window.Motor3D.centrarEscudo ? window.Motor3D.centrarEscudo(c) : c); });
+      }).then(function (r) {
         return A.subirConReintento(r.data, 'catalogo').then(function (url) { u.escudo = url; A.toast('Escudo listo'); var box = $('.pn-escudo-img', panel); if (box) box.innerHTML = '<img src="' + esc(url) + '" alt="">'; });
       }).catch(function () { A.toast('No se pudo subir el escudo. Inténtalo otra vez.'); });
     });
@@ -455,6 +462,10 @@
     $('[data-publicar]', panel).addEventListener('click', function () {
       var btn = this;
       if (!u.nombre.trim()) { A.toast('Ponle un nombre al uniforme.'); $('#ed-nombre').focus(); return; }
+      // la página muestra hasta 10 equipos (cada equipo con sus versiones: local, visitante…)
+      var eqDe = function (x) { return String((x.etiquetas && x.etiquetas.equipo) || x.id).trim().toLowerCase(); };
+      var equipos = {}; P.catalogo.forEach(function (x) { if (!x.oculto && x.id !== u.id) equipos[eqDe(x)] = 1; });
+      if (!equipos[eqDe(u)] && Object.keys(equipos).length >= 10) { A.toast('Ya tienes 10 equipos en la página. Oculta uno o súbelo como otra versión de un equipo que ya tienes.'); return; }
       btn.disabled = true; btn.textContent = 'Publicando…';
       // la foto de estudio del catálogo se hace aquí, una sola vez; así el catálogo carga rápido en cualquier celular
       previsualizar().then(function () {

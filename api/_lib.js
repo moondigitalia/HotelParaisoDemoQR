@@ -47,7 +47,7 @@ const DEFAULT_CONFIG = {
   direccion: 'Calle 19 #38, Cancún, Q.R.',
   lema: 'La tienda de las estrellas',
   tallas: ['Niño 6', 'Niño 8', 'Niño 10', 'Niño 12', 'Niño 14', 'Ch', 'M', 'G', 'XG', 'XXG'],
-  categorias: ['Liga MX', 'Liga europea', 'Mundial'],
+  categorias: ['Liga MX', 'Europa', 'Países'],
   historia: '',
   calificacion: '4.3',
   opiniones: '150'
@@ -63,11 +63,12 @@ function rid(n) {
 
 // Config guardada + valores de arranque. Las carpetas viejas de la versión 2D (nunca editadas por el dueño)
 // pasan solas a las nuevas: Liga MX, Liga europea, Mundial.
-const VIEJAS = ['Clásicos', 'Diseños M Sport', 'Equipos de la casa'];
+// (también las de arranque anteriores que el dueño nunca cambió: Liga MX, Liga europea, Mundial)
+const VIEJAS = [['Clásicos', 'Diseños M Sport', 'Equipos de la casa'], ['Liga MX', 'Liga europea', 'Mundial']];
 async function leerConfig() {
   const c = Object.assign({}, DEFAULT_CONFIG, await readJSON('data/config.json', {}));
   const cs = (c.categorias || []).slice().sort();
-  if (cs.length === VIEJAS.length && cs.every((x, i) => x === VIEJAS[i])) c.categorias = DEFAULT_CONFIG.categorias.slice();
+  if (VIEJAS.some((v) => { const o = v.slice().sort(); return cs.length === o.length && cs.every((x, i) => x === o[i]); })) c.categorias = DEFAULT_CONFIG.categorias.slice();
   return c;
 }
 

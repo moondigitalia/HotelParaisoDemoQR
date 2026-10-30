@@ -350,7 +350,7 @@ diffuseColor.rgb *= base;`);
     return aireCache.v;
   }
   function encuadre(w, h, m) {
-    const arriba = Math.min(m[0], h * 0.25), abajo = Math.min(m[1], h * 0.15), hin = Math.max(1, h - arriba - abajo);
+    const arriba = Math.min(m[0], h * 0.45), abajo = Math.min(m[1], h * 0.15), hin = Math.max(1, h - arriba - abajo);
     cam.aspect = w / hin;
     if (arriba || abajo) cam.setViewOffset(w, hin, 0, -arriba, w, h); else cam.clearViewOffset();
     cam.updateProjectionMatrix(); encuadrarFondo(w / h);

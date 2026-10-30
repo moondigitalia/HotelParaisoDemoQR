@@ -306,7 +306,19 @@ export function tienePersona(c) {
   if (nA < 50 || nR < 50) return false;
   let ajeno = 0;
   for (let k = 0; k < 512; k++) if (arriba[k] && resto[k] / nR < 0.004) ajeno += arriba[k];
-  return ajeno / nA > 0.35;
+  if (ajeno / nA > 0.35) return true;
+  // o hay piel arriba (cara y cuello) y en el resto (brazos, piernas): alguien la trae puesta
+  let pielA = 0, totA = 0, piel = 0, tot = 0;
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+    const i = (y * W + x) * 4; if (d[i + 3] < 200) continue;
+    const r = d[i], g = d[i + 1], b = d[i + 2], Y = 0.299 * r + 0.587 * g + 0.114 * b;
+    const Cr = 128 + 0.5 * r - 0.419 * g - 0.081 * b, Cb = 128 - 0.169 * r - 0.331 * g + 0.5 * b;
+    const es = Y > 18 && Cr > 132 && Cr < 178 && Cb > 77 && Cb < 128 && r > g && r > b && g > b - 6;
+    tot++; if (es) piel++;
+    if (y < H * 0.22) { totA++; if (es) pielA++; }
+  }
+  // (solo en fotos de cuerpo entero: una playera sola nunca es el doble de alta que de ancha)
+  return H > W * 1.9 && totA > 50 && pielA / totA > 0.15 && piel / tot > 0.04;
 }
 
 // la espalda limpia a partir de una foto: se quitan logos, patrocinadores, nombre y número viejos, dejando la tela
@@ -392,6 +404,8 @@ export async function piezasIA(im) {
     return recortar(o, sub); };
   if (!comps.length) return { playera: recortar(im, ia) };
   const P = comps[0], res = { playera: recortar(im, ia) };
+  // otra prenda casi igual de grande en la misma foto (frente y espalda juntos): suele ser foto de catálogo, más chica y con marca de agua
+  res.parecidas = comps.slice(1).filter((c) => c.a > P.a * 0.6).length;
   if (comps.length > 1) res.playera = parte(P);
   const pw = P.x1 - P.x0;
   comps.slice(1).forEach((c) => {
@@ -426,9 +440,30 @@ export function quitarPersona(c) {
     const i = k * 4; if (d[i + 3] < 128) continue;
     const r = d[i], gg = d[i + 1], b = d[i + 2], Y = 0.299 * r + 0.587 * gg + 0.114 * b;
     const Cr = 128 + 0.5 * r - 0.419 * gg - 0.081 * b, Cb = 128 - 0.169 * r - 0.331 * gg + 0.5 * b;
-    const piel = Y > 35 && Cr > 136 && Cr < 178 && Cb > 77 && Cb < 128 && r > gg && r > b && gg > b - 6; // la piel tiene más verde que azul; el rosa de una franja no
+    const piel = Y > 18 && Cr > 132 && Cr < 178 && Cb > 77 && Cb < 128 && r > gg && r > b && gg > b - 6; // la piel tiene más verde que azul; el rosa de una franja no
     if (!piel) m[k] = 1;
   }
+  // si casi no hay piel, no es una persona (una playera de color arena, por ejemplo): no se toca
+  let op = 0, tela = 0; for (let k = 0; k < W * H; k++) if (d[k * 4 + 3] >= 128) { op++; if (m[k]) tela++; }
+  if (!op || (op - tela) / op < 0.03) return null;
+  // y tiene que haber una cabeza: piel arriba de los hombros, al centro (una playera con tonos arena no la tiene)
+  { let a0 = 0, mx = 0; const an = new Int32Array(H);
+    for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] >= 128) { if (a < 0) a = x; b = x; } an[y] = a < 0 ? 0 : b - a; if (an[y] > mx) mx = an[y]; }
+    while (a0 < H && an[a0] < mx * 0.6) a0++;
+    let p = 0, t = 0; for (let y = 0; y < a0; y++) for (let x = Math.round(W * 0.3); x < W * 0.7; x++) { const k = y * W + x; if (d[k * 4 + 3] >= 128) { t++; if (!m[k]) p++; } }
+    if (t < 30 || p / t < 0.2) return null; }
+  // la cabeza: todo lo que queda arriba de los hombros (el cuello de la playera sube un poco, se respeta)
+  let anchoMax = 0; const ancho = new Int32Array(H);
+  for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (m[y * W + x]) { if (a < 0) a = x; b = x; } ancho[y] = a < 0 ? 0 : b - a; if (ancho[y] > anchoMax) anchoMax = ancho[y]; }
+  let hombro = 0; while (hombro < H && ancho[hombro] < anchoMax * 0.6) hombro++;
+  const corte = Math.max(0, Math.round(hombro - H * 0.06));
+  for (let y = 0; y < corte; y++) for (let x = 0; x < W; x++) m[y * W + x] = 0;
+  // brazos y cuello en sombra quedan como tiras delgadas pegadas a la playera: se sueltan
+  const rr = Math.max(2, Math.round(W * 0.012)), er = new Uint8Array(W * H);
+  for (let y = rr; y < H - rr; y++) for (let x = rr; x < W - rr; x++) { let ok = 1; for (let t = -rr; t <= rr && ok; t++) if (!m[y * W + x + t] || !m[(y + t) * W + x]) ok = 0; er[y * W + x] = ok; }
+  const ab = new Uint8Array(W * H);
+  for (let y = rr; y < H - rr; y++) for (let x = rr; x < W - rr; x++) if (er[y * W + x]) for (let t = -rr; t <= rr; t++) { ab[y * W + x + t] = 1; ab[(y + t) * W + x] = 1; }
+  for (let k = 0; k < W * H; k++) m[k] = m[k] && ab[k] ? 1 : 0;
   // piezas: la prenda es la pieza grande; el pelo y los zapatos quedan sueltos
   const et = new Int32Array(W * H), comps = []; let n = 0, mejor = 0, mejorA = 0;
   for (let k = 0; k < W * H; k++) {
@@ -463,4 +498,15 @@ export function quitarPersona(c) {
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const k = y * W + x; if (a0[k] && (!a0[k - 1] || !a0[k + 1] || !a0[k - W] || !a0[k + W])) d[k * 4 + 3] = 0; }
   g.putImageData(img, 0, 0);
   const res = recortar(o); res.calceta = calceta; return res;
+}
+
+/* Escudo listo para el círculo: cuadrado, con el peso del dibujo al centro (una estrella arriba o letras abajo
+   no lo empujan hacia un lado), así todos los escudos se ven centrados y del mismo tamaño. */
+export function centrarEscudo(c) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+  let sx = 0, sy = 0, sa = 0;
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) { const a = d[(y * W + x) * 4 + 3]; if (a > 20) { sx += x * a; sy += y * a; sa += a; } }
+  if (!sa) return c;
+  const cx = sx / sa, cy = sy / sa, m = Math.ceil(Math.max(cx, W - cx, cy, H - cy)), S = m * 2;
+  const o = lienzo(S, S); o.getContext('2d').drawImage(c, Math.round(m - cx), Math.round(m - cy)); return o;
 }

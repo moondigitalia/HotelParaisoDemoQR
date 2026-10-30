@@ -7,6 +7,6 @@
   const m=await Motor3D.crear(document.getElementById('a'),{baja:new URLSearchParams(location.search).has('baja')});
   await m.uniforme({frente:await ld(u.fotos.frente), espalda:await ld(u.fotos.espalda), short:await ld(u.fotos.short), manga:u.manga||'corta', colorShort:u.colorShort, colorCalceta:u.colorCalceta, colorFranja:u.colorFranja, numeroShort:u.numeroShort, torso:u.torso});
   await m.taco('negro');
-  window.R=m.foto(480,720,'frente',P.has('silueta')); document.title='listo';
+  m.dorsal({nombre:'JUANPI',numero:'69',color:u.colorTexto,sello:true}); window.R=m.foto(480,720,P.get('vista')||'frente',P.has('silueta')); document.title='listo';
 })();
 </script>

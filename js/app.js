@@ -69,7 +69,12 @@
   };
   var PASOS = ['diseno', 'tacos', 'dorsal', 'equipo', 'listo'];
   function pasos() { return PASOS; }
-  function catalogoVisible() { return (TIENDA.catalogo || []).filter(function (u) { return !u.oculto && !u.borrado && u.tipo === '3d'; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); }).slice(0, 10); }
+  // hasta 10 equipos (cada uno con sus versiones: local, visitante…)
+  function catalogoVisible() {
+    var eqs = {}, n = 0;
+    return (TIENDA.catalogo || []).filter(function (u) { return !u.oculto && !u.borrado && u.tipo === '3d'; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); })
+      .filter(function (u) { var k = String((u.etiquetas && u.etiquetas.equipo) || u.id).trim().toLowerCase(); if (!eqs[k]) { if (n >= 10) return false; eqs[k] = 1; n++; } return true; });
+  }
   function uniformeActual() { var l = catalogoVisible(); return l.filter(function (u) { return u.id === S.baseId; })[0] || l[0] || null; }
   function usarBase(u) {
     S.baseId = u.id;
@@ -277,9 +282,11 @@
   function acomodarDisenos(g) {
     // tarjetas de ~110 px con renglones parejos; si son muchas, el paso se desliza y avisa que hay más
     var n = g.children.length; if (!n) return;
-    var ancho = g.clientWidth, gap = 8, max = Math.max(2, Math.floor((ancho + gap) / (104 + gap)));
+    // los escudos son círculos chicos: caben 5 por renglón en el celular y todos los equipos se ven sin deslizar
+    var objetivo = g.querySelector('.con-escudo') ? 60 : 104;
+    var ancho = g.clientWidth, gap = 8, max = Math.max(2, Math.floor((ancho + gap) / (objetivo + gap)));
     var filas = Math.ceil(n / max), cols = Math.min(max, Math.ceil(n / filas));
-    var w = Math.min(150, Math.floor((ancho - gap * (cols - 1)) / cols));
+    var w = Math.min(objetivo < 100 ? 92 : 150, Math.floor((ancho - gap * (cols - 1)) / cols));
     g.style.gridTemplateColumns = 'repeat(' + cols + ', ' + w + 'px)';
   }
   window.addEventListener('resize', function () { if (!probador.hidden) acomodar(tablero); });
@@ -332,15 +339,12 @@
   /* En celular, los pasos de elegir y escribir nunca llevan scroll: el uniforme toma justo el alto que sobra
      (si el navegador come pantalla con pestañas o barras, el uniforme se achica un poco, las opciones no). */
   var FIJOS = { tacos: 1, dorsal: 1, listo: 1 };
+  // El alto lo reparte la pantalla sola (ver app.css: el uniforme toma todo lo que el paso no ocupa). Aquí solo se
+  // suelta el alto fijo que deja "ver en grande" al regresar.
   function ajustarEscenario() {
-    if (!escenario) return;
-    if (probador.hidden || probador.classList.contains('grande') || !esCelular()) { escenario.style.height = probador.classList.contains('grande') ? escenario.style.height : ''; return; }
-    var id = pasos()[S.paso], c = $('#paso-cuerpo'), v = $('#paso-vista'), b = $('#paso-barra');
-    if (!FIJOS[id] || !c || !v || !b) { escenario.style.height = ''; return; }
-    var cab = v.querySelector('.paso-cab'), cs = getComputedStyle(v);
-    var necesita = (cab ? cab.offsetHeight : 0) + c.scrollHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 8;
-    var ideal = Math.min(window.innerHeight * 0.6, 520), cabe = window.innerHeight - b.offsetHeight - necesita;
-    escenario.style.height = Math.round(Math.max(170, Math.min(ideal, cabe))) + 'px';
+    if (!escenario || probador.classList.contains('grande')) return;
+    escenario.style.height = '';
+    if (motor) motor.redibujar();
   }
   window.addEventListener('resize', function () { ajustarEscenario(); });
   function vigilarMas() {
@@ -473,12 +477,28 @@
     return q.escudo ? '<span class="mini-foto escudo"><img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async"></span>'
       : '<span class="mini-foto"><img src="' + esc(q.items[0].mini) + '" alt="" loading="lazy" decoding="async"></span>';
   }
+  // paso 1: los equipos por sección (Liga MX, Europa, Países…), un renglón por sección con su nombre al lado
+  function tarjetaEquipo(q) {
+    var actual = equipoDeId(S.baseId), on = actual && actual.clave === q.clave;
+    var n = q.items.length > 1 ? '<i class="mini-n" aria-label="' + esc(nUniformes(q.items.length)) + '">' + q.items.length + '</i>' : '';
+    return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '"><span class="mini-cara">' + caraEquipo(q) + n + '</span><span class="mini-nom">' + esc(q.nombre) + '</span></button>';
+  }
+  function tarjetasPorSeccion(lista) {
+    var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
+    var grupos = secs.map(function (c) { return [c, lista.filter(function (u) { return u.categoria === c; })]; });
+    if (sin.length) grupos.push(['', sin]);
+    return '<div class="secciones">' + grupos.map(function (g) {
+      return '<div class="seccion"><span class="etq">' + esc(g[0]) + '</span><div class="mini-grid">' + equiposDe(g[1]).map(tarjetaEquipo).join('') + '</div></div>';
+    }).join('') + '</div>';
+  }
   function tarjetasUniformes(lista) {
     if (!lista.length) return '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
     var actual = equipoDeId(S.baseId), qs = equiposDe(lista);
     return '<div class="mini-grid" id="mini-grid">' + qs.map(function (q) {
       var on = actual && actual.clave === q.clave;
-      return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '">' + caraEquipo(q) + '<span>' + esc(q.nombre) + '</span>' + (q.items.length > 1 ? '<small class="mini-n">' + esc(nUniformes(q.items.length)) + '</small>' : '') + '</button>';
+      // cuántos uniformes trae el equipo: un circulito con el número en la esquina del escudo (sin renglones de más)
+      var n = q.items.length > 1 ? '<i class="mini-n" aria-label="' + esc(nUniformes(q.items.length)) + '">' + q.items.length + '</i>' : '';
+      return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '"><span class="mini-cara">' + caraEquipo(q) + n + '</span><span class="mini-nom">' + esc(q.nombre) + '</span></button>';
     }).join('') + '</div>';
   }
   function tarjetasUniformesViejo(lista) {
@@ -489,7 +509,8 @@
   }
   var VISTAS = {
     diseno: function () {
-      return filtrosHTML('p') + '<div id="p-resultados">' + tarjetasUniformes(filtrar(catalogoVisible())) + '</div>';
+      // con 10 equipos o menos se ven todos de un vistazo: el buscador y las carpetas sobran y empujarían los escudos fuera
+      return '<div id="p-resultados">' + tarjetasPorSeccion(catalogoVisible()) + '</div>';
     },
     tacos: function () {
       var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(T('version')) + '</span><div class="chips llenar">' + q.items.map(function (u) {

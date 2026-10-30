@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><script src="/js/motor3d.js"></script>
+<script>
+(async()=>{const P=new URLSearchParams(location.search),out={};const ld=s=>new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=s;});
+for(const f of P.getAll('f')){const c=await Motor3D.recortarIA(await ld('/scripts/.fuentes/raw/'+f));out[f]=c.toDataURL();}
+window.R=out;document.title='listo';})();
+</script>

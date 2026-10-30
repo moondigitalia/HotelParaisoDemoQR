@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8"><script src="/js/motor3d.js"></script>
+<script>
+(async()=>{const P=new URLSearchParams(location.search),out={};const ld=s=>new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=s;});
+for(const f of P.getAll('f')){const im=await ld('/assets/escudos/'+f);const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);out[f]=Motor3D.centrarEscudo(c).toDataURL('image/png');}
+window.R=out;document.title='listo';})();
+</script>
