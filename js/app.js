@@ -914,6 +914,9 @@
     for (var i = 0; i < items.length; i += C) out.push(items.slice(i, i + C));
     return out;
   }
+  // en el celular, al bajar la página la barra de Safari se esconde y "cambia el tamaño" de la pantalla a cada rato:
+  // solo cuenta como cambio si cambió lo ANCHO (si no, se volvían a crear las imágenes y parpadeaban)
+  function alCambiarAncho(fn) { var w = window.innerWidth; window.addEventListener('resize', function () { if (window.innerWidth === w) return; w = window.innerWidth; fn(); }); }
   function pintarRenglones(cont, items, minAncho, gap, maxCols) {
     var w = cont.clientWidth || cont.parentNode.clientWidth || 320, C = Math.max(1, Math.floor((w + gap) / (minAncho + gap)));
     C = Math.min(C, maxCols || 6); cont.style.setProperty('--cols', C);   // el ancho de cada uno no depende de cuántos haya: uno solo no se hace gigante
@@ -955,7 +958,7 @@
       document.body.appendChild(catTodo);
       $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && !catTodo.hidden) cerrarCatTodo(); });
-      window.addEventListener('resize', function () { var rr = $('#t-resultados', catTodo); if (!catTodo.hidden && rr._pinta) rr._pinta(); });
+      alCambiarAncho(function () { var rr = $('#t-resultados', catTodo); if (!catTodo.hidden && rr._pinta) rr._pinta(); });
     }
     $('h2', catTodo).textContent = T('cat_t');
     $('#t-filtros', catTodo).innerHTML = filtrosHTML('t');
@@ -1070,7 +1073,7 @@
       cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 220, 14, 3);
       // tocar el uniforme lo abre en 3D para girarlo
       $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { abrirProbador(cl[+b.getAttribute('data-cliente')].u, b); }); });
-      if (!cont._oyeAncho) { cont._oyeAncho = 1; window.addEventListener('resize', function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
+      if (!cont._oyeAncho) { cont._oyeAncho = 1; alCambiarAncho(function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
       return;
     }
     cont.classList.remove('clientes'); cont.classList.remove('con-renglones');

@@ -325,7 +325,7 @@
   }
   // uniforme nuevo; si viene de un equipo, ya trae su nombre, sección y escudo
   function nuevoUniforme(e) {
-    P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: e ? e.sec : ((P.config.categorias || [])[0] || ''), tipo: '3d', fotos: { frente: '', espalda: '', short: '' }, colorShort: '', colorCalceta: '', colorTexto: '#111111',
+    pvVista = 'frente'; P.editando = { id: 'u' + Date.now().toString(36), nombre: '', categoria: e ? e.sec : ((P.config.categorias || [])[0] || ''), tipo: '3d', fotos: { frente: '', espalda: '', short: '' }, colorShort: '', colorCalceta: '', colorTexto: '#111111',
       etiquetas: { colores: [], pais: '', equipo: e ? e.nombre : '' }, escudo: e ? e.escudo : '', manga: 'corta', nuevo: true, equipoNuevo: !e };
     pintar(0);
   }
@@ -351,7 +351,7 @@
   function enlazarEquipo() {
     var gr = arbol(), e = equipoDe(gr, P.equipo); if (!e) return;
     $('[data-volver-eq]', panel).addEventListener('click', function () { P.equipo = null; pintar(P.scrollLista || 0); });
-    $$('[data-edit]', panel).forEach(function (b) { b.addEventListener('click', function () { P.editando = A.clone(porId(b.getAttribute('data-edit'))); pintar(0); }); });
+    $$('[data-edit]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = 'frente'; P.editando = A.clone(porId(b.getAttribute('data-edit'))); pintar(0); }); });
     $$('[data-ver-mueve]', panel).forEach(function (b) {
       b.addEventListener('click', function () { var g2 = arbol(), e2 = equipoDe(g2, P.equipo), i = +b.getAttribute('data-i'), j = i + +b.getAttribute('data-ver-mueve'), t = e2.items[i]; e2.items[i] = e2.items[j]; e2.items[j] = t; guardarArbol(g2, 'Orden guardado'); });
     });
@@ -464,7 +464,7 @@
     }
     // arriba lo único que hace falta: fotos → cómo se ve → equipo y versión → Publicar. Lo demás ya viene listo, en "Más opciones"
     var angosto = window.innerWidth <= 980;   // en celular la vista 3D va justo debajo de las fotos; en compu, a un lado
-    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista on" data-pv="frente">Frente</button><button type="button" class="vista" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">Así se verá en la página, con un nombre y número de ejemplo.</p></div>';
+    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">Así se verá en la página, con un nombre y número de ejemplo.</p></div>';
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
       '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
@@ -730,6 +730,8 @@
       // nombre y número: el color de acento de la playera si se lee bien (amarillo en el Barça), si no blanco o negro
       if (lado === 'frente' && !u.colorTextoElegido) u.colorTexto = colorLetras(cut);
       P.avisos = av;
+      // el 3D muestra solo el lado de la foto que acaba de subir (la espalda gira el uniforme; frente o short lo ponen de frente)
+      pvVista = lado === 'espalda' ? 'espalda' : 'frente'; if (mEditor && mEditor.m) mEditor.m.vista(pvVista);
       pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
       var pv = $('.pn-prev3d', panel); if (pv && !pv.hidden) setTimeout(function () { pv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);   // que vea su uniforme en 3D sin buscarlo
       return Promise.all(tareas).then(function () {
@@ -987,17 +989,17 @@
     // cada parte de la página). Las dos partes están siempre y solo se esconde la que no toca, así todo se guarda junto.
     var pag = P.tab === 'pagina';
     return '<div class="pn-form pn-datos"><p class="pn-auto" id="dt-estado">Todo lo que cambies aquí se guarda solo.</p>' +
-      '<div data-parte="datos"' + (pag ? ' hidden' : '') + '><p class="pn-ayuda">Cómo te encuentran y te escriben tus clientes, y cómo te llegan los pedidos.</p>' +
+      '<div data-parte="datos"' + (pag ? ' hidden' : '') + '><p class="pn-ayuda">Cómo te encuentran y te escriben tus clientes, y cómo te llegan los pedidos.</p><div class="pn-dos"><div class="pn-col">' +
       '<h3 class="pn-h">Tu tienda</h3>' +
       '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
       '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
       '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
-      '<h3 class="pn-h">Pedidos</h3>' +
+      '</div><div class="pn-col"><h3 class="pn-h">Pedidos</h3>' +
       '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
       sonidoHTML(c) +
       '<div class="grupo pn-cambia-cod"><h3 class="pn-h">Tu código para entrar</h3><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
-      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div>' +
-      '<div data-parte="pagina"' + (pag ? '' : ' hidden') + '><p class="pn-ayuda">Cada parte de tu página, en el mismo orden en que la ve la gente. Toca una para cambiar lo que dice.</p>' +
+      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div></div></div>' +
+      '<div data-parte="pagina"' + (pag ? '' : ' hidden') + '><p class="pn-ayuda">Cada parte de tu página, en el mismo orden en que la ve la gente. Toca una para cambiar lo que dice.</p><div class="pn-secciones">' +
       grupoTextos('Arriba de todo (lo amarillo)', ['intro_lema'], c) +
       grupoTextos('Arma tu uniforme', ['hero_k', 'hero_t', 'hero_p'], c) +
       grupoTextos('Catálogo', ['cat_t', 'cat_p'], c) +
@@ -1009,7 +1011,7 @@
       grupoTextos('Así de fácil', ['como_t', 'como_1', 'como_2', 'como_3'], c) +
       grupoTextos('Visítanos', ['visita_t', 'escribenos', 'como_llegar'], c) +
       '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
-      '</div></div>';
+      '</div></div></div>';
   }
   // el sonido que suena cuando el cliente manda su cotización: con o sin sonido, el suyo propio y el volumen
   function sonidoHTML(c) {

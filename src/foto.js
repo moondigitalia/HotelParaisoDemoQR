@@ -387,14 +387,19 @@ export function limpiarTela(c, base, dorsal = false) {
 }
 // cuánto de la espalda está ocupado por un nombre/número ya impreso (para limpiarlo)
 export function tieneDorsal(c, base) {
-  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data; let n = 0, t = 0;
-  for (let y = Math.round(H * 0.24); y < H * 0.6; y += 2) for (let x = Math.round(W * 0.3); x < W * 0.7; x += 2) {
+  // un número impreso es una mancha grande en el centro de la espalda, pareja a los dos lados del centro.
+  // Un costado de otro color, un logo de patrocinador o la foto tomada de lado cargan la mancha hacia un lado: eso no es número.
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data; let n = 0, t = 0, izq = 0, der = 0;
+  const x0 = Math.round(W * 0.3), x1 = Math.round(W * 0.7), cx = W / 2;
+  for (let y = Math.round(H * 0.24); y < H * 0.6; y += 2) for (let x = x0; x < x1; x += 2) {
     const i = (y * W + x) * 4; if (d[i + 3] < 200) continue; t++;
     const dA = Math.abs(d[i] - base.A[0]) + Math.abs(d[i + 1] - base.A[1]) + Math.abs(d[i + 2] - base.A[2]);
     const dB = base.B ? Math.abs(d[i] - base.B[0]) + Math.abs(d[i + 1] - base.B[1]) + Math.abs(d[i + 2] - base.B[2]) : 999;
-    if (dA > 95 && dB > 95) n++;
+    if (dA > 95 && dB > 95) { n++; if (x < cx) izq++; else der++; }
   }
-  return t > 0 && n / t > 0.12;
+  if (!(t > 0 && n / t > 0.12)) return false;
+  const par = Math.min(izq, der) / Math.max(1, Math.max(izq, der));
+  return par > 0.55;
 }
 
 // las piezas de una foto con todo el uniforme (playera, short, calcetas acomodados uno junto al otro)

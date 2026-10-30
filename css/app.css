@@ -1054,9 +1054,9 @@ details.pn-mas[open] summary{margin-bottom:6px}
 .eq-casa{gap:18px 14px}
 .eq-casa-item{background:none;border:0;border-radius:0;padding:0;align-items:center;text-align:center}
 .eq-casa-item:hover{border-color:transparent}
-.eq-casa-item img{display:block;width:100%;aspect-ratio:2/3;object-fit:contain;filter:drop-shadow(0 14px 22px rgba(0,0,0,.45))}
+.eq-casa-item img{display:block;width:100%;aspect-ratio:2/3;object-fit:contain}
 .eq-cliente{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-width:0}
-.eq-cliente img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;filter:drop-shadow(0 14px 22px rgba(0,0,0,.45))}
+.eq-cliente img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain}
 .eq-cliente b{font:800 19px/1.05 var(--display);text-transform:uppercase}
 .eq-cliente .redes{display:flex;gap:8px;justify-content:center}
 .eq-cliente .red{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:rgba(255,198,26,.14);color:var(--oro);transition:background var(--rapido) var(--curva),transform var(--rapido) var(--curva)}
@@ -1169,14 +1169,14 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* equipos que visten M Sport: su uniforme con el logo en un circulito; al tocarlo, sus redes */
 .eq-cliente{background:none;border:0;padding:0;color:var(--texto);cursor:pointer}
 .eq-cli-vista{position:relative;display:block;width:100%}
-.eq-cli-vista>img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;filter:drop-shadow(0 14px 22px rgba(0,0,0,.45));transition:transform var(--rapido) var(--curva)}
+.eq-cli-vista>img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;transition:transform var(--rapido) var(--curva)}
 .eq-cliente:hover .eq-cli-vista>img{transform:translateY(-3px)}
 .eq-cli-logo{position:absolute;right:4%;bottom:2%;display:grid;place-items:center;width:34%;aspect-ratio:1/1;border-radius:50%;background:#f4f5f9;box-shadow:0 0 0 3px var(--noche),inset 0 0 0 3px rgba(255,198,26,.6)}
 .eq-cli-logo img{width:70%;height:70%;object-fit:contain}
 .cli-capa .cli-card{position:relative;width:min(420px,100%);max-height:100%;overflow:auto;background:var(--noche);border-radius:28px;padding:22px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
 .cli-card .capa-x{position:absolute;top:12px;right:12px}
 .cli-vista{position:relative;width:min(300px,80%)}
-.cli-vista>img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;filter:drop-shadow(0 16px 26px rgba(0,0,0,.5))}
+.cli-vista>img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain}
 .cli-logo{position:absolute;right:0;bottom:0;display:grid;place-items:center;width:32%;aspect-ratio:1/1;border-radius:50%;background:#f4f5f9;box-shadow:0 0 0 4px var(--noche),inset 0 0 0 3px rgba(255,198,26,.6)}
 .cli-logo img{width:70%;height:70%;object-fit:contain}
 .cli-card h3{margin:4px 0 0;font:800 30px/1 var(--display);text-transform:uppercase}
@@ -1245,3 +1245,24 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-seccion>summary>span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .pn-que-es{display:block;color:var(--suave);font:600 13px/1.35 var(--texto-f,inherit);text-transform:none;letter-spacing:0}
 .pn-datos [data-parte][hidden]{display:none!important}
+/* el mapa con esquinas redondas también en iPhone viejo: Safari no recorta un iframe con overflow, sí con una máscara */
+.mapa{position:relative;isolation:isolate;-webkit-mask-image:-webkit-radial-gradient(white,black);mask-image:radial-gradient(white,black);border:0;box-shadow:inset 0 0 0 1px var(--linea)}
+.mapa iframe{border-radius:inherit}
+/* los dos botones de Visítanos llenan el ancho, mitad y mitad (en celular angosto, uno arriba del otro) */
+.visita-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;width:100%}
+.visita-btns .btn{width:100%;justify-content:center;text-align:center}
+/* panel en compu: ocupa toda la pantalla (la barra para bajar queda en la orilla, no a media pantalla) y el contenido
+   se centra con un ancho cómodo; los datos de la tienda van en dos columnas para no dejar medio panel vacío */
+.pn{max-width:none;padding-left:max(16px,env(safe-area-inset-left,0px),calc((100% - 1100px) / 2));padding-right:max(16px,env(safe-area-inset-right,0px),calc((100% - 1100px) / 2))}
+.pn-datos{max-width:none}
+.pn-dos{display:grid;grid-template-columns:minmax(0,1fr);gap:0 40px}
+.pn-secciones{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start}
+@media (min-width:900px){
+  .pn-dos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pn-secciones{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+/* lo mismo en "Ver todos" del catálogo */
+.cat-todo-in{max-width:none}
+.cat-todo-top,.cat-todo #t-resultados{padding-left:max(16px,env(safe-area-inset-left,0px),calc((100% - 1100px) / 2));padding-right:max(16px,env(safe-area-inset-right,0px),calc((100% - 1100px) / 2))}
+.pn-secciones>details.pn-seccion{margin-top:0}
+.pn-datos>.pn-auto{max-width:none}
