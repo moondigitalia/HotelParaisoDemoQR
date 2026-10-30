@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><script src="/js/motor3d.js"></script>
+<script>
+(async()=>{const P=new URLSearchParams(location.search),out={},M=Motor3D;
+const ld=s=>new Promise(ok=>{const i=new Image();i.onload=()=>ok(i);i.src=s;});
+for(const f of P.getAll('f')){const im=await ld('/scripts/.fuentes/raw/'+f);const a=M.recortar(im);const b=(await M.piezasIA(im)).playera;out[f]={a:a.toDataURL(),b:b.toDataURL(),fa:+M.deFrente(a).toFixed(3),fb:+M.deFrente(b).toFixed(3)};}
+window.R=out;document.title='listo';})().catch(e=>{window.R={error:String(e)};document.title='listo';});
+</script>

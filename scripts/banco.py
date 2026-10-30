@@ -8,7 +8,7 @@ R='/home/claude/m-sport/scripts/.fuentes/raw/'
 CASOS=[
  {'id':'america','cat':'Liga MX','frente':['am_rica.webp','America_completo.jpg','Am_rica_frente_a_Playa.webp'],'espalda':['Am_rica_reverso_playera.webp'],'equipo':'América'},
  {'id':'cruzazul','cat':'Liga MX','frente':['Cruzazul_frente.webp','Cruz_azul__completo_azul.webp','Cruz_azul_completa._Omitir_etiqueta.webp','cz_frente_limpio.webp'],'espalda':['Cruz_azul_reversa.webp','Cruz_azul_completa_reversa.webp','cz_espalda_persona.webp'],'equipo':'Cruz Azul'},
- {'id':'chivas','cat':'Liga MX','frente':['Uniforme_chivas_rojo_frente.webp'],'espalda':['Uniforme_chivas_rojo_atr_s.webp','chivas_espalda2.webp'],'short':['Short_Chivas_frente_.png'],'equipo':'Chivas'},
+ {'id':'chivas','cat':'Liga MX','frente':['Uniforme_chivas_rojo_frente.webp'],'espalda':['chivas_espalda2.webp'],'short':['Short_Chivas_frente_.png'],'equipo':'Chivas'},
  {'id':'barca','cat':'Europa','frente':['barca_frente.jpg','barca_completo.jpg','barca_camisa2.jpg'],'espalda':['barca_atras.jpg'],'equipo':'Barcelona'},
  {'id':'barcam','cat':'Europa','frente':['barca_morado_completo.jpg','barca_morado_camisa.jpg','barca_morado_frente.webp'],'equipo':'Barcelona morado'},
  {'id':'rm','cat':'Europa','frente':['rm_completo.jpg','rm_camisa.jpg'],'espalda':['rm_reverso.webp','rm_nino_espalda.png'],'equipo':'Real Madrid'},

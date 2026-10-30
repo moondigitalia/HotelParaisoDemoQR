@@ -486,12 +486,15 @@ export function quitarPersona(c, fondo) {
   // queda suelto junto a la playera. Se quita todo lo que sea del color exacto del fondo y toque lo que ya se quitó.
   if (fondo) {
     const cerca = (k) => { const i = k * 4; return Math.abs(d[i] - fondo[0]) + Math.abs(d[i + 1] - fondo[1]) + Math.abs(d[i + 2] - fondo[2]) < 26; };
-    const cola = [];
+    const cola = [], quitados = [];
     for (let k = 0; k < W * H; k++) if (!m[k]) cola.push(k);
     while (cola.length) {
       const k = cola.pop(), x = k % W;
-      for (const v of [-1, 1, -W, W]) { const j = k + v; if (j < 0 || j >= W * H || (v === -1 && x === 0) || (v === 1 && x === W - 1)) continue; if (m[j] && cerca(j)) { m[j] = 0; cola.push(j); } }
+      for (const v of [-1, 1, -W, W]) { const j = k + v; if (j < 0 || j >= W * H || (v === -1 && x === 0) || (v === 1 && x === W - 1)) continue; if (m[j] && cerca(j)) { m[j] = 0; cola.push(j); quitados.push(j); } }
     }
+    // si se iba a llevar un pedazo grande, no era fondo: era la playera del mismo color (blanca sobre blanco). Se deja como estaba
+    let tela2 = 0; for (let k = 0; k < W * H; k++) if (m[k]) tela2++;
+    if (quitados.length > (tela2 + quitados.length) * 0.08) quitados.forEach((j) => { m[j] = 1; });
   }
   let anchoMax = 0; const ancho = new Int32Array(H);
   for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (m[y * W + x]) { if (a < 0) a = x; b = x; } ancho[y] = a < 0 ? 0 : b - a; if (ancho[y] > anchoMax) anchoMax = ancho[y]; }
@@ -549,4 +552,45 @@ export function centrarEscudo(c) {
   if (!sa) return c;
   const cx = sx / sa, cy = sy / sa, m = Math.ceil(Math.max(cx, W - cx, cy, H - cy)), S = m * 2;
   const o = lienzo(S, S); o.getContext('2d').drawImage(c, Math.round(m - cx), Math.round(m - cy)); return o;
+}
+
+/* Silueta que la IA "mordió" (playera blanca sobre fondo blanco: se come una manga o un costado).
+   Una playera de frente o de espalda es simétrica: renglón por renglón, el lado que quedó corto se completa
+   copiando su espejo, y los picos sueltos que sobresalen de un solo lado se quitan. Solo se usa con fondo claro y
+   con el cuello al centro (una foto de lado no se toca). */
+export function simetrizar(c) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, op = (x, y) => d[(y * W + x) * 4 + 3] > 128;
+  let sx = 0, n = 0;
+  for (let y = 0; y < H * 0.12; y++) for (let x = 0; x < W; x++) if (op(x, y)) { sx += x; n++; }
+  if (!n) return null;
+  const ax = sx / n;
+  if (Math.abs(ax - W / 2) > W * 0.12) return null;
+  const L = new Float32Array(H), R = new Float32Array(H), hay = new Uint8Array(H);
+  for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (op(x, y)) { if (a < 0) a = x; b = x; } if (a >= 0) { hay[y] = 1; L[y] = ax - a; R[y] = b - ax; } }
+  // ancho "verdadero" de cada renglón: el mayor de los dos lados, sin picos (mediana de los renglones vecinos)
+  const v = Math.max(2, Math.round(H * 0.025)), meta = new Float32Array(H);
+  for (let y = 0; y < H; y++) {
+    if (!hay[y]) continue; const m = [];
+    for (let k = y - v; k <= y + v; k++) if (k >= 0 && k < H && hay[k]) m.push(Math.max(L[k], R[k]));
+    m.sort((p, q) => p - q); meta[y] = Math.min(Math.max(L[y], R[y]), m[m.length >> 1]);
+  }
+  let cambios = 0;
+  for (let y = 0; y < H; y++) if (hay[y] && Math.abs(L[y] - R[y]) > W * 0.03) cambios++;
+  if (cambios < H * 0.04) return null;   // ya está pareja: no se toca
+  const ext = Math.ceil(Math.max(...Array.from(meta))) + 2, nx0 = Math.floor(ax - ext), nw = 2 * ext + 1;
+  const o = lienzo(nw, H), g = o.getContext('2d'); g.drawImage(c, -nx0, 0);
+  const od = g.getImageData(0, 0, nw, H), q = od.data, sv = d;
+  for (let y = 0; y < H; y++) {
+    if (!hay[y]) continue; const t = meta[y];
+    for (let i = 0; i < nw; i++) {
+      const x = nx0 + i, dist = Math.abs(x - ax), k = (y * nw + i) * 4;
+      if (dist > t + 1) { q[k + 3] = 0; continue; }   // pico suelto de un solo lado: fuera
+      if (q[k + 3] > 128) continue;
+      const mx = Math.round(2 * ax - x); if (mx < 0 || mx >= W) continue;
+      const j = (y * W + mx) * 4; if (sv[j + 3] <= 128) continue;
+      q[k] = sv[j]; q[k + 1] = sv[j + 1]; q[k + 2] = sv[j + 2]; q[k + 3] = sv[j + 3];   // lo que faltó: su espejo
+    }
+  }
+  g.putImageData(od, 0, 0);
+  return recortar(o);
 }

@@ -130,7 +130,7 @@ export async function crear(canvas, opt = {}) {
 
   // uniformes del material del uniforme (se comparten entre recompilaciones)
   uni = {
-    uFoto: { value: null }, uEspalda: { value: null }, uManga: { value: null }, uShortTex: { value: null },
+    uFoto: { value: null }, uEspalda: { value: null }, uManga: { value: null }, uShortTex: { value: null }, uDorsal: { value: null }, uShortNum: { value: null }, uHayNum: { value: 0 },
     uCaja: { value: new THREE.Vector4() }, uTorsoF: { value: new THREE.Vector2(0, 1) }, uTorsoB: { value: new THREE.Vector2(0, 1) },
     uAjF: { value: new THREE.Vector3(1, 0, 0) }, uAjB: { value: new THREE.Vector3(1, 0, 0) }, uAjS: { value: new THREE.Vector3(1, 0, 0) },
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
@@ -143,7 +143,7 @@ export async function crear(canvas, opt = {}) {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vMundo; varying vec3 vNormMundo;')
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvMundo = (modelMatrix * vec4(transformed,1.0)).xyz; vNormMundo = normalize(mat3(modelMatrix) * objectNormal);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex;
+uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;`)
@@ -156,12 +156,13 @@ bool atras = vNormMundo.z < 0.0;
 if (t > uZonas.z - 0.01) {
   float ux = (vMundo.x - uCaja.x) / uCaja.z; if (atras) ux = 1.0 - ux;
   vec2 tor = atras ? uTorsoB : uTorsoF;
-  vec2 uv = vec2(tor.x + ux * tor.y, (vMundo.y - uCaja.y) / uCaja.w);
-  vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el dueño acomodó: más grande/chica y movida
+  vec2 uv = vec2(tor.x + ux * tor.y, (vMundo.y - uCaja.y) / uCaja.w), uv0 = uv;
+  vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el dueño acomodó: más grande/chica y movida (el nombre y número no se mueven)
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) f.a = 0.0;
   vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
   base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
+  if (atras) { vec4 nd = texture2D(uDorsal, uv0); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }
 } else if (t > uShortBot) {
   base = uShort;
   if (uHayShort > 0.5) {
@@ -176,6 +177,7 @@ if (t > uZonas.z - 0.01) {
     vec3 sc = s.rgb / max(s.a, 0.004);
     if (atras) s.a *= 1.0 - smoothstep(0.09, 0.12, sx) * (1.0 - smoothstep(0.88, 0.91, sx));
     base = mix(uShort, sc, s.a);
+    if (!atras && uHayNum > 0.5) { vec4 ns = texture2D(uShortNum, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w)); base = mix(base, ns.rgb / max(ns.a, 0.004), ns.a); }
   }
 } else {
   base = uSock;
@@ -320,7 +322,10 @@ diffuseColor.rgb *= base;`);
     }
     const c = document.createElement('canvas'); c.width = shortBase.width; c.height = shortBase.height; const g = c.getContext('2d');
     if (s) g.drawImage(shortBase, 0, 0); else { g.fillStyle = E.colorShort; g.fillRect(0, 0, c.width, c.height); }
-    if (E.numeroShort && d.numero && window.Kit) window.Kit.drawNumber(g, d.numero, c.width * 0.17, c.height * 0.74, c.height * 0.11, d.color, false, c.width * 0.11);
+    // el número chico va en su propia capa: si el dueño acomoda la foto del short, el número no se mueve
+    const cn = document.createElement('canvas'); cn.width = c.width; cn.height = c.height;
+    const hay = E.numeroShort && d.numero && window.Kit; if (hay) window.Kit.drawNumber(cn.getContext('2d'), d.numero, c.width * 0.17, c.height * 0.74, c.height * 0.11, d.color, false, c.width * 0.11);
+    uni.uHayNum.value = hay ? 1 : 0; poner(uni.uShortNum, textura(cn));
     uni.uHayShort.value = 1; poner(uni.uShortTex, textura(c));
   }
   // la espalda lleva el nombre y el número del cliente encima de la foto
@@ -335,12 +340,14 @@ diffuseColor.rgb *= base;`);
     }
     const [bx0, bw] = E.torso ? (E.fotos.espalda ? E.torso : [1 - E.torso[0] - E.torso[1], E.torso[1]]) : torsoFoto(c, 0.30);
     const cx = (bx0 + bw / 2) * c.width, ancho = bw * c.width, d = E.dorsal;
+    // nombre y número en su propia capa: se quedan en su lugar aunque el dueño mueva o agrande la foto
+    const cd = document.createElement('canvas'); cd.width = c.width; cd.height = c.height; const gd = cd.getContext('2d');
     if (window.Kit && (d.nombre || d.numero)) {
       const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
-      window.Kit.drawName(g, d.nombre, cx, H * (0.2 + dy), H * 0.075, d.color, ancho * 0.72);
-      window.Kit.drawNumber(g, d.numero, cx, H * (0.245 + dy), H * 0.31, d.color, d.sello !== false, ancho * 0.72);
+      window.Kit.drawName(gd, d.nombre, cx, H * (0.2 + dy), H * 0.075, d.color, ancho * 0.72);
+      window.Kit.drawNumber(gd, d.numero, cx, H * (0.245 + dy), H * 0.31, d.color, d.sello !== false, ancho * 0.72);
     }
-    poner(uni.uEspalda, textura(c));
+    poner(uni.uEspalda, textura(c)); poner(uni.uDorsal, textura(cd));
     const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew);
   }
 
@@ -441,8 +448,9 @@ diffuseColor.rgb *= base;`);
         if (!activo || e.pointerId !== id) return;
         const dx = e.clientX - x0, dy = e.clientY - y0;
         if (!decidido) {
-          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-          if (Math.abs(dy) > Math.abs(dx)) { activo = false; return; }
+          // solo un deslizamiento claro de lado y dentro del cuadro del 3D lo gira: un roce o subir la pantalla no
+          if (Math.abs(dy) > 10 && Math.abs(dy) * 1.2 > Math.abs(dx)) { activo = false; return; }
+          if (Math.abs(dx) < 16 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
           decidido = true; try { canvas.setPointerCapture(id); } catch (_) {}
           if (animando) { cancelAnimationFrame(animando.id); animando = null; } a0 = E.vista - dx / ancho() * Math.PI;
         }

@@ -591,7 +591,7 @@
         if (mEditor && mEditor.m) mEditor.m.destruir();
         mEditor = { lienzo: c, p: window.Motor3D.crear(c).then(function (m) {
           // deslizar a los lados también voltea la vista previa
-          // en el panel el 3D no gira con el dedo (se movía sin querer al deslizar la pantalla): se cambia con Frente / Espalda
+          if (m.deslizable) m.deslizable(function (v) { pvVista = v; $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === v); }); });   // girar solo deslizando dentro del cuadro del 3D
           return m;
         }) };
       }
@@ -653,6 +653,7 @@
         if (lado === 'short') { var sp = pz.short ? null : M.separarConjunto(pz.playera); pz = { playera: pz.short || (sp && sp.short) || pz.playera }; }
         var cut = pz.playera;
         // sin fondo = casi toda la foto quedó como prenda (no basta con que la prenda llene el cuadro: sus orillas sí se quitaron)
+        r.fondo = colorFondo(base);
         r.sinFondo = (function () { var t = A.aCanvas(cut, 120), d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data, n = 0; for (var i = 3; i < d.length; i += 4) if (d[i] > 128) n++; return n / (d.length / 4) * (cut.width * cut.height) / (base.width * base.height) > 0.9; })();
         r.persona = lado !== 'short' && M.tienePersona(cut);
         if (r.persona) {
@@ -662,6 +663,9 @@
         }
         var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
         if (sep) { cut = sep.playera; pz.short = sep.short; }
+        // fondo blanco y playera con blanco: la IA se come mangas o costados. La playera es simétrica: se completa con su espejo
+        var fz = colorFondo(base);
+        if (!r.persona && lado !== 'short' && M.simetrizar && fz && fz[0] + fz[1] + fz[2] > 600) { var sm = M.simetrizar(cut); if (sm) { cut = sm; r.reparada = true; } }
         r.cut = cut; r.short = pz.short || null; r.calceta = (pz.short || r.persona) ? pz.calceta || null : null;   // calcetas solo en una foto del uniforme completo (en una playera sola, una pieza suelta no son calcetas)
         // la mejor foto: de frente y derecha, grande, sin persona
         r.frente = lado === 'short' ? 1 : M.deFrente(cut);
@@ -688,7 +692,9 @@
       if (r.chica) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
       if (r.movida) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
       if (r.persona) av.push('La foto traía a alguien con el uniforme puesto: tomamos solo la ropa.');
-      if (lado !== 'short' && r.frente < 0.78) av.push('La playera viene un poco de lado y puede verse chueca. Si tienes una foto de frente, súbela aquí.');
+      var fondoClaro = r.fondo && r.fondo[0] + r.fondo[1] + r.fondo[2] > 600;
+      if (lado !== 'short' && r.frente < 0.6 && fondoClaro) av.push('No pudimos separar bien la playera del fondo blanco: se comió una parte de la playera. Pasa cuando la playera también tiene blanco. Tómala sobre un fondo de color (piso, sábana oscura) o sube otra foto.');
+      else if (lado !== 'short' && r.frente < 0.78) av.push('La playera viene un poco de lado y puede verse chueca. Si tienes una foto de frente, súbela aquí.');
       if (lado === 'espalda' && M.tieneDorsal(cut, M.coloresBase(cut))) {
         // solo el nombre y el número: los patrocinadores de arriba (junto al cuello) y de abajo se quedan
         cut = M.limpiarTela(cut, M.coloresBase(cut), true);
