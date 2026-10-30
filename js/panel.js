@@ -318,7 +318,7 @@
     var oculto = !visibleEq(e);
     return '<button type="button" class="link-x" data-volver-eq>← Uniformes</button><h3 class="pn-h">' + esc(e.nombre || 'Equipo') + '</h3><div class="pn-form">' +
       '<div class="fila2"><div class="grupo"><label for="eq-nombre">Nombre del equipo</label><input class="campo" id="eq-nombre" maxlength="40" value="' + esc(e.nombre) + '"></div>' +
-      '<div class="grupo"><span class="etq">Escudo</span><label class="pn-escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label></div></div>' +
+      '<div class="grupo"><span class="etq">Escudo</span><label class="pn-escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label>' + (e.escudo ? '<button type="button" class="chip pn-mini-chip" data-esc-acomodar>⤢ Acomodar</button>' : '') + '</div></div>' +
       '<div class="grupo"><label for="eq-sec">Sección</label><select class="campo" id="eq-sec">' + secs.map(function (s) { return '<option' + (s === e.sec ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '<option value=""' + (e.sec ? '' : ' selected') + '>Sin sección</option></select></div>' +
       '<div class="grupo"><span class="etq">Sus uniformes <small>(toca uno para cambiar sus fotos o colores; el primero es el que se ve primero)</small></span><div class="pn-lista">' + e.items.map(function (u, i) {
         return '<div class="pn-fila pn-uni' + (u.oculto ? ' apagado' : '') + '"><button type="button" class="pn-abrir" data-edit="' + esc(u.id) + '"><img class="pn-th" src="' + esc(u.mini || '') + '" alt="">' +
@@ -339,6 +339,8 @@
       b.addEventListener('click', function () { var g2 = arbol(), e2 = equipoDe(g2, P.equipo), i = +b.getAttribute('data-i'), j = i + +b.getAttribute('data-ver-mueve'), t = e2.items[i]; e2.items[i] = e2.items[j]; e2.items[j] = t; guardarArbol(g2, 'Orden guardado'); });
     });
     $('[data-ver-nueva]', panel).addEventListener('click', function () { nuevoUniforme(e); });
+    var escA = $('[data-esc-acomodar]', panel);
+    if (escA) escA.addEventListener('click', function () { reacomodar(e.escudo, 'escudo').then(function (url) { e.escudo = url; var box = $('.pn-escudo-img', panel); if (box) box.innerHTML = '<img src="' + esc(url) + '" alt="">'; A.toast('Escudo acomodado. Toca Guardar.'); }).catch(function (x) { if (!x || !x.cancelado) A.toast('No se pudo. Inténtalo otra vez.'); }); });
     var inEsc = $('[data-escudo-eq]', panel);
     inEsc.addEventListener('change', function () {
       var file = inEsc.files && inEsc.files[0]; if (!file) return;
@@ -589,7 +591,7 @@
         if (mEditor && mEditor.m) mEditor.m.destruir();
         mEditor = { lienzo: c, p: window.Motor3D.crear(c).then(function (m) {
           // deslizar a los lados también voltea la vista previa
-          if (m.deslizable) m.deslizable(function (v) { pvVista = v; $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === v); }); });
+          // en el panel el 3D no gira con el dedo (se movía sin querer al deslizar la pantalla): se cambia con Frente / Espalda
           return m;
         }) };
       }
@@ -736,12 +738,71 @@
     }).catch(function () { A.toast('No se pudo hacer la otra versión. Inténtalo otra vez.'); });
   }
   // el escudo: la IA de su celular le quita el fondo (sirve un logo sobre blanco o un escudo bordado en la playera) y se centra
+  /* Encuadrar una imagen a mano: se arrastra con el dedo, se hace más grande o más chica (con dos dedos o con − +).
+     tipo 'escudo': se ve dentro del círculo blanco tal cual quedará en la página (el logo vive en el 70% del círculo).
+     tipo 'foto': cuadro completo (la foto del uniforme de un equipo). Devuelve el lienzo final o null si cancela. */
+  function encuadrar(src, tipo) {
+    return new Promise(function (listo) {
+      var esc0 = tipo === 'escudo', S = 600, area = esc0 ? Math.round(S * 0.7) : S, a0 = (S - area) / 2;   // en el escudo, lo que se guarda es el cuadro del centro
+      var W = src.naturalWidth || src.width, H = src.naturalHeight || src.height;
+      var k = Math.min(area / W, area / H) * (esc0 ? 0.96 : 0.94), ox = 0, oy = 0;
+      var cap = document.createElement('div'); cap.className = 'pn-borrador pn-encuadre';
+      cap.innerHTML = '<div class="pn-borrador-c"><p><b>Acomódalo con el dedo</b>: arrástralo para moverlo y usa − + (o dos dedos) para el tamaño. ' + (esc0 ? 'Así se verá en el círculo.' : 'Así se verá en la página.') + '</p>' +
+        '<div class="pn-encuadre-marco' + (esc0 ? ' circulo' : '') + '"><canvas width="' + S + '" height="' + S + '"></canvas></div>' +
+        '<div class="pn-encuadre-z"><button type="button" class="btn btn-linea" data-z="-">−</button><button type="button" class="btn btn-linea" data-z="0">Centrar</button><button type="button" class="btn btn-linea" data-z="+">+</button></div>' +
+        '<div class="pn-borrador-b"><button type="button" class="btn btn-linea" data-b="no">Cancelar</button><button type="button" class="btn btn-oro" data-b="si">Listo</button></div></div>';
+      document.body.appendChild(cap);
+      var c = $('canvas', cap), g = c.getContext('2d'), k0 = k;
+      function dibujar() {
+        g.clearRect(0, 0, S, S);
+        if (esc0) { g.fillStyle = '#f4f5f9'; g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 2, 0, 7); g.fill(); }
+        var w = W * k, h = H * k, x = S / 2 - w / 2 + ox, y = S / 2 - h / 2 + oy;
+        g.save(); if (esc0) { g.globalAlpha = 0.25; g.drawImage(src, x, y, w, h); g.globalAlpha = 1; g.beginPath(); g.rect(a0, a0, area, area); g.clip(); }
+        g.drawImage(src, x, y, w, h); g.restore();
+        if (esc0) { g.lineWidth = 14; g.strokeStyle = 'rgba(255,198,26,.6)'; g.beginPath(); g.arc(S / 2, S / 2, S / 2 - 8, 0, 7); g.stroke(); }
+      }
+      dibujar();
+      var ptrs = {}, d0 = 0, k1 = k, base = null;
+      function escala() { var r = c.getBoundingClientRect(); return S / r.width; }
+      c.addEventListener('pointerdown', function (e) { e.preventDefault(); c.setPointerCapture(e.pointerId); ptrs[e.pointerId] = [e.clientX, e.clientY]; var ids = Object.keys(ptrs); if (ids.length === 2) { var p1 = ptrs[ids[0]], p2 = ptrs[ids[1]]; d0 = Math.hypot(p1[0] - p2[0], p1[1] - p2[1]); k1 = k; } base = [e.clientX, e.clientY, ox, oy]; });
+      c.addEventListener('pointermove', function (e) {
+        if (!ptrs[e.pointerId]) return; ptrs[e.pointerId] = [e.clientX, e.clientY]; var ids = Object.keys(ptrs), f = escala();
+        if (ids.length >= 2) { var p1 = ptrs[ids[0]], p2 = ptrs[ids[1]], d = Math.hypot(p1[0] - p2[0], p1[1] - p2[1]); if (d0) k = Math.max(k0 * 0.2, Math.min(k0 * 5, k1 * d / d0)); }
+        else if (base) { ox = base[2] + (e.clientX - base[0]) * f; oy = base[3] + (e.clientY - base[1]) * f; }
+        dibujar();
+      });
+      ['pointerup', 'pointercancel'].forEach(function (ev) { c.addEventListener(ev, function (e) { delete ptrs[e.pointerId]; var ids = Object.keys(ptrs); base = ids.length ? [ptrs[ids[0]][0], ptrs[ids[0]][1], ox, oy] : null; d0 = 0; }); });
+      $$('[data-z]', cap).forEach(function (b) {
+        var rep = null;
+        function z() { var q = b.getAttribute('data-z'); if (q === '0') { k = k0; ox = oy = 0; } else k = Math.max(k0 * 0.2, Math.min(k0 * 5, k * (q === '+' ? 1.04 : 1 / 1.04))); dibujar(); }
+        b.addEventListener('pointerdown', function (e) { e.preventDefault(); z(); if (b.getAttribute('data-z') !== '0') b._t = setTimeout(function () { rep = setInterval(z, 60); }, 350); });
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(b._t); clearInterval(rep); }); });
+      });
+      cap.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-b]'); if (!b) return;
+        if (b.getAttribute('data-b') === 'no') { cap.remove(); listo(null); return; }
+        var o = document.createElement('canvas'); o.width = o.height = area; var og = o.getContext('2d');
+        var w = W * k, h = H * k; og.drawImage(src, S / 2 - w / 2 + ox - a0, S / 2 - h / 2 + oy - a0, w, h);
+        cap.remove(); listo(o);
+      });
+    });
+  }
   function subirEscudo(file) {
     A.toast('Preparando el escudo…', true);
     return A.cargarArchivo(file).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return im; }); }).then(function (im) {
-      return window.Motor3D.recortarIA(A.aCanvas(im, 700)).then(function (c) { return prepararCanvas(window.Motor3D.centrarEscudo ? window.Motor3D.centrarEscudo(c) : c); });
-    }).then(function (r) { return A.subirConReintento(r.data, 'catalogo'); }).then(function (url) { A.toast('Escudo listo'); return url; })
-      .catch(function (e) { A.toast('No se pudo subir el escudo. Inténtalo otra vez.'); throw e; });
+      return window.Motor3D.recortarIA(A.aCanvas(im, 700)).then(function (c) { return window.Motor3D.centrarEscudo ? window.Motor3D.centrarEscudo(c) : c; });
+    }).then(function (c) { return encuadrar(c, 'escudo'); }).then(function (c) {
+      if (!c) { var e = new Error('cancelado'); e.cancelado = true; throw e; }
+      return A.subirConReintento(prepararCanvas(c).data, 'catalogo');
+    }).then(function (url) { A.toast('Escudo listo'); return url; })
+      .catch(function (e) { if (!e || !e.cancelado) A.toast('No se pudo subir el escudo. Inténtalo otra vez.'); throw e; });
+  }
+  // volver a acomodar una imagen ya subida (sin subirla otra vez desde el celular)
+  function reacomodar(url, tipo) {
+    return imagenP(url).then(function (im) { if (!im) throw new Error('img'); return encuadrar(im, tipo); }).then(function (c) {
+      if (!c) { var e = new Error('cancelado'); e.cancelado = true; throw e; }
+      A.toast('Guardando…', true); return A.subirConReintento(prepararCanvas(c).data, 'catalogo');
+    });
   }
   function enlazarEditor() {
     var u = P.editando;
@@ -847,10 +908,16 @@
   }
   // equipos que visten M Sport: foto del uniforme que les hiciste, nombre y hasta 3 redes
   function clientesHTML(c) {
-    var l = c.clientes || [];
+    var l = c.clientes || [], unis = ordenados();
     return '<div class="pn-clientes"><span class="etq">Los equipos <small>(si no agregas ninguno, se ven tus uniformes destacados)</small></span>' + l.map(function (x, i) {
-      return '<div class="pn-cliente" data-cli="' + i + '"><label class="pn-cli-foto">' + (x.foto ? '<img src="' + esc(x.foto) + '" alt="">' : '<b>+</b><small>Foto</small>') + '<input type="file" accept="image/*" data-cli-foto="' + i + '" hidden></label>' +
+      var uc = unis.filter(function (u) { return u.id === x.uni; })[0], ver = x.foto || (uc && (uc.silueta || uc.mini));
+      return '<div class="pn-cliente" data-cli="' + i + '">' +
+        '<div class="pn-cli-vista"><span class="pn-cli-foto">' + (ver ? '<img src="' + esc(ver) + '" alt="">' : '<small>Su uniforme</small>') + '</span>' +
+        '<span class="pn-cli-esc">' + (x.escudo ? '<img src="' + esc(x.escudo) + '" alt="">' : '<small>Logo</small>') + '</span></div>' +
         '<div class="pn-cli-datos"><input class="campo" data-cli-k="nombre" maxlength="40" placeholder="Nombre del equipo" value="' + esc(x.nombre || '') + '">' +
+        '<label class="etq">Su uniforme</label><select class="campo" data-cli-k="uni"><option value="">Una foto mía (la subo abajo)</option>' + unis.map(function (u) { return '<option value="' + esc(u.id) + '"' + (u.id === x.uni ? ' selected' : '') + '>' + esc(u.nombre) + '</option>'; }).join('') + '</select>' +
+        '<div class="pn-cli-botones"><label class="chip">' + (x.foto ? 'Cambiar foto' : 'Subir foto') + '<input type="file" accept="image/*" data-cli-foto="' + i + '" hidden></label>' + (x.foto ? '<button type="button" class="chip" data-cli-acomodar="foto" data-i="' + i + '">⤢ Acomodar foto</button>' : '') +
+        '<label class="chip">' + (x.escudo ? 'Cambiar logo' : 'Subir logo') + '<input type="file" accept="image/*" data-cli-esc="' + i + '" hidden></label>' + (x.escudo ? '<button type="button" class="chip" data-cli-acomodar="escudo" data-i="' + i + '">⤢ Acomodar logo</button>' : '') + '</div>' +
         '<input class="campo" data-cli-k="ig" placeholder="Instagram (@usuario)" value="' + esc(x.ig || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="fb" placeholder="Facebook (link)" value="' + esc(x.fb || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="tt" placeholder="TikTok (@usuario)" value="' + esc(x.tt || '') + '" autocapitalize="off">' +
@@ -966,14 +1033,29 @@
     var cliMas = $('[data-cli-mas]', panel);
     if (cliMas) cliMas.addEventListener('click', function () { P.leerDatos(); c.clientes = (c.clientes || []).concat([{ id: Math.random().toString(36).slice(2, 10), nombre: '', foto: '' }]); pintar(); var r = $$('[data-cli]', panel).pop(); if (r) { r.scrollIntoView({ block: 'center', behavior: 'smooth' }); var n = $('[data-cli-k="nombre"]', r); if (n) n.focus(); } });
     $$('[data-cli-quita]', panel).forEach(function (b) { dobleToque(b, '¿Seguro? Toca otra vez', function () { P.leerDatos(); c.clientes.splice(+b.getAttribute('data-cli-quita'), 1); pintar(); P.guardarDatos(); }); });
+    $$('[data-cli-k="uni"]', panel).forEach(function (sel) { sel.addEventListener('change', function () { P.leerDatos(); var i = +sel.closest('[data-cli]').getAttribute('data-cli'); if (sel.value) c.clientes[i].foto = ''; pintar(); P.guardarDatos(); }); });   // si escoge un uniforme del catálogo, ese manda (se quita la foto)
+    function subirCli(i, campo, url) { P.leerDatos(); c.clientes[i][campo] = url; A.toast(campo === 'escudo' ? 'Logo listo' : 'Foto lista'); pintar(); P.guardarDatos(); }
     $$('[data-cli-foto]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () {
         var f = inp.files && inp.files[0], i = +inp.getAttribute('data-cli-foto'); if (!f) return;
         A.toast('Preparando la foto…', true);
         A.cargarArchivo(f).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return window.Motor3D ? window.Motor3D.recortarIA(A.aCanvas(im, 1200)) : A.aCanvas(im, 1200); }); })
-          .then(function (cut) { return A.subirConReintento(prepararCanvas(cut).data, 'catalogo'); })
-          .then(function (url) { P.leerDatos(); c.clientes[i].foto = url; A.toast('Foto lista'); pintar(); P.guardarDatos(); })
-          .catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
+          .then(function (cut) { return encuadrar(cut, 'foto'); })
+          .then(function (cv) { if (!cv) throw { cancelado: true }; return A.subirConReintento(prepararCanvas(cv).data, 'catalogo'); })
+          .then(function (url) { subirCli(i, 'foto', url); })
+          .catch(function (e) { if (!e || !e.cancelado) A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
+      });
+    });
+    $$('[data-cli-esc]', panel).forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var f = inp.files && inp.files[0], i = +inp.getAttribute('data-cli-esc'); if (!f) return;
+        subirEscudo(f).then(function (url) { subirCli(i, 'escudo', url); }).catch(function () {});
+      });
+    });
+    $$('[data-cli-acomodar]', panel).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var i = +b.getAttribute('data-i'), campo = b.getAttribute('data-cli-acomodar');
+        reacomodar(c.clientes[i][campo], campo === 'escudo' ? 'escudo' : 'foto').then(function (url) { subirCli(i, campo, url); }).catch(function (e) { if (!e || !e.cancelado) A.toast('No se pudo. Inténtalo otra vez.'); });
       });
     });
     enlazarSonido();

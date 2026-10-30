@@ -3859,6 +3859,8 @@ if (t > uZonas.z - 0.01) {
     // la foto del short se acomoda en lo que se ve de frente; los costados toman la franja de la orilla
     float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0); if (atras) sx = 1.0 - sx;
     vec2 suv = (vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w) - 0.5) / uAjS.x + 0.5 - uAjS.yz;
+    // atr\xE1s: solo la franja de la orilla del short (se toma la columna de la orilla, as\xED nunca se repiten logos de los lados)
+    if (atras) suv.x = suv.x < 0.5 ? 0.02 : 0.98;
     vec4 s = texture2D(uShortTex, suv);
     if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) s.a = 0.0;
     // atr\xE1s solo van las franjas de los lados: escudos y logos del short van al frente

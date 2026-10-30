@@ -550,7 +550,7 @@
   function filaSeccion(eqs) {
     if (eqs.length <= 3) return '<div class="mini-grid">' + eqs.map(tarjetaEquipo).join('') + '</div>';
     var pags = [], actual = equipoDeId(S.baseId), ini = 0;
-    pags = renglones(eqs, 3);   // de 3 en 3; la última página, centrada
+    pags = renglones(eqs, 3);   // de 3 en 3; la última página pegada a la izquierda (cuadra con las columnas de abajo)
     pags.forEach(function (pg, k) { if (actual && pg.some(function (q) { return q.clave === actual.clave; })) ini = k; });
     var n = pags.length;
     return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%;transform:translateX(' + (-ini * 100 / n) + '%)">' +
@@ -914,9 +914,9 @@
     for (var i = 0; i < items.length; i += C) out.push(items.slice(i, i + C));
     return out;
   }
-  function pintarRenglones(cont, items, minAncho, gap) {
+  function pintarRenglones(cont, items, minAncho, gap, maxCols) {
     var w = cont.clientWidth || cont.parentNode.clientWidth || 320, C = Math.max(1, Math.floor((w + gap) / (minAncho + gap)));
-    cont.style.setProperty('--cols', Math.min(C, items.length));
+    C = Math.min(C, maxCols || 6); cont.style.setProperty('--cols', C);   // el ancho de cada uno no depende de cuántos haya: uno solo no se hace gigante
     cont.innerHTML = renglones(items, C).map(function (fila) { return '<div class="renglon">' + fila.join('') + '</div>'; }).join('');
   }
   function escudoCat(q) {
@@ -1045,18 +1045,39 @@
     if (/^(www\.)?(instagram|facebook|tiktok)\.com/i.test(v)) return 'https://' + v;
     return REDES[tipo][1] + v.replace(/^@/, '');
   }
+  // al tocar un equipo: su uniforme en grande, su logo, sus redes y (si es de los del catálogo) verlo en 3D
+  var capaCli = null;
+  function verCliente(x) {
+    if (!capaCli) {
+      capaCli = document.createElement('div'); capaCli.className = 'capa cli-capa'; capaCli.hidden = true; document.body.appendChild(capaCli);
+      capaCli.addEventListener('click', function (e) { if (e.target === capaCli || e.target.closest('[data-cli-cerrar]')) cerrarCli(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && capaCli && !capaCli.hidden) cerrarCli(); });
+    }
+    var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
+      return '<a class="cli-red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg>' + REDES[t][0] + '</a>';
+    }).join('');
+    capaCli.innerHTML = '<div class="cli-card" role="dialog" aria-modal="true" aria-label="' + esc(x.nombre) + '"><button type="button" class="capa-x" data-cli-cerrar aria-label="' + esc(T('cerrar')) + '">×</button>' +
+      '<div class="cli-vista">' + (x.img ? '<img src="' + esc(x.img) + '" alt="">' : '') + (x.logo ? '<span class="cli-logo"><img src="' + esc(x.logo) + '" alt=""></span>' : '') + '</div>' +
+      '<h3>' + esc(x.nombre) + '</h3>' + (redes ? '<div class="cli-redes">' + redes + '</div>' : '') +
+      (x.u ? '<button type="button" class="btn btn-oro cli-3d" data-cli-3d>' + esc(T('folio_armar')) + '</button>' : '') + '</div>';
+    var b3 = $('[data-cli-3d]', capaCli); if (b3) b3.addEventListener('click', function () { cerrarCli(); abrirProbador(x.u, b3); });
+    if (capaCli.hidden) { window.FIJAR.on(); capaCli.hidden = false; }
+  }
+  function cerrarCli() { if (capaCli && !capaCli.hidden) { capaCli.hidden = true; window.FIJAR.off(); } }
   function pintarEquiposCasa() {
     var cont = $('#eq-casa'); if (!cont) return;
-    var cl = (TIENDA.config.clientes || []).filter(function (x) { return x.foto || x.nombre; });
+    var cl = (TIENDA.config.clientes || []).map(function (x) {
+      var u = x.uni ? catalogoVisible().filter(function (y) { return y.id === x.uni; })[0] : null, q = u ? equiposDe([u])[0] : null;
+      return Object.assign({}, x, { u: u, img: x.foto || (u && (u.silueta || u.mini)) || '', logo: x.escudo || (q && q.escudo) || '' });
+    }).filter(function (x) { return x.img || x.nombre; });
     if (cl.length) {
       cont.classList.add('clientes');
-      var piezas = cl.map(function (x) {
-        var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
-          return '<a class="red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener" aria-label="' + esc(REDES[t][0] + ' de ' + x.nombre) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg></a>';
-        }).join('');
-        return '<div class="eq-cliente">' + (x.foto ? '<img src="' + esc(x.foto) + '" alt="' + esc(x.nombre) + '" loading="lazy" decoding="async">' : '') + '<b>' + esc(x.nombre) + '</b>' + (redes ? '<span class="redes">' + redes + '</span>' : '') + '</div>';
+      var piezas = cl.map(function (x, i) {
+        return '<button type="button" class="eq-cliente" data-cliente="' + i + '"><span class="eq-cli-vista">' + (x.img ? '<img src="' + esc(x.img) + '" alt="" loading="lazy" decoding="async">' : '') +
+          (x.logo ? '<span class="eq-cli-logo"><img src="' + esc(x.logo) + '" alt="" loading="lazy" decoding="async"></span>' : '') + '</span><b>' + esc(x.nombre) + '</b></button>';
       });
-      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 130, 14);
+      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 150, 14, 4);
+      $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { verCliente(cl[+b.getAttribute('data-cliente')]); }); });
       if (!cont._oyeAncho) { cont._oyeAncho = 1; window.addEventListener('resize', function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
       return;
     }

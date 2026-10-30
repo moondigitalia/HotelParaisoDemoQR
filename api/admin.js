@@ -133,8 +133,10 @@ module.exports = async (req, res) => {
         id: String(x.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 16) || Math.random().toString(36).slice(2, 10),
         nombre: String(x.nombre || '').slice(0, 40),
         foto: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(x.foto || '')) ? String(x.foto) : '',
+        escudo: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(x.escudo || '')) ? String(x.escudo) : '',
+        uni: String(x.uni || '').replace(/[^a-z0-9-]/gi, '').slice(0, 60),
         ig: red(x.ig), fb: red(x.fb), tt: red(x.tt)
-      })).filter((x) => x.nombre || x.foto)
+      })).filter((x) => x.nombre || x.foto || x.uni)
     };
     await respaldar('config');
     await writeJSON('data/config.json', limpio);
