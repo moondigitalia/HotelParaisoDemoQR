@@ -4,9 +4,12 @@
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var clone = function (o) { return JSON.parse(JSON.stringify(o)); };
+  // vista para editar: la página dentro del panel del dueño (Tu página). Se ve igual que la del cliente, pero tocar un texto
+  // lo escoge para cambiarlo y nada se abre, se manda ni se guarda.
+  var EDITAR = /[?&]editar=1/.test(location.search) && window.parent !== window;
   var store = {
-    get: function (k) { try { return JSON.parse(localStorage.getItem('msport:' + k)); } catch (e) { return null; } },
-    set: function (k, v) { try { localStorage.setItem('msport:' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+    get: function (k) { if (EDITAR) return null; try { return JSON.parse(localStorage.getItem('msport:' + k)); } catch (e) { return null; } },
+    set: function (k, v) { if (EDITAR) return; try { localStorage.setItem('msport:' + k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
   };
 
   /* ---------- fondo congelado: mientras hay algo abierto encima, la página de atrás no se mueve (también en iPhone) ---------- */
@@ -63,9 +66,10 @@
   var LANGS = Object.keys(window.I18N);
   // el idioma lo decide el celular o la computadora de cada persona
   var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'es').slice(0, 2).toLowerCase();
-  if (LANGS.indexOf(lang) < 0) lang = 'es';
-  var TXT = {};   // los textos que el dueño cambió en su panel (en español; en otros idiomas se queda la traducción de siempre)
-  function T(k) { return (lang === 'es' && TXT[k]) || (window.I18N[lang] && window.I18N[lang][k]) || window.I18N.es[k] || k; }
+  // solo español e inglés: quien no tiene el celular en español la ve en inglés
+  if (LANGS.indexOf(lang) < 0) lang = 'en';
+  var TXT = {}, TXT_EN = {};   // los textos que el dueño cambió en su panel, en español y en inglés (el crédito de MOON no se cambia)
+  function T(k) { return (k !== 'pie' && (lang === 'es' ? TXT[k] : TXT_EN[k])) || (window.I18N[lang] && window.I18N[lang][k]) || window.I18N.es[k] || k; }
   function aplicarIdioma() {
     document.documentElement.lang = lang;
     $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
@@ -155,7 +159,7 @@
   // el 3D no compite con la entrada ni con la primera pintura: arranca al terminar la entrada, al abrir el probador,
   // o cuando el teléfono queda libre. Mientras, se ve la foto de estudio del uniforme.
   var abrir3D, puerta3D = new Promise(function (ok) { abrir3D = ok; });
-  window.addEventListener('load', function () { setTimeout(function () { (window.requestIdleCallback || setTimeout)(function () { abrir3D(); }, { timeout: 2500 }); }, document.getElementById('intro') ? 3600 : 300); });
+  window.addEventListener('load', function () { if (EDITAR) return; setTimeout(function () { (window.requestIdleCallback || setTimeout)(function () { abrir3D(); }, { timeout: 2500 }); }, document.getElementById('intro') ? 3600 : 300); });
   function cargarMotorYa() { abrir3D(); return cargarMotor(); }
   function cargarMotor() {
     if (motorP) return motorP;
@@ -163,7 +167,7 @@
       if (window.Motor3D) return ok();
       var s = document.createElement('script'); s.src = '/js/motor3d.js?v=' + (window.VERSION || '1'); s.onload = ok; s.onerror = no; document.head.appendChild(s);
     }); }).then(function () { return document.fonts && document.fonts.load ? document.fonts.load('700 100px "Saira Extra Condensed"').catch(function () {}) : null; })
-      .then(function () { return window.Motor3D.crear(lienzo); })
+      .then(function () { return window.Motor3D.crear(lienzo, { campo: TIENDA.config.fondo || '' }); })
       .then(function (m) { motor = m; if (m.deslizable) m.deslizable(function (v) { enfocar('cuerpo'); if (v !== S.vista) marcarVista(v); }); return m; })
       .catch(function (e) { sin3D = true; throw e; });
     return motorP;
@@ -824,7 +828,7 @@
     var el = $('#intro');
     if (!el) return;
     var q = new URLSearchParams(location.search);
-    if (q.has('folio') || q.has('sinintro') || location.hash === '#panel') { el.remove(); animarPortada(); return; }
+    if (q.has('folio') || q.has('sinintro') || EDITAR || location.hash === '#panel') { el.remove(); animarPortada(); return; }
     $('#intro-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
     var W = window.innerWidth, H = window.innerHeight, fx = $('#intro-fx'), h = '';
     for (var i = 0; i < 7; i++) {
@@ -997,13 +1001,30 @@
     catTodo._abierto = false; catTodo.classList.add('oculta'); catTodo.inert = true; catTodo.setAttribute('aria-hidden', 'true'); window.FIJAR.off();
   }
 
+  // las fotos que puso el dueño: su logo (arriba, en la portada y en la entrada) y el fondo detrás del uniforme
+  var fotosPuestas = { logo: null, fondo: null };
+  function htmlLogo(c) { return c.logo ? '<img class="logo-propio" src="' + esc(c.logo) + '" alt="">' : logoSVG('#1F2E7A', '#FFFFFF'); }
+  function ponerFotos(c) {
+    var lg = c.logo || '', fd = c.fondo || '';
+    if (fotosPuestas.logo !== lg) {
+      fotosPuestas.logo = lg;
+      var ml = $('#marca-logo'); if (ml) { var an = $('.anillo', ml); ml.innerHTML = htmlLogo(c); if (an) ml.appendChild(an); }
+      ['#portada-logo', '#intro-logo'].forEach(function (s) { var e = $(s); if (e) e.innerHTML = htmlLogo(c); });
+    }
+    if (fotosPuestas.fondo !== fd) {
+      fotosPuestas.fondo = fd;
+      var lw = $('#lienzo-wrap'); if (lw) lw.style.backgroundImage = fd ? 'url("' + fd.replace(/"/g, '%22') + '")' : '';
+      if (motor && motor.fondo) motor.fondo(fd);
+    }
+  }
   function pintarDatos() {
     var c = TIENDA.config;
-    var hp = $('#historia-p'); if (hp) hp.textContent = c.historia || T('hist_p');
-    // los textos de portada que escribe el dueño (en español; en otros idiomas se queda la traducción de siempre)
-    TXT = Object.assign({}, c.textos || {});
+    // los textos que escribe el dueño, en español y en inglés (lo que no cambió se queda como venía)
+    TXT = Object.assign({}, c.textos || {}); TXT_EN = Object.assign({}, c.textos_en || {});
+    var hp = $('#historia-p'); if (hp) hp.textContent = (lang === 'es' && !TXT.hist_p && c.historia) || T('hist_p');   // la historia de antes vivía aparte
     if (!TXT.intro_lema && c.lema && c.lema !== 'La tienda de las estrellas') TXT.intro_lema = c.lema;   // el lema de antes
     $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
+    ponerFotos(c);
     var cal = $('#cifra-cal'); if (cal) cal.textContent = c.calificacion || '4.3';
     var op = $('#cifra-op'); if (op) op.textContent = (c.opiniones ? c.opiniones + ' ' : '') + T('hist_op');
     pintarEquiposCasa();
@@ -1022,8 +1043,6 @@
   }
   function hora(hhmm) {
     var h = +hhmm.slice(0, 2), m = hhmm.slice(3);
-    if (lang === 'fr') return h + ' h' + (+m ? ' ' + m : '');
-    if (lang === 'pt') return h + 'h' + (+m ? m : '');
     var h12 = h % 12 || 12, suf = h < 12 ? 'am' : 'pm';
     if (lang === 'en') suf = suf.toUpperCase();
     return h12 + (+m ? ':' + m : '') + ' ' + suf;
@@ -1275,10 +1294,88 @@
     cargarTienda().then(function () {
       if (!S.modo || !uniformeActual() || uniformeActual().id !== S.baseId) { if (!S.modo) vitrina(); else { var u = uniformeActual(); if (u) usarBase(u); } }
       pintarCatalogo(); pintarDatos(); pintarTablero(); dibujar();
+      if (avisarPanel) avisarPanel({ tipo: 'listo' });
     });
     var q = new URLSearchParams(location.search);
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
+
+  /* ---------- la página dentro del panel: tocar un texto lo escoge para cambiarlo ---------- */
+  function modoEditar() {
+    if (!EDITAR) return;
+    document.documentElement.classList.add('editando');
+    var st = document.createElement('style');
+    st.textContent = '.ed-sel{outline:2px solid #FFC61A!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,198,26,.22),0 0 22px rgba(255,198,26,.55)!important;border-radius:6px}html.editando{scrollbar-width:none}html.editando::-webkit-scrollbar{display:none}';
+    document.head.appendChild(st);
+    var sel = null, selK = '', SECS = ['.portada', '#crear', '#catalogo', '#historia', '.equipos-casa', '.como', '#visita'];
+    function decir(m) { m.msport = 1; try { parent.postMessage(m, location.origin); } catch (e) { /* nada */ } }
+    function visible(el) { return el && el.getClientRects().length > 0; }
+    function marcar(el, k) { if (sel) sel.classList.remove('ed-sel'); sel = el || null; selK = k || ''; if (sel) sel.classList.add('ed-sel'); }
+    // de un texto a su clave: primero lo marcado con data-t; si lo pintó la página, se busca por lo que dice
+    function porTexto(n, max) {
+      var m = {}; Object.keys(window.I18N.es).forEach(function (k) { var v = String(T(k)).trim(); if (v && !m[v]) m[v] = k; });
+      for (var i = 0; n && n !== document.body && i < max; n = n.parentNode, i++) { var v = (n.textContent || '').trim(); if (m[v]) return { el: n, k: m[v] }; }
+      return null;
+    }
+    function buscar(k) {
+      if (k === 'hist_p') return $('#historia-p');
+      var l = $$('[data-t="' + k + '"]').filter(visible); if (l.length) return l[0];
+      var v = String(T(k)).trim(), r = null;
+      $$('main *').some(function (el) { if (!el.children.length && (el.textContent || '').trim() === v && visible(el)) { r = el; return true; } return false; });
+      return r;
+    }
+    function alCentro(el) { if (!el) return; var r = el.getBoundingClientRect(); window.scrollTo({ top: Math.max(0, window.scrollY + r.top - (window.innerHeight - r.height) / 2), behavior: 'instant' }); }
+    document.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var t = e.target, el = null, k = '', que = '';
+      if (t.closest('[data-t="pie"],.pie')) que = 'moon';
+      else if (t.closest('#marca-logo,#portada-logo,.marca')) que = 'logo';
+      else if ((el = t.closest('[data-t]'))) k = el.getAttribute('data-t');
+      else if (t.closest('#lienzo-wrap,#escenario')) que = 'fondo';
+      else if ((el = t.closest('#historia-p'))) k = 'hist_p';
+      else if (t.closest('#dato-dir,.horario,.mapa,#wa-top')) que = 'tienda';
+      else if (t.closest('#cifra-google')) que = 'cal';
+      else if (t.closest('#eq-casa')) que = 'clientes';
+      else { var x = porTexto(t, 5); if (x) { el = x.el; k = x.k; } else if (t.closest('#cat-zona,#estudio,.cat-todo')) que = 'uniformes'; }
+      if (k) { marcar(el, k); decir({ tipo: 'elige', k: k }); } else { marcar(que === 'logo' || que === 'fondo' ? t.closest('#marca-logo,#portada-logo,.marca,#lienzo-wrap') : null); decir({ tipo: 'toque', que: que || 'nada' }); }
+    }, true);
+    // nada abre el teclado aquí adentro (el buscador del catálogo, por ejemplo)
+    document.addEventListener('focusin', function (e) { if (e.target && e.target.blur && e.target.matches('input,textarea,select')) e.target.blur(); }, true);
+    document.addEventListener('submit', function (e) { e.preventDefault(); }, true);
+    var reloj = null;
+    function repintar(k) {
+      var l = $$('[data-t="' + k + '"]');
+      if (l.length) l.forEach(function (el) { el.textContent = T(k); });
+      else { clearTimeout(reloj); reloj = setTimeout(function () { pintarDatos(); pintarTablero(); pintarCatalogo(); if (selK && (!sel || !document.body.contains(sel))) marcar(buscar(selK), selK); }, 180); }
+      if (k === 'hist_p') { var hp = $('#historia-p'); if (hp) hp.textContent = T('hist_p'); }
+    }
+    // la sección que se ve: se le avisa al panel para que diga su nombre
+    var secAntes = -1, rel2 = null;
+    function secActual() {
+      var mitad = window.innerHeight * 0.4, i = 0;
+      SECS.forEach(function (s, j) { var el = $(s); if (el && el.getBoundingClientRect().top <= mitad) i = j; });
+      return i;
+    }
+    window.addEventListener('scroll', function () { clearTimeout(rel2); rel2 = setTimeout(function () { var i = secActual(); if (i !== secAntes) { secAntes = i; decir({ tipo: 'sec', i: i }); } }, 90); }, { passive: true });
+    window.addEventListener('message', function (e) {
+      if (e.origin !== location.origin || e.source !== parent) return;
+      var m = e.data || {}, c = TIENDA.config || {}; if (!m.msport) return;
+      if (m.tipo === 'todos') { c.textos = Object.assign({}, m.es || {}); c.textos_en = Object.assign({}, m.en || {}); c.historia = ''; pintarDatos(); aplicarIdioma(); if (selK) marcar(buscar(selK), selK); }
+      if (m.tipo === 'texto') {
+        c.textos = c.textos || {}; c.textos_en = c.textos_en || {};
+        if (m.es) c.textos[m.k] = m.es; else delete c.textos[m.k];
+        if (m.en) c.textos_en[m.k] = m.en; else delete c.textos_en[m.k];
+        TXT = Object.assign({}, c.textos); TXT_EN = Object.assign({}, c.textos_en); repintar(m.k);
+      }
+      if (m.tipo === 'lang' && m.l !== lang) { lang = m.l; aplicarIdioma(); if (selK) marcar(buscar(selK), selK); }
+      if (m.tipo === 'ir') { var el = buscar(m.k); marcar(el, m.k); alCentro(el); }
+      if (m.tipo === 'suelta') marcar(null);
+      if (m.tipo === 'fotos') { c.logo = m.logo || ''; c.fondo = m.fondo || ''; ponerFotos(c); }
+      if (m.tipo === 'sec') { var s = $(SECS[m.i]), tb = $('.top'), alto = m.i && tb ? tb.getBoundingClientRect().bottom : 0; if (s) window.scrollTo({ top: Math.max(0, window.scrollY + s.getBoundingClientRect().top - alto), behavior: 'instant' }); }
+    });
+    return decir;
+  }
+  var avisarPanel = modoEditar();
 
   window.APP = { probarSonido: probarSonido, pararSonido: pararSonido, T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
   iniciar();

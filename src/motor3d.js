@@ -146,7 +146,12 @@ export async function crear(canvas, opt = {}) {
   const scene = new THREE.Scene(); scene.background = fondoEstudio();
   // fondo de cancha: pasto, luces y tribuna desenfocada; se acomoda como "cover" según el tamaño del visor
   let campo = null;
-  new THREE.TextureLoader().load(base + 'campo.webp', (t) => { t.colorSpace = THREE.SRGBColorSpace; campo = t; scene.background = t; pedir(); });
+  // el fondo puede ser el estadio de siempre o la foto que puso el dueño en su panel
+  function ponerCampo(url) {
+    new THREE.TextureLoader().load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; if (campo && campo !== t) campo.dispose(); campo = t; scene.background = t; if (ultimoAspecto) encuadrarFondo(ultimoAspecto); pedir(); }, undefined, () => { if (url !== base + 'campo.webp') ponerCampo(base + 'campo.webp'); });
+  }
+  let ultimoAspecto = 0;
+  ponerCampo(opt.campo || base + 'campo.webp');
   function encuadrarFondo(aspecto) {
     if (!campo || !campo.image) return;
     const ai = campo.image.width / campo.image.height;
@@ -484,7 +489,7 @@ diffuseColor.rgb *= base;`);
     const arriba = Math.min(m[0], h * 0.45), abajo = Math.min(m[1], h * 0.15), hin = Math.max(1, h - arriba - abajo);
     cam.aspect = w / hin;
     if (arriba || abajo) cam.setViewOffset(w, hin, 0, -arriba, w, h); else cam.clearViewOffset();
-    cam.updateProjectionMatrix(); encuadrarFondo(w / h);
+    cam.updateProjectionMatrix(); ultimoAspecto = w / h; encuadrarFondo(w / h);
     // encuadre: el uniforme completo, con aire; con "zoom" la cámara baja a los pies para ver los tacos de cerca
     const distC = 5.7 * Math.max(1, (2 / 3) / cam.aspect), distP = 2.5 * Math.max(1, 1.2 / cam.aspect), z = E.zoom;
     // F: el acercamiento a una pieza que el dueño está editando (k = qué tan cerca, m = a qué altura mira, a = altura de la cámara)
@@ -646,6 +651,7 @@ diffuseColor.rgb *= base;`);
       if (t > zonas.shortBot) return p.x > S.x - 0.03 && p.x < S.x + S.z + 0.03 ? 'short' : null;
       return t > 0 && p.x > S.x && p.x < S.x + S.z ? 'calcetas' : null;
     },
+    fondo(url) { ponerCampo(url || base + 'campo.webp'); },
     congelar(si) { congelado = !!si; if (!si && debeDibujo) { debeDibujo = false; pedir(); } },
     ajuste(aj) {
       aj = aj || {};

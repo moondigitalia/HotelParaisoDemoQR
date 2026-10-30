@@ -27,7 +27,9 @@ async function limpiar(cat) {
   return vivos;
 }
 
-const TEXTOS_EDITABLES = { intro_lema: 60, hero_k: 60, hero_t: 80, hero_p: 240, cat_t: 40, cat_p: 120, hist_k: 40, hist_t: 60, cifra_a: 6, hist_prendas: 90, cifra_b: 6, hist_folio: 90, eq_k: 60, eq_p: 160, como_t: 40, como_1: 50, como_2: 50, como_3: 50, visita_t: 40, escribenos: 40, como_llegar: 30 };
+// todos los textos de la página (español e inglés) menos el crédito de MOON, con su largo máximo
+const TEXTOS_EDITABLES = require('./_textos.js');
+const limpiarTextos = (t) => Object.keys(TEXTOS_EDITABLES).reduce((o, k) => { const v = String((t || {})[k] || '').trim().slice(0, TEXTOS_EDITABLES[k]); if (v) o[k] = v; return o; }, {});
 // una red social: un link completo o un @usuario (se guarda tal cual, sin espacios)
 function red(v) { v = String(v || '').trim().replace(/\s+/g, ''); return /^[^"'<>]{1,200}$/.test(v) ? v : ''; }
 module.exports = async (req, res) => {
@@ -125,9 +127,14 @@ module.exports = async (req, res) => {
       maxEquipos: Math.min(30, Math.max(1, parseInt(c.maxEquipos, 10) || 10)),
       sonido: c.sonido === 'no' ? 'no' : 'si',
       sonidoUrl: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.sonidoUrl || '')) ? String(c.sonidoUrl) : '',
+      // las fotos de la página que cambia el dueño: su logo, el fondo del uniforme y la foto para compartir (vacío = la de siempre)
+      logo: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.logo || '')) ? String(c.logo) : '',
+      fondo: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.fondo || '')) ? String(c.fondo) : '',
+      compartir: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.compartir || '')) ? String(c.compartir) : '',
       sonidoVolumen: Math.min(100, Math.max(0, isFinite(parseFloat(c.sonidoVolumen)) ? Math.round(parseFloat(c.sonidoVolumen)) : 50)),
       // cualquier texto de la página que el dueño cambie (solo los que existen en la lista; vacío = el de siempre)
-      textos: Object.keys(TEXTOS_EDITABLES).reduce((o, k) => { const v = String((c.textos || {})[k] || '').trim().slice(0, TEXTOS_EDITABLES[k]); if (v) o[k] = v; return o; }, {}),
+      textos: limpiarTextos(c.textos),
+      textos_en: limpiarTextos(c.textos_en),
       // equipos que visten M Sport: foto del uniforme que les hicieron, nombre y sus redes
       clientes: (Array.isArray(c.clientes) ? c.clientes : []).slice(0, 12).map((x) => ({
         id: String(x.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 16) || Math.random().toString(36).slice(2, 10),

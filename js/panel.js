@@ -30,15 +30,38 @@
     if (location.hash === '#panel') history.replaceState(null, '', location.pathname + location.search);
   }
 
-  function marco(contenido) {
-    return '<div class="pn"><header class="pn-top"><span class="pn-logo">' + A.logoSVG('#1F2E7A', '#FFFFFF') + '</span><b>Panel M Sport</b>' +
-      '<button type="button" class="capa-x pn-x" data-pn-cerrar aria-label="Cerrar">×</button></header>' + contenido + '</div>';
+  // el marco de todo el panel: arriba una barra delgada (volver o logo, el nombre del cuarto, y a la derecha lo que toque),
+  // en medio lo que se ve y cambia (solo eso se mueve si es largo) y abajo la barra fija de los 4 cuartos
+  var FLECHA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  // el panel se vuelve a pintar entero, menos la vista de la página (un iframe): si se quitara y se pusiera, se recargaría
+  function ponerHTML(h) {
+    var cap = P.capaPag;
+    if (!cap || cap.parentNode !== panel) { panel.innerHTML = h; return; }
+    Array.prototype.slice.call(panel.childNodes).forEach(function (n) { if (n !== cap) panel.removeChild(n); });
+    panel.insertAdjacentHTML('afterbegin', h);
   }
+  function marco(contenido, cfg) {
+    cfg = cfg || {};
+    return '<div class="pn' + (cfg.barra ? ' con-barra' : '') + (cfg.clase ? ' ' + cfg.clase : '') + '"><header class="pn-top">' +
+      (cfg.atras ? '<button type="button" class="pn-atras" data-atras aria-label="Volver">' + FLECHA + '</button>' : '<span class="pn-logo">' + A.logoSVG('#1F2E7A', '#FFFFFF') + '</span>') +
+      '<b>' + esc(cfg.titulo || 'Panel M Sport') + '</b><span class="pn-top-der">' + (cfg.der || '') + '</span>' +
+      '<button type="button" class="capa-x pn-x" data-pn-cerrar aria-label="Cerrar">×</button></header>' +
+      '<div class="pn-cuerpo">' + contenido + '</div>' + (cfg.barra || '') + '</div>';
+  }
+  var ICON = {
+    folios: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/>',
+    uniformes: '<path d="M8 3l-5 4 2 4 3-1v11h8V10l3 1 2-4-5-4c-1 2-2.5 3-4 3S9 5 8 3Z"/>',
+    pagina: '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/>',
+    datos: '<path d="M4 10l1.5-6h13L20 10M4 10v10h16V10M4 10h16M10 20v-5h4v5"/>',
+    mas: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+    engrane: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
+  };
+  function icono(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>'; }
   function pantallaPin(error) {
-    panel.innerHTML = marco('<form class="pn-pin" id="pn-pin"><h2>Hola</h2><p>Escribe tu código para entrar a tu panel.</p>' +
+    ponerHTML(marco('<form class="pn-pin" id="pn-pin"><h2>Hola</h2><p>Escribe tu código para entrar a tu panel.</p>' +
       '<input class="campo pn-codigo" id="pn-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="8" aria-label="Código">' +
       (error ? '<p class="pn-error">' + esc(error) + '</p>' : '') +
-      '<button class="btn btn-oro btn-xl" type="submit">Entrar</button></form>');
+      '<button class="btn btn-oro btn-xl" type="submit">Entrar</button></form>'));
     enlazarMarco();
     var inp = $('#pn-codigo'); setTimeout(function () { inp.focus(); }, 60);
     $('#pn-pin').addEventListener('submit', function (e) {
@@ -46,7 +69,7 @@
     });
   }
   function cargar() {
-    panel.innerHTML = marco('<p class="pn-cargando">Cargando tu panel…</p>'); enlazarMarco();
+    ponerHTML(marco('<p class="pn-cargando">Cargando tu panel…</p>')); enlazarMarco();
     api('todo').then(function (j) {
       ses.set(P.pin);
       P.folios = j.folios || []; P.masFolios = !!j.masFolios; P.catalogo = (Array.isArray(j.catalogo) && j.catalogo.some(function (u) { return u.tipo === '3d'; })) ? (A.completarCatalogo ? A.completarCatalogo(j.catalogo) : j.catalogo) : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
@@ -59,22 +82,38 @@
   function enlazarMarco() { $$('[data-pn-cerrar]', panel).forEach(function (b) { b.addEventListener('click', cerrar); }); }
 
   // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
+  // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
+  var CUARTO = { folios: 'Pedidos', uniformes: 'Uniformes', pagina: 'Tu página', datos: 'Tu tienda', ajustes: 'Ajustes', papelera: 'Papelera' };
   function pintar(irA) {
-    var pn0 = $('.pn', panel), antes = pn0 ? pn0.scrollTop : 0;
+    var cu0 = $('.pn-cuerpo', panel), antes = cu0 ? cu0.scrollTop : 0;
     var nuevos = P.folios.filter(function (f) { return f.estado === 'nuevo'; }).length;
-    var vivos = P.catalogo.filter(function (u) { return !u.borrado; });
-    var papel = P.catalogo.filter(function (u) { return u.borrado; });
-    var tabs = [['folios', 'Folios' + (nuevos ? ' · ' + nuevos + ' nuevos' : '')], ['uniformes', 'Uniformes · ' + vivos.length], ['datos', 'Datos de la tienda'], ['pagina', 'Secciones de la página'], ['papelera', 'Papelera' + (papel.length ? ' · ' + papel.length : '')]];
-    var h = '<nav class="pn-tabs" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" class="chip' + (P.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + esc(t[1]) + '</button>'; }).join('') + '</nav><div class="pn-cuerpo">';
+    // dentro de algo (un folio, un equipo, el estudio de un uniforme, la papelera, ajustes): arriba "volver" y sin barra de abajo
+    var dentro = (P.tab === 'folios' && P.detalle !== null) || (P.tab === 'uniformes' && (P.editando || P.equipo)) || P.tab === 'papelera' || P.tab === 'ajustes';
+    var h = '';
     if (P.tab === 'folios') h += P.detalle !== null ? vistaDetalle() : vistaFolios();
     if (P.tab === 'uniformes') h += P.editando ? vistaEditor() : vistaUniformes();
-    if (P.tab === 'datos' || P.tab === 'pagina') h += vistaDatos();
+    if (P.tab === 'datos' || P.tab === 'pagina' || P.tab === 'ajustes') h += vistaDatos();
     if (P.tab === 'papelera') h += vistaPapelera();
-    h += '</div>';
-    panel.innerHTML = marco(h); enlazarMarco();
-    var pn1 = $('.pn', panel); if (pn1) pn1.scrollTop = irA == null ? antes : irA;
-    $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; P.equipo = null; pintar(0); }); });
-    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, pagina: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
+    var titulo = P.tab === 'uniformes' && P.editando ? (P.editando.nuevo ? 'Uniforme nuevo' : (P.editando.nombre || 'Uniforme')) : P.tab === 'uniformes' && P.equipo ? 'Equipo' : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
+    var der = P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<button type="button" class="pn-redondo" data-ir="ajustes" aria-label="Ajustes: tallas, sonido y código">' + icono('engrane') + '</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
+    var barra = dentro ? '' : '<nav class="pn-barra" aria-label="Panel">' + [['folios', 'Pedidos'], ['uniformes', 'Uniformes'], ['pagina', 'Página'], ['datos', 'Tienda']].map(function (t) {
+      return '<button type="button" class="pn-barra-b' + (P.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '"><span class="pn-barra-i">' + icono(t[0]) + '</span><span>' + t[1] + '</span>' + (t[0] === 'folios' && nuevos ? '<i>' + nuevos + '</i>' : '') + '</button>';
+    }).join('') + '</nav>';
+    ponerHTML(marco(h, { titulo: titulo, atras: dentro, der: der, barra: barra, clase: P.tab === 'uniformes' && P.editando ? 'estudio' : P.tab === 'pagina' ? 'pagina' : '' })); enlazarMarco();
+    var pubE = $('.pn-cuerpo .pn-publicar', panel); if (pubE) $('.pn-top-der', panel).appendChild(pubE);   // en el estudio, Publicar/Guardar va arriba en la barra, nunca encima del uniforme
+    var cu1 = $('.pn-cuerpo', panel); if (cu1) cu1.scrollTop = irA == null ? antes : irA;
+    colocarCapa();
+    $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; P.equipo = null; P.tSel = ''; pintar(0); }); });
+    var lu = $('[data-lupa]', panel); if (lu) lu.addEventListener('click', function () { P.buscando = !P.buscando; pintar(0); var bf = $('#pn-bf', panel); if (bf) bf.focus(); });
+    $$('[data-ir]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-ir'); pintar(0); }); });
+    // "volver" de arriba: hace lo mismo que el volver de cada vista
+    var at = $('[data-atras]', panel);
+    if (at) at.addEventListener('click', function () {
+      var v = $('.pn-cuerpo [data-volver], .pn-cuerpo [data-volver-eq]', panel);
+      if (v) return v.click();
+      P.tab = P.tab === 'papelera' ? 'uniformes' : 'datos'; pintar(0);
+    });
+    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, pagina: enlazarDatos, ajustes: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
   }
 
   /* ---------- folios ----------
@@ -92,22 +131,23 @@
   function vistaFolios() {
     if (!P.folios.length) return '<div class="pn-vacio"><h3>Aún no hay folios</h3><p>Cuando un cliente arme su uniforme y toque "Cotizar por WhatsApp", aparece aquí con su número.</p></div>';
     var buscar = '<form class="pn-buscar-folio" data-buscar-folio><input class="campo" id="pn-bf" inputmode="numeric" placeholder="Número de folio, ej. 47" maxlength="8" autocomplete="off"><button type="submit" class="btn btn-oro">Buscar</button></form>';
-    // pestañitas por estado: el dueño ve solo lo que le toca atender (los nuevos primero) y no una lista sin fin
+    // arriba, un círculo por estado con cuántos hay (los nuevos primero); se toca uno y abajo salen solo esos
     var cuenta = {}; P.folios.forEach(function (f) { cuenta[f.estado] = (cuenta[f.estado] || 0) + 1; });
-    if (!P.filtroFolio) P.filtroFolio = cuenta.nuevo ? 'nuevo' : 'todos';
-    var filtros = '<p class="pn-ayuda">Cada folio es un pedido que un cliente armó en la página. Tócalo para ver tallas, nombres y números.</p><div class="pn-filtro-folios">' + ['nuevo'].concat(ESTADOS.filter(function (e) { return e !== 'nuevo'; })).filter(function (e) { return cuenta[e] || e === P.filtroFolio; }).concat(['todos']).map(function (e) {
-      var n = e === 'todos' ? P.folios.length : (cuenta[e] || 0);
-      return '<button type="button" class="chip' + (P.filtroFolio === e ? ' on' : '') + '" data-filtro-folio="' + e + '">' + esc(e === 'todos' ? 'Todos' : ES('est_' + e)) + ' · ' + n + '</button>';
+    if (!P.filtroFolio || P.filtroFolio === 'todos') P.filtroFolio = cuenta.nuevo ? 'nuevo' : (ESTADOS.filter(function (e) { return cuenta[e]; })[0] || 'nuevo');
+    var NOMS = { nuevo: 'Nuevos', cotizado: 'Cotizados', produccion: 'En producción', entregado: 'Entregados' };
+    var filtros = '<div class="pn-circulos">' + ESTADOS.map(function (e) {
+      return '<button type="button" class="pn-circulo ' + e + (P.filtroFolio === e ? ' on' : '') + '" data-filtro-folio="' + e + '"><b>' + (cuenta[e] || 0) + '</b><span>' + NOMS[e] + '</span></button>';
     }).join('') + '</div>';
-    var lista = P.folios.map(function (f, i) { return [f, i]; }).filter(function (p) { return P.filtroFolio === 'todos' || p[0].estado === P.filtroFolio; });
-    if (!lista.length) return buscar + filtros + '<p class="nota">No hay folios aquí.</p>';
+    if (!P.buscando) buscar = '';
+    var lista = P.folios.map(function (f, i) { return [f, i]; }).filter(function (p) { return p[0].estado === P.filtroFolio; });
+    if (!lista.length) return buscar + filtros + '<p class="pn-nada">No hay pedidos ' + NOMS[P.filtroFolio].toLowerCase() + ' ahorita.</p>';
     return buscar + filtros + '<div class="pn-lista pn-lista-folios">' + lista.map(function (p) {
       var f = p[0], i = p[1];
       var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }), n = totalDe(f);
       var e0 = f.equipos[0] || {}, j0 = (e0.jugadores || [])[0] || {}, quien = e0.nombre && e0.nombre !== 'Mi equipo' ? e0.nombre : ((j0.nombre || '') + (j0.numero ? ' ' + j0.numero : '')).trim();
       // todo en dos renglones: arriba el folio con su estado y la fecha; abajo qué uniforme, de quién y cuántos
       return '<button type="button" class="pn-folio" data-folio="' + i + '"><img src="' + esc(f.equipos[0].vistas.frente) + '" alt="">' +
-        '<span class="pn-folio-txt"><span class="pn-folio-arriba"><b>' + esc(f.id) + '</b><span class="estado ' + esc(f.estado) + '">' + esc(ES('est_' + f.estado)) + '</span><small>' + esc(fecha) + '</small></span>' +
+        '<span class="pn-folio-txt"><span class="pn-folio-arriba"><b>' + esc(f.id) + '</b><small>' + esc(fecha) + '</small></span>' +
         '<span class="pn-que">' + esc([String(e0.base || '').split(' · ')[0], quien].filter(Boolean).join(' · ') || 'Uniforme') + '</span>' +
         '<span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span></span></button>';
     }).join('') + '</div>' + (P.masFolios ? '<div class="subir"><button type="button" class="btn btn-linea" data-mas-folios>Ver folios más antiguos</button></div>' : '');
@@ -119,13 +159,13 @@
   }
   function enlazarFolios() {
     $$('[data-filtro-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.filtroFolio = b.getAttribute('data-filtro-folio'); pintar(0); }); });
-    $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = +b.getAttribute('data-folio'); pintar(0); }); });
+    $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn-cuerpo', panel).scrollTop; P.detalle = +b.getAttribute('data-folio'); pintar(0); }); });
     var bf = $('[data-buscar-folio]', panel);
     if (bf) bf.addEventListener('submit', function (e) {
       e.preventDefault();
       var n = parseInt($('#pn-bf').value.replace(/\D/g, ''), 10); if (!n) { A.toast('Escribe el número del folio. Ej. 47'); return; }
       var id = 'M-' + String(n).padStart(4, '0'), k = P.folios.findIndex(function (f) { return f.id === id; });
-      var abrir = function (i) { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = i; pintar(0); };
+      var abrir = function (i) { P.scrollLista = $('.pn-cuerpo', panel).scrollTop; P.detalle = i; pintar(0); };
       if (k >= 0) return abrir(k);
       api('buscarFolio', { numero: n }).then(function (j) {
         if (!j.folio) { A.toast('No existe el folio ' + id + '. Revisa el número.'); return; }
@@ -247,9 +287,8 @@
     if (P.equipo) return vistaEquipo();
     var gr = arbol(), secs = P.config.categorias || [], max = +P.config.maxEquipos || 10;
     var vis = gr.reduce(function (s, g) { return s + g.equipos.filter(visibleEq).length; }, 0);
-    return '<div class="pn-acciones"><button type="button" class="btn btn-oro" data-nuevo-eq>+ Nuevo equipo</button><button type="button" class="btn btn-linea" data-voz>▶ Escuchar cómo subir uno</button></div>' +
-      '<p class="nota">Toca un equipo para cambiar su nombre, escudo, sección o sus uniformes. Las flechas cambian el orden en la página. ' +
-      'Se ven ' + vis + ' de ' + max + ' equipos (el número lo cambias en Datos de la tienda). Toca el nombre de una sección para cambiarlo.</p>' +
+    // una fila de escudos por sección, que se desliza con el dedo (siempre se asoma uno a la orilla si hay más)
+    return '<div class="pn-uni-cab"><p class="pn-ctl-ayuda">☝ Toca un equipo para ver y cambiar sus uniformes.</p><button type="button" class="pn-nuevo" data-nuevo-eq><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nuevo</button></div>' +
       gr.map(function (g, si) {
         var real = si < secs.length;
         if (!real && !g.equipos.length) return '';
@@ -259,10 +298,18 @@
             '<button type="button" class="icon-btn" data-sec-mueve="1" data-si="' + si + '" aria-label="Bajar sección"' + (si === secs.length - 1 ? ' disabled' : '') + '>↓</button>' +
             '<button type="button" class="icon-btn" data-sec-quita="' + si + '" aria-label="Quitar sección">×</button></span>'
             : '<b class="pn-sec-sin">Sin sección <small>(no se ven en el paso de elegir equipo; pásalos a una sección)</small></b>') + '</div>' +
-          (g.equipos.length ? '<div class="pn-lista">' + g.equipos.map(function (e, ei) { return filaEquipo(e, si, ei, g.equipos.length); }).join('') + '</div>' : '<p class="nota">Esta sección no tiene equipos. Para pasar uno aquí, ábrelo y elige esta sección.</p>') +
+          (g.equipos.length ? '<div class="pn-fila-esc">' + g.equipos.map(function (e) { return escudoEquipo(e); }).join('') + '</div>' : '<p class="nota">Esta sección no tiene equipos. Para pasar uno aquí, ábrelo y elige esta sección.</p>') +
           '</section>';
       }).join('') +
-      '<div class="subir"><button type="button" class="btn btn-linea" data-sec-nueva>+ Nueva sección</button></div>';
+      '<div class="subir"><button type="button" class="btn btn-linea" data-sec-nueva>+ Nueva sección</button></div>' +
+      (function () { var n = P.catalogo.filter(function (u) { return u.borrado; }).length; return '<div class="subir"><button type="button" class="pn-papelera-b" data-ir="papelera">' + icono('uniformes').replace('</svg>', '') + '</svg>Papelera' + (n ? ' · ' + n : '') + '</button></div>'; })();
+  }
+  function escudoEquipo(e) {
+    var oculto = !visibleEq(e);
+    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && (!f.frente || !f.espalda || !f.short); }).length;
+    var cara = e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<img class="sin" src="' + esc((e.items[0] || {}).mini || '') + '" alt="">';
+    return '<button type="button" class="pn-esc-b' + (oculto ? ' apagado' : '') + '" data-eq="' + esc(e.clave) + '"><span class="pn-esc-c' + (e.escudo ? '' : ' sin-escudo') + '">' + cara +
+      (incompletos ? '<i class="pn-esc-falta" aria-label="Le faltan fotos">!</i>' : e.items.length > 1 ? '<i class="pn-esc-n">' + e.items.length + '</i>' : '') + '</span><b>' + esc(e.nombre || 'Sin nombre') + '</b>' + (oculto ? '<small>Oculto</small>' : '') + '</button>';
   }
   function filaEquipo(e, si, ei, n) {
     var oculto = !visibleEq(e);
@@ -285,9 +332,9 @@
   function enlazarUniformes() {
     if (P.equipo) return enlazarEquipo();
     var secs = P.config.categorias = P.config.categorias || [];
-    $('[data-nuevo-eq]', panel).addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; nuevoUniforme(null); });
-    $('[data-voz]', panel).addEventListener('click', narrar);
-    $$('[data-eq]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.equipo = b.getAttribute('data-eq'); pintar(0); }); });
+    $('[data-nuevo-eq]', panel).addEventListener('click', function () { P.scrollLista = $('.pn-cuerpo', panel).scrollTop; nuevoUniforme(null); });
+    var vz = $('[data-voz]', panel); if (vz) vz.addEventListener('click', narrar);
+    $$('[data-eq]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn-cuerpo', panel).scrollTop; P.equipo = b.getAttribute('data-eq'); pintar(0); }); });
     $$('[data-eq-mueve]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
         var gr = arbol(), l = gr[+b.getAttribute('data-si')].equipos, i = +b.getAttribute('data-ei'), j = i + +b.getAttribute('data-eq-mueve');
@@ -333,7 +380,10 @@
     var gr = arbol(), e = equipoDe(gr, P.equipo), secs = P.config.categorias || [];
     if (!e) { P.equipo = null; return vistaUniformes(); }
     var oculto = !visibleEq(e);
-    return '<button type="button" class="link-x" data-volver-eq>← Volver a todos los uniformes</button><h3 class="pn-h">' + esc(e.nombre || 'Equipo') + '</h3><div class="pn-form">' +
+    var si = -1, ei = -1; gr.forEach(function (g, a) { g.equipos.forEach(function (x, b) { if (x.clave === e.clave) { si = a; ei = b; } }); });
+    var n = si >= 0 ? gr[si].equipos.length : 0;
+    var orden = si >= 0 && n > 1 ? '<div class="grupo"><span class="etq">Lugar en su fila</span><div class="pn-orden-eq"><button type="button" class="pn-redondo" data-eq-mueve="-1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Más a la izquierda"' + (ei === 0 ? ' disabled' : '') + '>' + FLECHA + '</button><b>' + (ei + 1) + ' de ' + n + '</b><button type="button" class="pn-redondo" data-eq-mueve="1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Más a la derecha"' + (ei === n - 1 ? ' disabled' : '') + '>' + FLECHA.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6') + '</button></div></div>' : '';
+    return '<button type="button" class="link-x" data-volver-eq>← Volver a todos los uniformes</button><h3 class="pn-h">' + esc(e.nombre || 'Equipo') + '</h3><div class="pn-form">' + orden +
       '<div class="fila2"><div class="grupo"><label for="eq-nombre">Nombre del equipo</label><input class="campo" id="eq-nombre" maxlength="40" value="' + esc(e.nombre) + '"></div>' +
       '<div class="grupo"><span class="etq">Escudo</span><label class="pn-escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label>' + (e.escudo ? '<button type="button" class="chip pn-mini-chip" data-esc-acomodar>⤢ Acomodar</button>' : '') + '</div></div>' +
       '<div class="grupo"><label for="eq-sec">Sección</label><select class="campo" id="eq-sec">' + secs.map(function (s) { return '<option' + (s === e.sec ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '<option value=""' + (e.sec ? '' : ' selected') + '>Sin sección</option></select></div>' +
@@ -351,6 +401,12 @@
   function enlazarEquipo() {
     var gr = arbol(), e = equipoDe(gr, P.equipo); if (!e) return;
     $('[data-volver-eq]', panel).addEventListener('click', function () { P.equipo = null; pintar(P.scrollLista || 0); });
+    $$('[data-eq-mueve]', panel).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var g2 = arbol(), l = g2[+b.getAttribute('data-si')].equipos, i = +b.getAttribute('data-ei'), j = i + +b.getAttribute('data-eq-mueve');
+        var t = l[i]; l[i] = l[j]; l[j] = t; guardarArbol(g2, 'Orden guardado');
+      });
+    });
     $$('[data-edit]', panel).forEach(function (b) { b.addEventListener('click', function () { pvVista = 'frente'; P.editando = A.clone(porId(b.getAttribute('data-edit'))); pintar(0); }); });
     $$('[data-ver-mueve]', panel).forEach(function (b) {
       b.addEventListener('click', function () { var g2 = arbol(), e2 = equipoDe(g2, P.equipo), i = +b.getAttribute('data-i'), j = i + +b.getAttribute('data-ver-mueve'), t = e2.items[i]; e2.items[i] = e2.items[j]; e2.items[j] = t; guardarArbol(g2, 'Orden guardado'); });
@@ -464,23 +520,24 @@
     }
     // arriba lo único que hace falta: fotos → cómo se ve → equipo y versión → Publicar. Lo demás ya viene listo, en "Más opciones"
     var angosto = window.innerWidth <= 980;   // en celular la vista 3D va justo debajo de las fotos; en compu, a un lado
-    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><div class="pn-ctl" id="pn-ctl"><p class="pn-ctl-ayuda">☝ Toca una parte del uniforme para acomodarla o cambiar su foto: la playera, el short, el nombre o el número.</p></div></div>';
-    var h = '<button type="button" class="link-x" data-volver>← Volver ' + (P.equipo ? 'al equipo' : 'a todos los uniformes') + '</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
-      '<div class="pn-editor"><div class="pn-form">' +
-      '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
-      '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div>' +
-      (angosto ? prev : '') +
+    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas></div>';
+    // EL ESTUDIO: una sola pantalla sin bajar. En medio el 3D (es el control: se toca una pieza); abajo una franja con lo de
+    // esa pieza; lo demás (equipo y versión, más opciones, calcetas) sale en una hoja desde abajo solo cuando se pide.
+    var faltaLado = !f.frente ? 'frente' : !f.espalda ? 'espalda' : !f.short ? 'short' : '';
+    var NOMF = { frente: 'el frente', espalda: 'la espalda', short: 'el short' };
+    var vacio = f.frente ? '' : '<button type="button" class="pn-est-vacio" data-subir="frente"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><b>Sube la foto del frente</b><small>Playera extendida, de frente, con buena luz. Si viene con el short, lo separamos solo.</small></button>';
+    var h = '<button type="button" class="link-x" data-volver>← Volver</button>' +
+      '<div class="pn-estudio"><div class="pn-est-3d">' + prev + vacio + '</div>' +
       '<div id="ed-aviso"></div>' +
-      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
-      '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
+      '<div class="pn-est-franja"><div class="pn-ctl" id="pn-ctl">' + franjaInicio(u, faltaLado, NOMF) + '</div></div>' +
+      '<div class="pn-est-oculto" aria-hidden="true"><div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div></div>' +
+      '<div class="pn-hoja" data-hoja="datos" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Equipo y versión</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form">' +
+      
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
       equipoHTML(u, cats) +
       '<div class="grupo"><label for="ed-version">Versión</label><div class="pn-version"><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local">' +
       ['Local', 'Visitante', 'Tercera'].map(function (v) { return '<button type="button" class="chip' + (u.version === v ? ' on' : '') + '" data-ver="' + v + '">' + v + '</button>'; }).join('') + '</div></div>' +
-      '<p class="pn-paso"><b>3</b> Calcetas <small>(no llevan foto: escoge su color)</small></p>' +
-      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta) + '</div>' +
-      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
-      '<details class="pn-mas" data-mas-op' + (P.masAbierto ? ' open' : '') + '><summary>Más opciones <small>(ya vienen listas)</small></summary>' +
+            '<div class="pn-mas-op" data-mas-op>' +
       '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y versión)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
       '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div>' +
       '<div class="grupo"><span class="etq">Manga con la que se ve primero <small>(el cliente puede cambiarla)</small></span><div class="chips llenar"><button type="button" class="chip' + (u.manga !== 'larga' ? ' on' : '') + '" data-mg="corta">Corta</button><button type="button" class="chip' + (u.manga === 'larga' ? ' on' : '') + '" data-mg="larga">Larga</button></div></div>' +
@@ -488,19 +545,29 @@
       '<div class="grupo"><span class="etq">Número chico en el short</span><div class="chips llenar"><button type="button" class="chip' + (u.numeroShort ? ' on' : '') + '" data-ns="1">Sí</button><button type="button" class="chip' + (!u.numeroShort ? ' on' : '') + '" data-ns="0">No</button></div></div>' +
       '<div class="grupo"><span class="etq">Colores para el buscador <small>(se marcan solos con la foto)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
       (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(desliza hasta el color y suelta: se hace la copia)</small></span>' + bolitas('oc', '') + '</div>' : '') +
-      '</details>';
-    if (!u.nuevo) {
-      h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
+      '</div>' +
+      (u.nuevo ? '' : '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
         '<button type="button" class="chip' + (u.destacado ? ' on' : '') + '" data-sw="destacado">★ ' + (u.destacado ? 'Destacado' : 'Destacar') + '</button>' +
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
-        '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
-    }
+        '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>') +
+      '</div></div></div>' +
+      '<div class="pn-hoja" data-hoja="calcetas" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Calcetas</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form"><p class="nota">Las calcetas no llevan foto: escoge su color.</p>' +
+      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta) + '</div>' +
+      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
+      '</div></div></div>';
     // las tres fotos siempre: la espalda trae su propio diseño (no se inventa volteando el frente) y el short lleva logo y a veces diseño
     var listo = f.frente && f.espalda && f.short && !/^data:/.test(f.frente + f.espalda + f.short);
-    var falta = !f.frente ? 'Primero sube la foto del frente.' : !f.espalda ? 'Falta la foto de la espalda.' : !f.short ? 'Falta la foto del short. Si viene en la misma foto que la playera, la separamos sola.' : '';
-    h += '<div class="subir pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (falta ? '<small class="pn-falta">' + falta + '</small>' : '') + '</div></div>' +
-      (angosto ? '' : prev) + '</div>';
+    h += '<div class="pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar') + '</button></div></div>';
     return h;
+  }
+  // la franja de abajo cuando no hay pieza escogida: qué falta (con su botón) o la ayuda, y "Equipo y versión"
+  function franjaInicio(u, faltaLado, NOMF) {
+    var f = u.fotos || {};
+    var nombre = esc(nombreAuto(u) || u.nombre || 'Sin equipo todavía');
+    var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo y versión</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
+    if (!f.frente) return cab;
+    if (faltaLado) return '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto de ' + NOMF[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + cab;
+    return '<p class="pn-ctl-ayuda">☝ Toca una pieza del uniforme para acomodarla o cambiar su foto: playera, short, calcetas, nombre o número.</p>' + cab;
   }
   var mEditor = null, pvVista = 'frente';
   // borrador: el dueño pinta con el dedo lo que no es de la playera (etiqueta colgando, gancho, mancha) y se rellena
@@ -541,7 +608,21 @@
   function tocarPieza(e) {
     if (!mEditor || !mEditor.m || !mEditor.m.piezaEn) return;
     var p = mEditor.m.piezaEn(e.clientX, e.clientY);
-    elegirPieza(p && p !== 'calcetas' ? p : '');
+    if (p === 'calcetas') { elegirPieza(''); return abrirHoja('calcetas'); }
+    elegirPieza(p || '');
+  }
+  // las hojas que salen desde abajo (equipo y versión, calcetas): una a la vez, se cierran con "Listo" o tocando fuera
+  function abrirHoja(k) {
+    $$('.pn-hoja', panel).forEach(function (h) { h.hidden = h.getAttribute('data-hoja') !== k; });
+  }
+  function enlazarEstudio() {
+    var ctl = $('#pn-ctl', panel), est = $('.pn-estudio', panel); if (!est) return;
+    est.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-hoja-ir],[data-subir],[data-hoja-cerrar]'); if (!t) { if (e.target.classList && e.target.classList.contains('pn-hoja')) abrirHoja(''); return; }
+      if (t.hasAttribute('data-hoja-cerrar')) { abrirHoja(''); return pintarCtl(); }
+      if (t.hasAttribute('data-hoja-ir')) return abrirHoja(t.getAttribute('data-hoja-ir'));
+      var inp = $('[data-foto="' + t.getAttribute('data-subir') + '"]', panel); if (inp) inp.click();
+    });
   }
   function elegirPieza(p) {
     var m = mEditor && mEditor.m; if (!m) return;
@@ -552,7 +633,7 @@
   }
   function pintarCtl() {
     var ctl = $('#pn-ctl', panel), u = P.editando; if (!ctl || !u) return;
-    if (!pnSel) { ctl.innerHTML = '<p class="pn-ctl-ayuda">☝ Toca una parte del uniforme para acomodarla o cambiar su foto: la playera, el short, el nombre o el número.</p>'; return; }
+    if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
     var txt = pnSel === 'nombre' || pnSel === 'numero', foto = !txt;
     var fl = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
     // un control redondo para mover (como el de un control de videojuego) y a su lado píldoras para el tamaño y el ancho
@@ -765,7 +846,7 @@
       // el 3D muestra solo el lado de la foto que acaba de subir (la espalda gira el uniforme; frente o short lo ponen de frente)
       pvVista = lado === 'espalda' ? 'espalda' : 'frente'; if (mEditor && mEditor.m) mEditor.m.vista(pvVista);
       pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
-      var pv = $('.pn-prev3d', panel); if (pv && !pv.hidden) setTimeout(function () { pv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);   // que vea su uniforme en 3D sin buscarlo
+      // (el estudio no se baja: el 3D siempre está a la vista)
       return Promise.all(tareas).then(function () {
         A.toast('Foto lista');
         var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.espalda && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) { pub.disabled = false; pub.parentNode.classList.add("listo"); var fl = $(".pn-falta", panel); if (fl) fl.remove(); }
@@ -863,6 +944,7 @@
     });
   }
   function enlazarEditor() {
+    enlazarEstudio();
     var u = P.editando;
     $('[data-volver]', panel).addEventListener('click', function () { P.editando = null; pintar(P.scrollLista || 0); });
     $('#ed-nombre').addEventListener('input', function (e) { u.nombre = e.target.value; });
@@ -1009,6 +1091,187 @@
     fb: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8Z"/>',
     tt: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>'
   };
+  /* ---------- Tu página: arriba la página como la ve el cliente; tocas un texto y abajo lo cambias ---------- */
+  var SECCIONES = ['Portada', 'Arma tu uniforme', 'Catálogo', 'Quiénes somos', 'Equipos que visten M Sport', 'Así de fácil', 'Visítanos'];
+  P.pg = { k: '', que: '', lang: 'es', sec: 0, listo: false };
+  function largoTx(k) { return k === 'hist_p' ? 900 : Math.max(30, Math.min(500, Math.round(String(window.I18N.es[k] || '').length * 2.5))); }
+  function txDe(k, l) { var c = P.config, m = l === 'en' ? (c.textos_en || {}) : (c.textos || {}); return m[k] || ''; }
+  function txBase(k, l) { return (window.I18N[l] || {})[k] || window.I18N.es[k] || ''; }
+  var FLECHA_D = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  var FLECHA_I = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
+  function vistaPagina(c) {
+    // la historia de antes vivía aparte: ahora es un texto más de la página (en español y en inglés)
+    if (c.historia && !(c.textos || {}).hist_p) { c.textos = Object.assign({}, c.textos || {}); if (c.historia !== window.I18N.es.hist_p) c.textos.hist_p = c.historia; }
+    c.historia = '';
+    return '<div class="pn-pag">' +
+      '<div class="pn-pag-vista"><div class="pn-pag-marco" id="pg-marco"><span class="pn-pag-cargando">Cargando tu página…</span></div></div>' +
+      '<div class="pn-pag-sec"><button type="button" class="pn-pag-flecha" data-pg-sec="-1" aria-label="Sección anterior">' + FLECHA_I + '</button>' +
+      '<span class="pn-pag-sec-in"><b id="pg-sec">' + esc(SECCIONES[P.pg.sec]) + '</b><span class="pn-pag-puntos" aria-hidden="true">' + SECCIONES.map(function (x, i) { return '<i' + (i === P.pg.sec ? ' class="on"' : '') + '></i>'; }).join('') + '</span></span>' +
+      '<button type="button" class="pn-pag-flecha" data-pg-sec="1" aria-label="Sección siguiente">' + FLECHA_D + '</button></div>' +
+      '<div class="pn-pag-campo" id="pg-campo">' + campoPagina() + '</div>' +
+      '<div class="pn-hoja" data-hoja="pg-mas"' + (P.pg.hoja ? '' : ' hidden') + '><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Más de tu página</b><button type="button" class="pn-ctl-listo" data-pg-mas-cerrar>Listo</button></div><div class="pn-hoja-cuerpo">' +
+      '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
+      '<h3 class="pn-h">Fotos de tu página</h3><div class="pn-pag-fotos">' + ['logo', 'fondo', 'compartir'].map(function (k) { return '<div class="pn-pag-fotofila">' + filaFoto(k) + botonesFoto(k) + '</div>'; }).join('') + '</div>' +
+      '<h3 class="pn-h">Equipos que visten M Sport</h3>' + clientesHTML(c) +
+      '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
+      '</div></div></div><input type="file" accept="image/*" class="pn-est-oculto" data-pg-archivo tabindex="-1" aria-hidden="true"></div>';
+  }
+  var QUE_TOQUE = {
+    tienda: ['La dirección, el horario y el WhatsApp se cambian en Tienda.', 'Ir a Tienda', 'datos'],
+    uniformes: ['Los uniformes y sus escudos se cambian en Uniformes.', 'Ir a Uniformes', 'uniformes'],
+    clientes: ['Los equipos que visten M Sport: su uniforme, su logo y sus redes.', 'Cambiarlos', 'mas'],
+    cal: ['Tu calificación de Google y cuántas opiniones tienes.', 'Cambiarla', 'mas'],
+    moon: ['Este crédito es de MOON Digital y no se cambia.', '', ''],
+    nada: ['Eso no tiene texto para cambiar. Toca un título, un botón o un párrafo.', '', '']
+  };
+  // las fotos de la página: cómo se llaman, dónde salen y cuál es la de siempre
+  var FOTOS_PAG = {
+    logo: ['Tu logo', 'Sale arriba, en la portada y al abrir la página.'],
+    fondo: ['Fondo del uniforme', 'La foto que se ve detrás del uniforme en 3D.'],
+    compartir: ['Foto para compartir', 'La que sale cuando alguien manda tu link por WhatsApp o redes.']
+  };
+  function miniFoto(k) {
+    var u = P.config[k];
+    if (k === 'logo' && !u) return '<span class="pn-pag-mini logo">' + A.logoSVG('#1F2E7A', '#FFFFFF') + '</span>';
+    return '<span class="pn-pag-mini' + (k === 'logo' ? ' logo' : '') + '"><img src="' + esc(u || (k === 'fondo' ? '/assets/3d/campo.webp' : '/assets/og.jpg')) + '" alt=""></span>';
+  }
+  function filaFoto(k) {
+    return '<div class="pn-pag-foto">' + miniFoto(k) + '<span class="pn-pag-foto-t"><b>' + esc(FOTOS_PAG[k][0]) + '</b><small>' + esc(FOTOS_PAG[k][1]) + '</small></span></div>';
+  }
+  function botonesFoto(k) {
+    return '<div class="pn-pag-pie"><button type="button" class="pn-ctl-listo" data-pg-foto="' + k + '">Cambiar foto</button><button type="button" class="pn-pag-orig" data-pg-foto-quitar="' + k + '"' + (P.config[k] ? '' : ' disabled') + '>Como venía</button></div>';
+  }
+  function campoPagina() {
+    var g = P.pg, k = g.k;
+    if (!k && (g.que === 'logo' || g.que === 'fondo')) return '<div class="pn-pag-fotobox">' + filaFoto(g.que) + (g.que === 'fondo' ? '<p class="pn-pag-nota">Los uniformes se cambian en Uniformes.</p>' : '') + botonesFoto(g.que) + '</div>';
+    if (k) {
+      var l = g.lang, v = txDe(k, l) || txBase(k, l), nom = k === 'hist_p' ? 'Tu historia' : NOMBRE_TX[k] || 'Este texto';
+      return '<div class="pn-pag-cab"><span class="pn-pag-nom"><i></i><b>' + esc(nom) + '</b></span><span class="pn-seg" role="group" aria-label="Idioma">' +
+        '<button type="button" data-pg-lang="es"' + (l === 'es' ? ' class="on"' : '') + '>Español</button><button type="button" data-pg-lang="en"' + (l === 'en' ? ' class="on"' : '') + '>English</button></span></div>' +
+        '<textarea class="campo pn-pag-tx" id="pg-tx" maxlength="' + largoTx(k) + '" aria-label="' + esc(nom) + (l === 'en' ? ' en inglés' : ' en español') + '">' + esc(v) + '</textarea>' +
+        '<div class="pn-pag-pie"><small>' + (l === 'en' ? 'Así lo leen quienes tienen su celular en inglés' : 'Lo que escribes se ve arriba al instante') + '</small><button type="button" class="pn-pag-orig" data-pg-orig' + (txDe(k, l) ? '' : ' disabled') + '>Como venía</button></div>';
+    }
+    if (g.que) { var q = QUE_TOQUE[g.que] || QUE_TOQUE.nada; return '<div class="pn-pag-msj"><p>' + esc(q[0]) + '</p>' + (q[1] ? '<button type="button" class="pn-ctl-listo" data-pg-ir="' + q[2] + '">' + esc(q[1]) + '</button>' : '') + '</div>'; }
+    return '<div class="pn-pag-msj"><b>☝ Toca cualquier texto de tu página</b><p>Títulos, botones, párrafos: lo cambias aquí abajo, en español y en inglés. Se guarda solo.</p></div>';
+  }
+  // fondo: hasta 1600 de ancho, como venga; foto para compartir: 1200×630 (lo que piden WhatsApp y Facebook), recortada al centro
+  function prepararFotoPag(f, k) {
+    return A.cargarArchivo(f).then(function (im) {
+      var w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, cv = document.createElement('canvas'), g = cv.getContext('2d');
+      if (k === 'compartir') {
+        cv.width = 1200; cv.height = 630; var s = Math.max(1200 / w, 630 / h);
+        g.drawImage(im, (1200 - w * s) / 2, (630 - h * s) / 2, w * s, h * s);
+      } else { var e = Math.min(1, 1600 / Math.max(w, h)); cv.width = Math.round(w * e); cv.height = Math.round(h * e); g.drawImage(im, 0, 0, cv.width, cv.height); }
+      return cv.toDataURL('image/jpeg', 0.86);
+    });
+  }
+  function ponerFotoPag(k, url) {
+    P.config[k] = url;
+    decirPagina({ tipo: 'fotos', logo: P.config.logo || '', fondo: P.config.fondo || '' });
+    pintar(); if (P.guardarDatos) P.guardarDatos();
+  }
+  function decirPagina(m) { var f = P.capaPag && $('iframe', P.capaPag); if (f && f.contentWindow && P.pg.listo) { m.msport = 1; f.contentWindow.postMessage(m, location.origin); } }
+  function capaPagina() {
+    if (P.capaPag) return P.capaPag;
+    var cap = document.createElement('div'); cap.className = 'pn-pag-capa';
+    var f = document.createElement('iframe'); f.title = 'Tu página como la ve el cliente'; f.setAttribute('tabindex', '-1');
+    f.src = '/?editar=1&sinintro=1&v=' + (window.VERSION || '1');
+    cap.appendChild(f); panel.appendChild(cap); P.capaPag = cap;
+    return cap;
+  }
+  function colocarCapa() {
+    var m = P.tab === 'pagina' && $('#pg-marco', panel);
+    if (!m) { P.pg.hoja = false; P.pg.hojaY = 0; if (P.capaPag) P.capaPag.style.display = 'none'; return; }
+    var cap = capaPagina(), f = $('iframe', cap), r = m.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var s = r.width / 390;
+    cap.style.cssText = 'display:block;left:' + (r.left - pr.left) + 'px;top:' + (r.top - pr.top) + 'px;width:' + r.width + 'px;height:' + r.height + 'px';
+    f.style.cssText = 'width:390px;height:' + Math.round(r.height / s) + 'px;transform:scale(' + s + ')';
+  }
+  function pintarCampo() {
+    var cp = $('#pg-campo', panel); if (!cp) return;
+    cp.innerHTML = campoPagina();
+    var tx = $('#pg-tx', cp);
+    if (tx) {
+      tx.addEventListener('input', function () {
+        var k = P.pg.k, l = P.pg.lang, c = P.config, map = l === 'en' ? 'textos_en' : 'textos', v = tx.value.trim();
+        c[map] = Object.assign({}, c[map] || {});
+        if (v && v !== txBase(k, l)) c[map][k] = v; else delete c[map][k];
+        decirPagina({ tipo: 'texto', k: k, es: txDe(k, 'es'), en: txDe(k, 'en') });
+        var o = $('[data-pg-orig]', cp); if (o) o.disabled = !txDe(k, l);
+        if (P.guardarDatos) P.guardarDatos();
+      });
+      tx.addEventListener('focus', function () { modoEscribir(true); });
+      tx.addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== tx) modoEscribir(false); }, 120); });
+    }
+  }
+  // modo escribir: con el teclado abierto, el panel mide lo que queda libre arriba del teclado; lo que escribes nunca queda tapado
+  function modoEscribir(si) {
+    var pn = $('.pn', panel); if (!pn) return;
+    // solo en celular o tableta (con teclado en pantalla); en computadora no cambia nada
+    pn.classList.toggle('escribiendo', !!si && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches));
+    ajustarTeclado();
+  }
+  function ajustarTeclado() {
+    var pn = $('.pn', panel), vv = window.visualViewport;
+    if (!pn) return;
+    if (pn.classList.contains('escribiendo') && vv) { pn.style.height = vv.height + 'px'; pn.style.transform = 'translateY(' + vv.offsetTop + 'px)'; }
+    else { pn.style.height = ''; pn.style.transform = ''; }
+    colocarCapa();
+  }
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', ajustarTeclado); window.visualViewport.addEventListener('scroll', ajustarTeclado); }
+  window.addEventListener('resize', function () { colocarCapa(); });
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !P.capaPag || e.source !== ($('iframe', P.capaPag) || {}).contentWindow) return;
+    var m = e.data || {}; if (!m.msport) return;
+    if (m.tipo === 'listo') {
+      P.pg.listo = true; var mk = $('.pn-pag-cargando', panel); if (mk) mk.remove();
+      decirPagina({ tipo: 'todos', es: P.config.textos || {}, en: P.config.textos_en || {} });
+      decirPagina({ tipo: 'fotos', logo: P.config.logo || '', fondo: P.config.fondo || '' });
+      if (P.pg.lang !== 'es') decirPagina({ tipo: 'lang', l: P.pg.lang });
+      if (P.pg.k) decirPagina({ tipo: 'ir', k: P.pg.k });
+    }
+    if (m.tipo === 'elige') { if (P.pg.k !== m.k) { var a = document.activeElement; if (a && a.id === 'pg-tx') a.blur(); } P.pg.k = m.k; P.pg.que = ''; pintarCampo(); }
+    if (m.tipo === 'toque') { P.pg.k = ''; P.pg.que = m.que; pintarCampo(); }
+    if (m.tipo === 'sec') {
+      P.pg.sec = m.i; var sb = $('#pg-sec', panel); if (sb) sb.textContent = SECCIONES[m.i];
+      $$('.pn-pag-puntos i', panel).forEach(function (x, i) { x.classList.toggle('on', i === m.i); });
+    }
+  });
+  function enlazarPagina() {
+    var pag = $('.pn-pag', panel); if (!pag) return;
+    if (P.capaPag && P.pg.listo) { var mk = $('.pn-pag-cargando', panel); if (mk) mk.remove(); }
+    function hoja(si) { P.pg.hoja = !!si; var h = $('[data-hoja="pg-mas"]', panel); if (h) h.hidden = !si; }
+    var hc = $('[data-hoja="pg-mas"] .pn-hoja-cuerpo', panel);
+    if (hc) { hc.scrollTop = P.pg.hojaY || 0; hc.addEventListener('scroll', function () { P.pg.hojaY = hc.scrollTop; }, { passive: true }); }
+    pag.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-pg-sec],[data-pg-lang],[data-pg-orig],[data-pg-ir],[data-pg-mas-cerrar],[data-pg-foto],[data-pg-foto-quitar]');
+      if (!t) { if (e.target.getAttribute && e.target.getAttribute('data-hoja') === 'pg-mas') hoja(false); return; }
+      if (t.hasAttribute('data-pg-foto')) { P.pg.fotoK = t.getAttribute('data-pg-foto'); var ia = $('[data-pg-archivo]', panel); ia.value = ''; ia.click(); return; }
+      if (t.hasAttribute('data-pg-foto-quitar')) { ponerFotoPag(t.getAttribute('data-pg-foto-quitar'), ''); return; }
+      if (t.hasAttribute('data-pg-sec')) {
+        var i = Math.max(0, Math.min(SECCIONES.length - 1, P.pg.sec + +t.getAttribute('data-pg-sec')));
+        decirPagina({ tipo: 'sec', i: i });
+      } else if (t.hasAttribute('data-pg-lang')) {
+        P.pg.lang = t.getAttribute('data-pg-lang'); decirPagina({ tipo: 'lang', l: P.pg.lang }); pintarCampo();
+      } else if (t.hasAttribute('data-pg-orig')) {
+        var k = P.pg.k, l = P.pg.lang, mp = l === 'en' ? 'textos_en' : 'textos';
+        P.config[mp] = Object.assign({}, P.config[mp] || {}); delete P.config[mp][k];
+        decirPagina({ tipo: 'texto', k: k, es: txDe(k, 'es'), en: txDe(k, 'en') }); pintarCampo(); if (P.guardarDatos) P.guardarDatos();
+      } else if (t.hasAttribute('data-pg-ir')) {
+        var d = t.getAttribute('data-pg-ir');
+        if (d === 'mas') hoja(true); else { P.tab = d; P.tSel = ''; pintar(0); }
+      } else hoja(false);
+    });
+    var mb = $('[data-pg-mas]', panel); if (mb) mb.addEventListener('click', function () { hoja(true); });
+    var ia = $('[data-pg-archivo]', panel);
+    if (ia) ia.addEventListener('change', function () {
+      var f = ia.files && ia.files[0], k = P.pg.fotoK; if (!f || !k) return;
+      var lista = k === 'logo' ? subirEscudo(f) : prepararFotoPag(f, k).then(function (d) { A.toast('Subiendo tu foto…', true); return A.subirConReintento(d, 'catalogo'); });
+      lista.then(function (url) { A.toast('Foto lista'); ponerFotoPag(k, url); }).catch(function (e) { if (!e || !e.cancelado) A.toast('No se pudo subir esa foto. Inténtalo otra vez.'); });
+    });
+    pintarCampo();
+  }
   function vistaDatos() {
     var c = P.config;
     function lista(id, arr) {
@@ -1017,31 +1280,18 @@
     }
     // dos pestañas con un solo formulario: "Datos de la tienda" (cómo encontrarte y pedidos) y "Secciones de la página" (lo que dice
     // cada parte de la página). Las dos partes están siempre y solo se esconde la que no toca, así todo se guarda junto.
-    var pag = P.tab === 'pagina';
+    var pag = P.tab === 'pagina', aj = P.tab === 'ajustes';
     return '<div class="pn-form pn-datos"><p class="pn-auto" id="dt-estado">Todo lo que cambies aquí se guarda solo.</p>' +
-      '<div data-parte="datos"' + (pag ? ' hidden' : '') + '><p class="pn-ayuda">Cómo te encuentran y te escriben tus clientes, y cómo te llegan los pedidos.</p><div class="pn-dos"><div class="pn-col">' +
-      '<h3 class="pn-h">Tu tienda</h3>' +
-      '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
-      '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
-      '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
-      '</div><div class="pn-col"><h3 class="pn-h">Pedidos</h3>' +
+      '<div data-parte="datos"' + (P.tab === 'datos' ? '' : ' hidden') + '><div class="pn-col">' + vistaVisita(c) +
+      '<div class="grupo" data-tsel="wa"' + (P.tSel === 'wa' ? '' : ' hidden') + '><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
+      '<div class="grupo" data-tsel="dir"' + (P.tSel === 'dir' ? '' : ' hidden') + '><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
+      '<div class="grupo" data-tsel="hor"' + (P.tSel === 'hor' ? '' : ' hidden') + '><span class="etq">Horario <small>(toca la hora y escoge con la ruedita)</small></span>' + horarioHTML(c.horario) + '</div>' +
+      '</div></div><div data-parte="ajustes"' + (aj ? '' : ' hidden') + '><div class="pn-col"><h3 class="pn-h">Pedidos</h3>' +
       '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
       sonidoHTML(c) +
       '<div class="grupo pn-cambia-cod"><h3 class="pn-h">Tu código para entrar</h3><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
-      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div></div></div>' +
-      '<div data-parte="pagina"' + (pag ? '' : ' hidden') + '><p class="pn-ayuda">Cada parte de tu página, en el mismo orden en que la ve la gente. Toca una para cambiar lo que dice.</p><div class="pn-secciones">' +
-      grupoTextos('Arriba de todo (lo amarillo)', ['intro_lema'], c) +
-      grupoTextos('Arma tu uniforme', ['hero_k', 'hero_t', 'hero_p'], c) +
-      grupoTextos('Catálogo', ['cat_t', 'cat_p'], c) +
-      grupoTextos('Quiénes somos', ['hist_k', 'hist_t'], c,
-        '<div class="grupo"><label for="dt-hist">Tu historia</label><textarea class="campo campo-largo" id="dt-hist" maxlength="900" placeholder="' + esc(window.I18N.es.hist_p) + '">' + esc(c.historia || window.I18N.es.hist_p) + '</textarea></div>' +
-        '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
-        campoTexto('cifra_a', c, 'Número del primer dato') + campoTexto('hist_prendas', c, 'Texto del primer dato') + campoTexto('cifra_b', c, 'Número del segundo dato') + campoTexto('hist_folio', c, 'Texto del segundo dato')) +
-      grupoTextos('Equipos que visten M Sport', ['eq_k', 'eq_p'], c, clientesHTML(c)) +
-      grupoTextos('Así de fácil', ['como_t', 'como_1', 'como_2', 'como_3'], c) +
-      grupoTextos('Visítanos', ['visita_t', 'escribenos', 'como_llegar'], c) +
-      '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
-      '</div></div></div>';
+      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div></div>' +
+      '<div data-parte="pagina"' + (pag ? '' : ' hidden') + '>' + vistaPagina(c) + '</div></div>';
   }
   // el sonido que suena cuando el cliente manda su cotización: con o sin sonido, el suyo propio y el volumen
   function sonidoHTML(c) {
@@ -1077,6 +1327,25 @@
   var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   // horario: un renglón por día, como en Google Maps (abierto/cerrado y sus horas). Se guarda juntando los días con las mismas horas.
   var ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0], DIAS_L = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  // Tu tienda: arriba se ve "Visítanos" como en la página (con lo que hay ahorita); se toca la dirección, el horario o el
+  // WhatsApp y abajo sale solo eso para cambiarlo. Lo que cambias se ve arriba al instante.
+  function textoHorario() {
+    var g = P.horDia ? leerHorario() : (P.config.horario || []);
+    if (!g.length) return '<span class="pn-vv-h"><span>Todos los días</span><b>Cerrado</b></span>';
+    return g.map(function (r) {
+      var ds = r.dias.slice().sort(function (a, b) { return ORDEN_DIAS.indexOf(a) - ORDEN_DIAS.indexOf(b); }), nom = ds.length > 2 && ORDEN_DIAS.indexOf(ds[ds.length - 1]) - ORDEN_DIAS.indexOf(ds[0]) === ds.length - 1 ? DIAS_L[ds[0]] + ' a ' + DIAS_L[ds[ds.length - 1]].toLowerCase() : ds.map(function (d) { return DIAS_L[d]; }).join(', ');
+      var hh = function (t) { var x = String(t || '').split(':'), H = +x[0], m = x[1] || '00'; return ((H % 12) || 12) + (m !== '00' ? ':' + m : '') + (H < 12 ? ' am' : ' pm'); };
+      return '<span class="pn-vv-h"><span>' + esc(nom) + '</span><b>' + hh(r.abre) + ' – ' + hh(r.cierra) + '</b></span>';
+    }).join('');
+  }
+  function vistaVisita(c) {
+    var sel = function (k) { return P.tSel === k ? ' on' : ''; }, wa = String(c.whatsapp || '').replace(/^52/, '');
+    return '<div class="pn-vv' + (P.tSel ? ' foco' : '') + '"><p class="pn-vv-k">Así se ve en tu página</p><div class="pn-vv-cab"><h4>' + (({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp' })[P.tSel] || 'Visítanos') + '</h4><button type="button" class="pn-ctl-listo pn-vv-listo" data-tsel-listo>Listo</button></div>' +
+      '<button type="button" class="pn-vv-t' + sel('dir') + '" data-tsel-ir="dir"><span id="vv-dir">' + esc(c.direccion || 'Toca para poner tu dirección') + '</span></button>' +
+      '<button type="button" class="pn-vv-t pn-vv-hor' + sel('hor') + '" data-tsel-ir="hor" id="vv-hor">' + textoHorario() + '</button>' +
+      '<button type="button" class="pn-vv-t pn-vv-wa' + sel('wa') + '" data-tsel-ir="wa"><span>Escríbenos por WhatsApp</span><small id="vv-wa">' + esc(wa ? wa.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') : 'Toca para poner tu número') + '</small></button>' +
+      '</div>' + (P.tSel ? '' : '<p class="pn-ctl-ayuda">☝ Toca la dirección, el horario o el WhatsApp para cambiarlo.</p>');
+  }
   function horarioHTML(h) {
     if (!Array.isArray(h)) h = A.clone(window.CONFIG_BASE.horario);
     var pd = {}; ORDEN_DIAS.forEach(function (d) { pd[d] = { abierto: false, abre: '09:00', cierra: '19:00' }; });
@@ -1084,7 +1353,7 @@
     P.horDia = pd;
     return '<div class="pn-hor" id="pn-hor">' + ORDEN_DIAS.map(function (d) {
       var x = pd[d];
-      return '<div class="pn-dia' + (x.abierto ? '' : ' cerrado') + '" data-dia="' + d + '"><b>' + DIAS_L[d] + '</b>' +
+      return '<div class="pn-dia' + (x.abierto ? '' : ' cerrado') + '" data-dia="' + d + '"><b>' + DIAS_L[d].slice(0, 3) + '</b>' +
         '<button type="button" class="pn-sw' + (x.abierto ? ' on' : '') + '" data-dia-ab="' + d + '" aria-pressed="' + x.abierto + '"><i></i><span>' + (x.abierto ? 'Abierto' : 'Cerrado') + '</span></button>' +
         '<span class="pn-dia-horas"><input class="campo" type="time" data-habre="' + d + '" value="' + x.abre + '" aria-label="Abre"><em>a</em><input class="campo" type="time" data-hcierra="' + d + '" value="' + x.cierra + '" aria-label="Cierra"></span></div>';
     }).join('') + '</div>';
@@ -1101,6 +1370,23 @@
     return grupos;
   }
   function enlazarDatos() {
+    // Tu tienda: tocar un pedazo de la vista previa abre solo su campo; lo que se escribe se ve arriba al instante
+    function tsel(k) {
+        P.tSel = k;
+        $$('[data-tsel-ir]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-tsel-ir') === P.tSel); });
+        $$('[data-tsel]', panel).forEach(function (g) { g.hidden = g.getAttribute('data-tsel') !== P.tSel; });
+        var ay = $('.pn-vv + .pn-ctl-ayuda', panel); if (ay) ay.hidden = !!P.tSel;
+        var vv = $('.pn-vv', panel); if (vv) vv.classList.toggle('foco', !!P.tSel);
+        var h4 = $('.pn-vv h4', panel); if (h4) h4.textContent = ({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp' })[P.tSel] || 'Visítanos';
+        var pn = $('.pn', panel); if (pn) pn.classList.toggle('enfoque', !!P.tSel);   // mientras cambias algo, se esconde la barra de abajo: todo cabe sin bajar   // con algo escogido, arriba solo queda eso: el campo cabe sin bajar
+        var inp = P.tSel === 'dir' ? $('#dt-dir', panel) : P.tSel === 'wa' ? $('#dt-wa', panel) : null; if (inp) inp.focus();
+    }
+    $$('[data-tsel-ir]', panel).forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-tsel-ir'); tsel(P.tSel === k ? '' : k); }); });
+    var tl = $('[data-tsel-listo]', panel); if (tl) tl.addEventListener('click', function () { tsel(''); });
+    var vd = $('#vv-dir', panel), vw = $('#vv-wa', panel), vh = $('#vv-hor', panel);
+    var dd = $('#dt-dir', panel); if (dd && vd) dd.addEventListener('input', function () { vd.textContent = dd.value || 'Toca para poner tu dirección'; });
+    var ww = $('#dt-wa', panel); if (ww && vw) ww.addEventListener('input', function () { var n = ww.value.replace(/\D/g, '').replace(/^52(?=\d{10})/, ''); vw.textContent = n.length === 10 ? n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') : (n || 'Toca para poner tu número'); });
+    var hor = $('[data-tsel="hor"]', panel); if (hor && vh) { var rehor = function () { setTimeout(function () { vh.innerHTML = textoHorario(); }, 0); }; hor.addEventListener('input', rehor); hor.addEventListener('change', rehor); hor.addEventListener('click', rehor); }
     $$('[data-dia-ab]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
         var d = +b.getAttribute('data-dia-ab'), x = P.horDia[d]; x.abierto = !x.abierto;
@@ -1147,14 +1433,16 @@
     });
     // todo se guarda solo: al salir de un campo o al tocar una opción (un momento después, para juntar varios toques)
     var estado = $('#dt-estado', panel);
-    function marca(t, mal) { if (estado) { estado.textContent = t; estado.classList.toggle('mal', !!mal); } }
+    function marca(t, mal) {
+      if (estado) { estado.textContent = t; estado.classList.toggle('mal', !!mal); }
+      var pe = $('#pg-estado', panel); if (pe) { pe.textContent = mal ? 'No se guardó' : t; pe.classList.toggle('mal', !!mal); }
+    }
     function leer() {
       $$('[data-tag-in]', panel).forEach(function (inp) { var v = inp.value.trim(); if (v) { var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); inp.value = ''; } });
       var mx = parseInt($('#dt-max').value, 10); c.maxEquipos = mx >= 1 && mx <= 30 ? mx : 10;
-      var tx = {}; $$('[data-tx]', panel).forEach(function (el) { var k = el.getAttribute('data-tx'), v = el.value.trim(); if (v && v !== window.I18N.es[k]) tx[k] = v; }); c.textos = tx;
       c.clientes = $$('[data-cli]', panel).map(function (row, i) { var x = Object.assign({}, (c.clientes || [])[i] || {}); $$('[data-cli-k]', row).forEach(function (el) { x[el.getAttribute('data-cli-k')] = el.value.trim(); }); return x; });
       Object.assign(c, P.sonido);
-      c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.historia = $('#dt-hist').value.trim() === window.I18N.es.hist_p ? '' : $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
+      c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
       var wa = $('#dt-wa').value.replace(/\D/g, ''); if (wa.length === 12 && wa.indexOf('52') === 0) wa = wa.slice(2);
       if (wa.length === 10) { c.whatsapp = '52' + wa; return true; }
       return !wa ? (c.whatsapp = '', true) : false;
@@ -1170,6 +1458,7 @@
       }, 700);
     }
     P.guardarDatos = guardar; P.leerDatos = leer;
+    if (P.tab === 'pagina') enlazarPagina();
     $$('.pn-datos input, .pn-datos textarea', panel).forEach(function (inp) {
       if (/^dt-cod/.test(inp.id) || inp.type === 'file') return;
       inp.addEventListener('change', guardar);

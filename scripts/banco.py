@@ -38,7 +38,7 @@ with sync_playwright() as p:
                 avisos.append(lado+': '+pg.evaluate("document.querySelector('#ed-aviso').innerText").replace('\n\n',' | ')); print(caso['id'],lado,fs[lado],pg.evaluate('JSON.stringify(window.__fotos)'),flush=True)
         pg.locator('#ed-3d').scroll_into_view_if_needed(); pg.wait_for_timeout(1800)
         pg.locator('#ed-3d').screenshot(path=O+caso['id']+'-f.png'); pg.tap('[data-pv="espalda"]'); pg.wait_for_timeout(2200); pg.locator('#ed-3d').screenshot(path=O+caso['id']+'-e.png')
-        pg.evaluate("document.querySelector('[data-mas-op]').open=true"); pg.tap('[data-mg=\"larga\"]'); pg.wait_for_timeout(5000); pg.locator('#ed-3d').scroll_into_view_if_needed(); pg.wait_for_timeout(800); pg.locator('#ed-3d').screenshot(path=O+caso['id']+'-l.png')
+        pg.tap('[data-hoja-ir="datos"]'); pg.wait_for_timeout(400); pg.tap('[data-mg=\"larga\"]'); pg.wait_for_timeout(5000); pg.tap('[data-hoja-cerrar]'); pg.wait_for_timeout(400); pg.locator('#ed-3d').scroll_into_view_if_needed(); pg.wait_for_timeout(800); pg.locator('#ed-3d').screenshot(path=O+caso['id']+'-l.png')
         res.append((caso, avisos, errs)); c.close()
 # hoja
 W=300; H=450; n=len(res); hoja=Image.new('RGB',(n*W,3*H+150),(14,20,60)); d=ImageDraw.Draw(hoja)
