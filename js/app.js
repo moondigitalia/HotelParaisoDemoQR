@@ -969,7 +969,7 @@
     enlazarFiltros(catTodo, 't', lista); lista();
     if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
     var rr = $('#t-resultados', catTodo); if (rr._pinta) rr._pinta();   // ya visible: se mide el ancho real
-    $('.cat-todo-in', catTodo).scrollTop = 0;
+    $('#t-resultados', catTodo).scrollTop = 0;
   }
   function cerrarCatTodo() {
     if (!catTodo || catTodo.hidden) return;
@@ -1045,39 +1045,31 @@
     if (/^(www\.)?(instagram|facebook|tiktok)\.com/i.test(v)) return 'https://' + v;
     return REDES[tipo][1] + v.replace(/^@/, '');
   }
-  // al tocar un equipo: su uniforme en grande, su logo, sus redes y (si es de los del catálogo) verlo en 3D
-  var capaCli = null;
-  function verCliente(x) {
-    if (!capaCli) {
-      capaCli = document.createElement('div'); capaCli.className = 'capa cli-capa'; capaCli.hidden = true; document.body.appendChild(capaCli);
-      capaCli.addEventListener('click', function (e) { if (e.target === capaCli || e.target.closest('[data-cli-cerrar]')) cerrarCli(); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && capaCli && !capaCli.hidden) cerrarCli(); });
-    }
-    var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
-      return '<a class="cli-red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg>' + REDES[t][0] + '</a>';
-    }).join('');
-    capaCli.innerHTML = '<div class="cli-card" role="dialog" aria-modal="true" aria-label="' + esc(x.nombre) + '"><button type="button" class="capa-x" data-cli-cerrar aria-label="' + esc(T('cerrar')) + '">×</button>' +
-      '<div class="cli-vista">' + (x.img ? '<img src="' + esc(x.img) + '" alt="">' : '') + (x.logo ? '<span class="cli-logo"><img src="' + esc(x.logo) + '" alt=""></span>' : '') + '</div>' +
-      '<h3>' + esc(x.nombre) + '</h3>' + (redes ? '<div class="cli-redes">' + redes + '</div>' : '') +
-      (x.u ? '<button type="button" class="btn btn-oro cli-3d" data-cli-3d>' + esc(T('folio_armar')) + '</button>' : '') + '</div>';
-    var b3 = $('[data-cli-3d]', capaCli); if (b3) b3.addEventListener('click', function () { cerrarCli(); abrirProbador(x.u, b3); });
-    if (capaCli.hidden) { window.FIJAR.on(); capaCli.hidden = false; }
-  }
-  function cerrarCli() { if (capaCli && !capaCli.hidden) { capaCli.hidden = true; window.FIJAR.off(); } }
+  function normalTxt(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
   function pintarEquiposCasa() {
     var cont = $('#eq-casa'); if (!cont) return;
+    // cada equipo cliente se ve con SU uniforme en 3D: el que escogió el dueño o el del catálogo con el mismo nombre de equipo
+    var vis = catalogoVisible(), eqs = equiposDe(vis);
     var cl = (TIENDA.config.clientes || []).map(function (x) {
-      var u = x.uni ? catalogoVisible().filter(function (y) { return y.id === x.uni; })[0] : null, q = u ? equiposDe([u])[0] : null;
-      return Object.assign({}, x, { u: u, img: x.foto || (u && (u.silueta || u.mini)) || '', logo: x.escudo || (q && q.escudo) || '' });
-    }).filter(function (x) { return x.img || x.nombre; });
+      var u = x.uni ? vis.filter(function (y) { return y.id === x.uni; })[0] : null;
+      if (!u && x.nombre) { var qn = eqs.filter(function (q) { return normalTxt(q.nombre) === normalTxt(x.nombre); })[0]; u = qn ? qn.items[0] : null; }
+      var q = u ? eqs.filter(function (q) { return q.items.indexOf(u) >= 0; })[0] : null;
+      return Object.assign({}, x, { nombre: x.nombre || (q && q.nombre) || '', u: u, img: u ? (u.silueta || u.mini) : '', logo: x.escudo || (q && q.escudo) || '' });
+    }).filter(function (x) { return x.u && x.img; });
     if (cl.length) {
       cont.classList.add('clientes');
+      // cada equipo: su uniforme en 3D y, a un lado, un circulito con su escudo y abajo un circulito por cada red social
       var piezas = cl.map(function (x, i) {
-        return '<button type="button" class="eq-cliente" data-cliente="' + i + '"><span class="eq-cli-vista">' + (x.img ? '<img src="' + esc(x.img) + '" alt="" loading="lazy" decoding="async">' : '') +
-          (x.logo ? '<span class="eq-cli-logo"><img src="' + esc(x.logo) + '" alt="" loading="lazy" decoding="async"></span>' : '') + '</span><b>' + esc(x.nombre) + '</b></button>';
+        var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
+          return '<a class="eq-cli-circ eq-cli-red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener" aria-label="' + REDES[t][0] + ' ' + esc(x.nombre) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg></a>';
+        }).join('');
+        return '<div class="eq-cliente"><button type="button" class="eq-cli-vista" data-cliente="' + i + '" aria-label="' + esc(x.nombre) + '">' + (x.img ? '<img src="' + esc(x.img) + '" alt="" loading="lazy" decoding="async">' : '') + '</button>' +
+          '<div class="eq-cli-lado">' + (x.logo ? '<span class="eq-cli-circ eq-cli-logo"><img src="' + esc(x.logo) + '" alt="" loading="lazy" decoding="async"></span>' : '') + redes + '</div>' +
+          '<b>' + esc(x.nombre) + '</b></div>';
       });
-      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 150, 14, 4);
-      $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { verCliente(cl[+b.getAttribute('data-cliente')]); }); });
+      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 220, 14, 3);
+      // tocar el uniforme lo abre en 3D para girarlo
+      $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { abrirProbador(cl[+b.getAttribute('data-cliente')].u, b); }); });
       if (!cont._oyeAncho) { cont._oyeAncho = 1; window.addEventListener('resize', function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
       return;
     }

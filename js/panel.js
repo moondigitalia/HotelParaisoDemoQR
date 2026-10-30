@@ -251,9 +251,11 @@
   }
   function filaEquipo(e, si, ei, n) {
     var oculto = !visibleEq(e);
+    // los que no tienen las tres fotos (frente, espalda y short) se avisan aquí para que el dueño sepa cuál abrir
+    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && (!f.frente || !f.espalda || !f.short); }).length;
     var cara = e.escudo ? '<span class="pn-esc"><img src="' + esc(e.escudo) + '" alt=""></span>' : '<img class="pn-th" src="' + esc((e.items[0] || {}).mini || '') + '" alt="">';
     return '<div class="pn-fila pn-uni' + (oculto ? ' apagado' : '') + '"><button type="button" class="pn-abrir" data-eq="' + esc(e.clave) + '">' + cara +
-      '<span class="pn-info"><b>' + esc(e.nombre || 'Sin nombre') + '</b><small>' + (e.items.length === 1 ? '1 uniforme' : e.items.length + ' uniformes') + (oculto ? ' · oculto' : '') + '</small></span><span class="pn-ir" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span></button>' +
+      '<span class="pn-info"><b>' + esc(e.nombre || 'Sin nombre') + '</b><small>' + (e.items.length === 1 ? '1 uniforme' : e.items.length + ' uniformes') + (oculto ? ' · oculto' : '') + (incompletos ? ' · <span class="falta">' + (incompletos === 1 ? 'a 1 le falta foto' : 'a ' + incompletos + ' les faltan fotos') + '</span>' : '') + '</small></span><span class="pn-ir" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span></button>' +
       '<span class="pn-orden"><button type="button" class="icon-btn" data-eq-mueve="-1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Subir equipo"' + (ei === 0 ? ' disabled' : '') + '>↑</button>' +
       '<button type="button" class="icon-btn" data-eq-mueve="1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Bajar equipo"' + (ei === n - 1 ? ' disabled' : '') + '>↓</button></span></div>';
   }
@@ -480,8 +482,9 @@
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
         '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
     }
-    var listo = f.frente && f.short && !/^data:/.test(f.frente + f.espalda + f.short);   // el short siempre con foto: lleva logo y a veces diseño
-    var falta = !f.frente ? 'Primero sube la foto del frente.' : !f.short ? 'Falta la foto del short. Si viene en la misma foto que la playera, la separamos sola.' : '';
+    // las tres fotos siempre: la espalda trae su propio diseño (no se inventa volteando el frente) y el short lleva logo y a veces diseño
+    var listo = f.frente && f.espalda && f.short && !/^data:/.test(f.frente + f.espalda + f.short);
+    var falta = !f.frente ? 'Primero sube la foto del frente.' : !f.espalda ? 'Falta la foto de la espalda.' : !f.short ? 'Falta la foto del short. Si viene en la misma foto que la playera, la separamos sola.' : '';
     h += '<div class="subir pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (falta ? '<small class="pn-falta">' + falta + '</small>' : '') + '</div></div>' +
       (angosto ? '' : prev) + '</div>';
     return h;
@@ -716,7 +719,7 @@
       var pv = $('.pn-prev3d', panel); if (pv && !pv.hidden) setTimeout(function () { pv.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 120);   // que vea su uniforme en 3D sin buscarlo
       return Promise.all(tareas).then(function () {
         A.toast('Foto lista');
-        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) { pub.disabled = false; pub.parentNode.classList.add("listo"); var fl = $(".pn-falta", panel); if (fl) fl.remove(); }
+        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.espalda && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) { pub.disabled = false; pub.parentNode.classList.add("listo"); var fl = $(".pn-falta", panel); if (fl) fl.remove(); }
         previsualizar();
       });
     }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
@@ -913,23 +916,42 @@
     return '<details class="pn-mas pn-seccion" data-grupo="' + esc(titulo) + '"' + (abierto ? ' open' : '') + '><summary>' + esc(titulo) + '</summary>' + keys.map(function (k) { return campoTexto(k, c); }).join('') + (extra || '') + '</details>';
   }
   // equipos que visten M Sport: foto del uniforme que les hiciste, nombre y hasta 3 redes
+  // el uniforme de cada equipo cliente: el que escogió el dueño o, si no escogió, el del catálogo con el mismo nombre de equipo
+  function normal(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function uniCliente(x, unis) {
+    var u = x.uni ? unis.filter(function (y) { return y.id === x.uni; })[0] : null;
+    if (!u && x.nombre) u = unis.filter(function (y) { return normal((y.etiquetas || {}).equipo || y.nombre) === normal(x.nombre); })[0] || null;
+    return u;
+  }
+  function escudoDeEquipo(u, unis) {
+    if (!u) return ''; var k = normal((u.etiquetas || {}).equipo || u.nombre);
+    return u.escudo || (unis.filter(function (y) { return y.escudo && normal((y.etiquetas || {}).equipo || y.nombre) === k; })[0] || {}).escudo || '';
+  }
+  // cada equipo que viste M Sport: se escoge su uniforme del catálogo (se ve en 3D en la página), su logo sale solo y se ponen sus redes
   function clientesHTML(c) {
     var l = c.clientes || [], unis = ordenados();
     return '<div class="pn-clientes"><span class="etq">Los equipos <small>(si no agregas ninguno, se ven tus uniformes destacados)</small></span>' + l.map(function (x, i) {
-      var uc = unis.filter(function (u) { return u.id === x.uni; })[0], ver = x.foto || (uc && (uc.silueta || uc.mini));
+      var uc = uniCliente(x, unis), ver = uc && (uc.silueta || uc.mini), logo = x.escudo || escudoDeEquipo(uc, unis);
+      var red = x.ig ? 'ig' : x.fb ? 'fb' : x.tt ? 'tt' : '';
       return '<div class="pn-cliente" data-cli="' + i + '">' +
         '<div class="pn-cli-vista"><span class="pn-cli-foto">' + (ver ? '<img src="' + esc(ver) + '" alt="">' : '<small>Su uniforme</small>') + '</span>' +
-        '<span class="pn-cli-esc">' + (x.escudo ? '<img src="' + esc(x.escudo) + '" alt="">' : '<small>Logo</small>') + '</span></div>' +
-        '<div class="pn-cli-datos"><input class="campo" data-cli-k="nombre" maxlength="40" placeholder="Nombre del equipo" value="' + esc(x.nombre || '') + '">' +
-        '<label class="etq">Su uniforme</label><select class="campo" data-cli-k="uni"><option value="">Una foto mía (la subo abajo)</option>' + unis.map(function (u) { return '<option value="' + esc(u.id) + '"' + (u.id === x.uni ? ' selected' : '') + '>' + esc(u.nombre) + '</option>'; }).join('') + '</select>' +
-        '<div class="pn-cli-botones"><label class="chip">' + (x.foto ? 'Cambiar foto' : 'Subir foto') + '<input type="file" accept="image/*" data-cli-foto="' + i + '" hidden></label>' + (x.foto ? '<button type="button" class="chip" data-cli-acomodar="foto" data-i="' + i + '">⤢ Acomodar foto</button>' : '') +
-        '<label class="chip">' + (x.escudo ? 'Cambiar logo' : 'Subir logo') + '<input type="file" accept="image/*" data-cli-esc="' + i + '" hidden></label>' + (x.escudo ? '<button type="button" class="chip" data-cli-acomodar="escudo" data-i="' + i + '">⤢ Acomodar logo</button>' : '') + '</div>' +
+        '<span class="pn-cli-lado"><span class="pn-cli-esc">' + (logo ? '<img src="' + esc(logo) + '" alt="">' : '<small>Logo</small>') + '</span>' +
+        '<span class="pn-cli-red' + (red ? ' on' : '') + '">' + (red ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + ICONO_RED[red] + '</svg>' : '<small>Red</small>') + '</span></span></div>' +
+        '<div class="pn-cli-datos"><label class="etq">Su uniforme</label><select class="campo" data-cli-k="uni"><option value="">' + (unis.length ? 'Escoge su uniforme' : 'Primero sube su uniforme en Uniformes') + '</option>' + unis.map(function (u) { return '<option value="' + esc(u.id) + '"' + (uc && u.id === uc.id ? ' selected' : '') + '>' + esc(u.nombre) + '</option>'; }).join('') + '</select>' +
+        (uc ? '' : '<small class="falta">Escoge su uniforme para que se vea en la página. Si no está, súbelo primero en Uniformes.</small>') +
+        '<input class="campo" data-cli-k="nombre" maxlength="40" placeholder="Nombre del equipo" value="' + esc(x.nombre || '') + '">' +
+        '<div class="pn-cli-botones"><label class="chip">' + (x.escudo ? 'Cambiar logo' : (logo ? 'Poner otro logo' : 'Subir logo')) + '<input type="file" accept="image/*" data-cli-esc="' + i + '" hidden></label>' + (x.escudo ? '<button type="button" class="chip" data-cli-acomodar="escudo" data-i="' + i + '">⤢ Acomodar logo</button>' : '') + '</div>' +
         '<input class="campo" data-cli-k="ig" placeholder="Instagram (@usuario)" value="' + esc(x.ig || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="fb" placeholder="Facebook (link)" value="' + esc(x.fb || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="tt" placeholder="TikTok (@usuario)" value="' + esc(x.tt || '') + '" autocapitalize="off">' +
         '<button type="button" class="chip pn-peligro" data-cli-quita="' + i + '">Quitar este equipo</button></div></div>';
     }).join('') + (l.length < 12 ? '<button type="button" class="btn btn-linea" data-cli-mas>+ Agregar un equipo</button>' : '') + '</div>';
   }
+  var ICONO_RED = {
+    ig: '<path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>',
+    fb: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8Z"/>',
+    tt: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>'
+  };
   function vistaDatos() {
     var c = P.config;
     function lista(id, arr) {
@@ -1037,21 +1059,10 @@
     });
     $$('[data-grupo]', panel).forEach(function (d) { d.addEventListener('toggle', function () { P.gruposAbiertos = P.gruposAbiertos || {}; P.gruposAbiertos[d.getAttribute('data-grupo')] = d.open; }); });
     var cliMas = $('[data-cli-mas]', panel);
-    if (cliMas) cliMas.addEventListener('click', function () { P.leerDatos(); c.clientes = (c.clientes || []).concat([{ id: Math.random().toString(36).slice(2, 10), nombre: '', foto: '' }]); pintar(); var r = $$('[data-cli]', panel).pop(); if (r) { r.scrollIntoView({ block: 'center', behavior: 'smooth' }); var n = $('[data-cli-k="nombre"]', r); if (n) n.focus(); } });
+    if (cliMas) cliMas.addEventListener('click', function () { P.leerDatos(); c.clientes = (c.clientes || []).concat([{ id: Math.random().toString(36).slice(2, 10), nombre: '' }]); pintar(); var r = $$('[data-cli]', panel).pop(); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); });
     $$('[data-cli-quita]', panel).forEach(function (b) { dobleToque(b, '¿Seguro? Toca otra vez', function () { P.leerDatos(); c.clientes.splice(+b.getAttribute('data-cli-quita'), 1); pintar(); P.guardarDatos(); }); });
-    $$('[data-cli-k="uni"]', panel).forEach(function (sel) { sel.addEventListener('change', function () { P.leerDatos(); var i = +sel.closest('[data-cli]').getAttribute('data-cli'); if (sel.value) c.clientes[i].foto = ''; pintar(); P.guardarDatos(); }); });   // si escoge un uniforme del catálogo, ese manda (se quita la foto)
+    $$('[data-cli-k="uni"]', panel).forEach(function (sel) { sel.addEventListener('change', function () { P.leerDatos(); var i = +sel.closest('[data-cli]').getAttribute('data-cli'); var x = c.clientes[i], u = ordenados().filter(function (y) { return y.id === sel.value; })[0]; x.foto = ''; if (u && !x.nombre) x.nombre = (u.etiquetas || {}).equipo || u.nombre; pintar(); P.guardarDatos(); }); });   // al escoger el uniforme, el nombre del equipo se pone solo
     function subirCli(i, campo, url) { P.leerDatos(); c.clientes[i][campo] = url; A.toast(campo === 'escudo' ? 'Logo listo' : 'Foto lista'); pintar(); P.guardarDatos(); }
-    $$('[data-cli-foto]', panel).forEach(function (inp) {
-      inp.addEventListener('change', function () {
-        var f = inp.files && inp.files[0], i = +inp.getAttribute('data-cli-foto'); if (!f) return;
-        A.toast('Preparando la foto…', true);
-        A.cargarArchivo(f).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return window.Motor3D ? window.Motor3D.recortarIA(A.aCanvas(im, 1200)) : A.aCanvas(im, 1200); }); })
-          .then(function (cut) { return encuadrar(cut, 'foto'); })
-          .then(function (cv) { if (!cv) throw { cancelado: true }; return A.subirConReintento(prepararCanvas(cv).data, 'catalogo'); })
-          .then(function (url) { subirCli(i, 'foto', url); })
-          .catch(function (e) { if (!e || !e.cancelado) A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
-      });
-    });
     $$('[data-cli-esc]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () {
         var f = inp.files && inp.files[0], i = +inp.getAttribute('data-cli-esc'); if (!f) return;

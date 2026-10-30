@@ -166,17 +166,15 @@ if (t > uZonas.z - 0.01) {
 } else if (t > uShortBot) {
   base = uShort;
   if (uHayShort > 0.5) {
-    // la foto del short se acomoda en lo que se ve de frente; los costados toman la franja de la orilla
-    float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0); if (atras) sx = 1.0 - sx;
+    // el short: la foto es solo del frente, así que va solo en lo que mira al frente.
+    // Los lados y atrás van del color que más tiene el short: la foto no los muestra y estirarla los duplica en rayas.
+    float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0);
     vec2 suv = (vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w) - 0.5) / uAjS.x + 0.5 - uAjS.yz;
-    // atrás: solo la franja de la orilla del short (se toma la columna de la orilla, así nunca se repiten logos de los lados)
-    if (atras) suv.x = suv.x < 0.5 ? 0.02 : 0.98;
     vec4 s = texture2D(uShortTex, suv);
     if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) s.a = 0.0;
-    // atrás solo van las franjas de los lados: escudos y logos del short van al frente
-    vec3 sc = s.rgb / max(s.a, 0.004);
-    if (atras) s.a *= 1.0 - smoothstep(0.09, 0.12, sx) * (1.0 - smoothstep(0.88, 0.91, sx));
-    base = mix(uShort, sc, s.a);
+    float deFrente = normalize(vNormMundo).z;
+    s.a *= smoothstep(0.5, 0.68, deFrente);
+    base = mix(uShort, s.rgb / max(s.a, 0.004), s.a);
     if (!atras && uHayNum > 0.5) { vec4 ns = texture2D(uShortNum, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w)); base = mix(base, ns.rgb / max(ns.a, 0.004), ns.a); }
   }
 } else {

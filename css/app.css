@@ -1089,8 +1089,10 @@ details.pn-seccion summary{font-size:16px}
 .cat-todos span{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:99px;background:#0A1033;color:var(--oro);font-size:13px}
 /* ver todos: pantalla con todos los escudos grandes; arriba siempre la búsqueda y las secciones */
 .cat-todo{padding:0;align-items:stretch;justify-content:center;background:var(--noche);backdrop-filter:none;-webkit-backdrop-filter:none}
-.cat-todo-in{width:100%;max-width:1100px;height:100%;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.cat-todo-top{position:sticky;top:0;z-index:2;background:var(--noche);padding:max(14px,env(safe-area-inset-top,0px)) 0 12px;box-shadow:0 12px 18px -14px rgba(0,0,0,.6)}
+/* el encabezado no se mueve y los escudos bajan en su propio cuadro: nada puede asomarse detrás del encabezado (iPhone viejo pintaba los escudos encima del encabezado pegajoso) */
+.cat-todo-in{width:100%;max-width:1100px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.cat-todo #t-resultados{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.cat-todo-top{flex:none;position:relative;z-index:2;background:var(--noche);padding:max(14px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));box-shadow:0 12px 18px -14px rgba(0,0,0,.6)}
 .cat-todo-tit{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .cat-todo-tit h2{margin:0;font:800 34px/1 var(--display);text-transform:uppercase}
 .cat-todo-tit .capa-x{position:static}
@@ -1182,3 +1184,42 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .renglon>*{max-width:240px}
 .cat-todo-grid .renglon>*{max-width:170px}
 .pie-moon{height:26px;width:auto;opacity:.85;display:block}
+
+/* equipos que visten M Sport (v47): el uniforme en 3D y a su lado una columna de circulitos del mismo tamaño:
+   arriba el escudo, abajo sus redes */
+.eq-cliente{display:grid!important;grid-template-columns:minmax(0,1fr) 52px;grid-template-rows:auto auto;column-gap:10px;row-gap:8px;align-items:center;flex-direction:initial}
+.eq-cliente>b{grid-column:1/-1;text-align:center}
+.eq-cli-vista{display:block;width:100%;background:none;border:0;padding:0;cursor:pointer}
+.eq-cli-lado{display:flex;flex-direction:column;align-items:center;gap:10px}
+.eq-cli-circ{position:static;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;flex:none;overflow:hidden}
+.eq-cli-logo{background:#f4f5f9;box-shadow:inset 0 0 0 3px rgba(255,198,26,.6);right:auto;bottom:auto}
+.eq-cli-logo img{width:70%;height:70%;object-fit:contain}
+.eq-cli-red{background:rgba(255,198,26,.14);color:var(--oro);text-decoration:none;transition:background var(--rapido) var(--curva)}
+.eq-cli-red:hover{background:var(--oro);color:#0A1033}
+.eq-cli-red svg{width:24px;height:24px}
+.eq-casa .renglon>.eq-cliente{max-width:300px}
+/* "Ver todos": la cabecera tapa de orilla a orilla, así no se asoma nada por los lados al bajar */
+
+
+/* equipos que visten M Sport: el uniforme en 3D y pegado a su lado, en columna, el circulito del escudo y abajo el de su red (mismo tamaño) */
+.eq-cliente{display:grid!important;grid-template-columns:auto auto;justify-content:center;align-items:center;column-gap:4px;row-gap:6px}
+.eq-cli-vista{width:clamp(150px,44vw,220px)}
+.eq-cli-vista>img{aspect-ratio:2/3}
+.eq-cli-lado{gap:12px}
+.eq-cli-circ{width:58px;height:58px;box-shadow:inset 0 0 0 3px rgba(255,198,26,.75)}
+.eq-cli-logo{background:#f4f5f9}
+.eq-cli-red{background:#151d55;color:var(--oro)}
+.eq-cli-red svg{width:26px;height:26px}
+.eq-casa .renglon>.eq-cliente{max-width:none}
+/* panel: la misma pieza que se ve en la página (uniforme + escudo + red), en chiquito */
+.pn-cli-vista{display:flex;align-items:center;gap:6px;width:auto}
+.pn-cli-vista .pn-cli-foto{width:84px;height:118px;border-radius:14px;border:0;background:rgba(255,255,255,.04);cursor:default}
+.pn-cli-lado{display:flex;flex-direction:column;gap:8px}
+.pn-cli-esc,.pn-cli-red{position:static;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;overflow:hidden;box-shadow:inset 0 0 0 2px rgba(255,198,26,.75)}
+.pn-cli-esc{background:#f4f5f9}
+.pn-cli-red{background:#151d55;color:var(--oro)}
+.pn-cli-red small{color:var(--suave);font-size:10px;font-weight:700}
+.pn-cli-red svg{width:20px;height:20px}
+.pn-cliente{grid-template-columns:minmax(0,1fr)}
+.pn-cliente .pn-cli-vista{justify-content:center}
+.pn-cli-datos small.falta{font-size:13px;line-height:1.35}
