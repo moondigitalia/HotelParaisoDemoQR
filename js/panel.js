@@ -416,8 +416,8 @@
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
       '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
-      '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
-      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Si el short o las calcetas vienen en la misma foto, los separamos solos</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
+      '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div>' +
+      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<div id="ed-aviso"></div>' +
       ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
       (angosto ? prev : '') +
@@ -431,7 +431,6 @@
       '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div>' +
       '<div class="grupo"><span class="etq">Manga con la que se ve primero <small>(el cliente puede cambiarla)</small></span><div class="chips llenar"><button type="button" class="chip' + (u.manga !== 'larga' ? ' on' : '') + '" data-mg="corta">Corta</button><button type="button" class="chip' + (u.manga === 'larga' ? ' on' : '') + '" data-mg="larga">Larga</button></div></div>' +
       '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
-      '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
       '<div class="grupo"><span class="etq">Número chico en el short</span><div class="chips llenar"><button type="button" class="chip' + (u.numeroShort ? ' on' : '') + '" data-ns="1">Sí</button><button type="button" class="chip' + (!u.numeroShort ? ' on' : '') + '" data-ns="0">No</button></div></div>' +
@@ -444,8 +443,9 @@
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
         '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
     }
-    var listo = f.frente && !/^data:/.test(f.frente + f.espalda + f.short);
-    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (f.frente ? '' : '<small class="pn-falta">Primero sube la foto del frente.</small>') + '</div></div>' +
+    var listo = f.frente && f.short && !/^data:/.test(f.frente + f.espalda + f.short);   // el short siempre con foto: lleva logo y a veces diseño
+    var falta = !f.frente ? 'Primero sube la foto del frente.' : !f.short ? 'Falta la foto del short. Si viene en la misma foto que la playera, la separamos sola.' : '';
+    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (falta ? '<small class="pn-falta">' + falta + '</small>' : '') + '</div></div>' +
       (angosto ? '' : prev) + '</div>';
     return h;
   }
@@ -644,7 +644,7 @@
       pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
       return Promise.all(tareas).then(function () {
         A.toast('Foto lista');
-        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && u.fotos.short && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
         previsualizar();
       });
     }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
