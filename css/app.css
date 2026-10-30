@@ -1,3 +1,5 @@
+/* una imagen se ve solo cuando ya cargó (el iPhone pinta un rectangulito con contorno mientras tanto) */
+img:not(.ok){visibility:hidden}
 /* Concepto: estadio de noche. Azul marino profundo de M Sport, amarillo de su fachada como único acento fuerte,
    el uniforme siempre al centro de la vista. Formas redondas, 2D con intensidad. */
 :root{
@@ -597,7 +599,9 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .panel button,.panel a,.panel select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .pn-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .pn-tabs .chip{width:100%;justify-content:center;min-height:46px}
-@media (min-width:700px){.pn-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:700px){.pn-tabs{grid-template-columns:repeat(5,minmax(0,1fr))}}
+/* si queda una pestaña sola abajo, va centrada (nunca pegada a un lado) */
+@media (max-width:699px){.pn-tabs>.chip:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 4px)}}
 .pn-folio{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--cancha);border:1px solid var(--linea);border-radius:var(--r-l);padding:12px 14px;color:var(--texto);cursor:pointer;transition:border-color var(--rapido) var(--curva),transform var(--rapido) var(--curva)}
 .pn-folio:active{transform:scale(.985);border-color:var(--oro)}
 .pn-folio img{width:52px;height:78px;object-fit:contain;flex:none;border-radius:10px;background:#141E58}
@@ -1201,12 +1205,14 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* "Ver todos": la cabecera tapa de orilla a orilla, así no se asoma nada por los lados al bajar */
 
 
-/* equipos que visten M Sport: el uniforme en 3D y pegado a su lado, en columna, el circulito del escudo y abajo el de su red (mismo tamaño) */
-.eq-cliente{display:grid!important;grid-template-columns:auto auto;justify-content:center;align-items:center;column-gap:4px;row-gap:6px}
-.eq-cli-vista{width:clamp(150px,44vw,220px)}
+/* equipos que visten M Sport: el uniforme centrado con su nombre; el escudo y la red van a su derecha, en el aire que deja
+   la foto a los lados del uniforme, así no lo empujan y todo queda en el mismo eje */
+.eq-cliente{display:flex!important;flex-direction:column;align-items:center;gap:6px}
+.eq-cli-pieza{position:relative;width:clamp(220px,64vw,280px)}
+.eq-cli-vista{width:100%}
 .eq-cli-vista>img{aspect-ratio:2/3}
-.eq-cli-lado{gap:12px}
-.eq-cli-circ{width:58px;height:58px;box-shadow:inset 0 0 0 3px rgba(255,198,26,.75)}
+.eq-cli-lado{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px}
+.eq-cli-circ{width:54px;height:54px;box-shadow:inset 0 0 0 3px rgba(255,198,26,.75)}
 .eq-cli-logo{background:#f4f5f9}
 .eq-cli-red{background:#151d55;color:var(--oro)}
 .eq-cli-red svg{width:26px;height:26px}
@@ -1223,3 +1229,19 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-cliente{grid-template-columns:minmax(0,1fr)}
 .pn-cliente .pn-cli-vista{justify-content:center}
 .pn-cli-datos small.falta{font-size:13px;line-height:1.35}
+/* folios: arriba se escoge qué estado ver; cada folio en dos renglones (número, estado y fecha juntos) y en compu varios por fila */
+.pn-ayuda{margin:2px 0 10px;color:var(--suave);font-size:14px;line-height:1.4}
+.pn-filtro-folios{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 0 12px;padding-bottom:2px}
+.pn-filtro-folios::-webkit-scrollbar{display:none}
+.pn-filtro-folios .chip{flex:none;min-height:42px;padding:0 16px;font-size:14px}
+.pn-lista-folios{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.pn-lista-folios .pn-folio{padding:10px 12px;gap:12px}
+.pn-lista-folios .pn-folio img{width:40px;height:60px}
+.pn-folio-arriba{display:flex;align-items:center;gap:8px;min-width:0}
+.pn-folio-arriba b{font:800 22px/1 var(--display)}
+.pn-folio-arriba .estado{padding:3px 10px;font-size:12px}
+.pn-folio-arriba small{margin-left:auto;color:var(--suave);font-weight:600;font-size:13px}
+.pn-lista-folios .pn-cuantos{color:var(--suave);font-size:13px;font-weight:600}
+.pn-seccion>summary>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pn-que-es{display:block;color:var(--suave);font:600 13px/1.35 var(--texto-f,inherit);text-transform:none;letter-spacing:0}
+.pn-datos [data-parte][hidden]{display:none!important}

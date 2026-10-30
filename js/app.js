@@ -537,8 +537,8 @@
   function nUniformes(n) { return n === 1 ? T('un_uniforme') : T('n_uniformes').replace('{n}', n); }
   function caraEquipo(q) {
     // sin escudo: el mismo círculo, con la playera del equipo adentro (nunca un recuadro distinto a los demás)
-    return q.escudo ? '<span class="mini-foto escudo"><img src="' + esc(q.escudo) + '" alt="" decoding="async"></span>'
-      : '<span class="mini-foto escudo sin-escudo"><img src="' + esc(q.items[0].mini) + '" alt="" decoding="async"></span>';
+    return q.escudo ? '<span class="mini-foto escudo"><img src="' + esc(q.escudo) + '" alt=""></span>'
+      : '<span class="mini-foto escudo sin-escudo"><img src="' + esc(q.items[0].mini) + '" alt=""></span>';
   }
   // paso 1: los equipos por sección (Liga MX, Europa, Países…), un renglón por sección con su nombre al lado
   function tarjetaEquipo(q) {
@@ -587,7 +587,7 @@
   function tarjetasUniformesViejo(lista) {
     if (!lista.length) return '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
     return '<div class="mini-grid" id="mini-grid">' + lista.map(function (u) {
-      return '<button type="button" class="mini' + (u.id === S.baseId ? ' on' : '') + '" data-base="' + esc(u.id) + '"><span class="mini-foto"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span><span>' + esc(u.nombre) + '</span></button>';
+      return '<button type="button" class="mini' + (u.id === S.baseId ? ' on' : '') + '" data-base="' + esc(u.id) + '"><span class="mini-foto"><img src="' + esc(u.mini) + '" alt=""></span><span>' + esc(u.nombre) + '</span></button>';
     }).join('') + '</div>';
   }
   var VISTAS = {
@@ -920,7 +920,7 @@
     cont.innerHTML = renglones(items, C).map(function (fila) { return '<div class="renglon">' + fila.join('') + '</div>'; }).join('');
   }
   function escudoCat(q) {
-    var u = q.items[0], img = q.escudo ? '<img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async">' : '<img class="sin" src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async">';
+    var u = q.items[0], img = q.escudo ? '<img src="' + esc(q.escudo) + '" alt="">' : '<img class="sin" src="' + esc(u.mini) + '" alt="">';
     return '<button type="button" class="cat-esc" data-cat="' + esc(u.id) + '"><span class="cat-cara' + (q.escudo ? '' : ' sin-escudo') + '">' + img + (q.items.length > 1 ? '<i class="mini-n">' + q.items.length + '</i>' : '') + '</span><b>' + esc(q.nombre) + '</b></button>';
   }
   function enlazarCat(raiz) {
@@ -1063,8 +1063,8 @@
         var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
           return '<a class="eq-cli-circ eq-cli-red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener" aria-label="' + REDES[t][0] + ' ' + esc(x.nombre) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg></a>';
         }).join('');
-        return '<div class="eq-cliente"><button type="button" class="eq-cli-vista" data-cliente="' + i + '" aria-label="' + esc(x.nombre) + '">' + (x.img ? '<img src="' + esc(x.img) + '" alt="" loading="lazy" decoding="async">' : '') + '</button>' +
-          '<div class="eq-cli-lado">' + (x.logo ? '<span class="eq-cli-circ eq-cli-logo"><img src="' + esc(x.logo) + '" alt="" loading="lazy" decoding="async"></span>' : '') + redes + '</div>' +
+        return '<div class="eq-cliente"><div class="eq-cli-pieza"><button type="button" class="eq-cli-vista" data-cliente="' + i + '" aria-label="' + esc(x.nombre) + '">' + (x.img ? '<img src="' + esc(x.img) + '" alt="">' : '') + '</button>' +
+          '<div class="eq-cli-lado">' + (x.logo ? '<span class="eq-cli-circ eq-cli-logo"><img src="' + esc(x.logo) + '" alt=""></span>' : '') + redes + '</div></div>' +
           '<b>' + esc(x.nombre) + '</b></div>';
       });
       cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 220, 14, 3);
@@ -1077,7 +1077,7 @@
     var lista = catalogoVisible().filter(function (u) { return u.destacado; }).slice(0, 4);
     if (!lista.length) lista = catalogoVisible().slice(0, 2);
     cont.innerHTML = lista.map(function (u) {
-      return '<button type="button" class="eq-casa-item" data-casa="' + esc(u.id) + '"><img src="' + esc(u.silueta || u.mini) + '" alt="" loading="lazy" decoding="async"><b>' + esc(u.nombre) + '</b><small>' + esc(T('eq_ver')) + ' →</small></button>';
+      return '<button type="button" class="eq-casa-item" data-casa="' + esc(u.id) + '"><img src="' + esc(u.silueta || u.mini) + '" alt=""><b>' + esc(u.nombre) + '</b><small>' + esc(T('eq_ver')) + ' →</small></button>';
     }).join('');
     $$('[data-casa]', cont).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -1178,7 +1178,7 @@
     var fecha = new Date(f.creado).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
     var h = '<p class="kicker">' + esc(T('folio_t')) + '</p><h2 id="folio-tt">' + esc(f.id) + '</h2><p style="margin:8px 0 0;color:var(--suave)">' + esc(fecha) + ' · <span class="estado ' + esc(f.estado) + '">' + esc(T('est_' + f.estado)) + '</span></p>';
     f.equipos.forEach(function (e, i) {
-      h += '<div class="folio-eq"><figure><img src="' + esc(e.vistas.frente) + '" alt="' + esc(T('v_frente')) + '" loading="lazy"></figure><figure><img src="' + esc(e.vistas.espalda) + '" alt="' + esc(T('v_espalda')) + '" loading="lazy"></figure>' +
+      h += '<div class="folio-eq"><figure><img src="' + esc(e.vistas.frente) + '" alt="' + esc(T('v_frente')) + '"></figure><figure><img src="' + esc(e.vistas.espalda) + '" alt="' + esc(T('v_espalda')) + '"></figure>' +
         '<div class="tabla-wrap"><h3 style="font:800 26px/1 var(--display);text-transform:uppercase;margin:4px 0 10px">' + esc(e.nombre) + '</h3>';
       var conDatos = (e.jugadores || []).filter(function (j) { return j.nombre || j.numero || j.talla; });
       if (conDatos.length > 1 || (conDatos.length === 1 && conDatos[0].talla)) {

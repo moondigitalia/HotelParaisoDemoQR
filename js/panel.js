@@ -7,6 +7,8 @@
   var P = { pin: null, tab: 'folios', folios: [], catalogo: [], config: {}, editando: null, detalle: null };
   var DIA = 864e5;
   var ESTADOS = ['nuevo', 'cotizado', 'produccion', 'entregado'];
+  // el panel es del dueño: siempre en español, aunque su celular esté en otro idioma
+  function ES(k) { return (window.I18N.es || {})[k] || k; }
   var ses = {
     get: function () { try { return sessionStorage.getItem('msport:pin'); } catch (e) { return null; } },
     set: function (v) { try { sessionStorage.setItem('msport:pin', v); } catch (e) { /* nada */ } }
@@ -62,17 +64,17 @@
     var nuevos = P.folios.filter(function (f) { return f.estado === 'nuevo'; }).length;
     var vivos = P.catalogo.filter(function (u) { return !u.borrado; });
     var papel = P.catalogo.filter(function (u) { return u.borrado; });
-    var tabs = [['folios', 'Folios' + (nuevos ? ' · ' + nuevos + ' nuevos' : '')], ['uniformes', 'Uniformes · ' + vivos.length], ['datos', 'Datos de la tienda'], ['papelera', 'Papelera' + (papel.length ? ' · ' + papel.length : '')]];
+    var tabs = [['folios', 'Folios' + (nuevos ? ' · ' + nuevos + ' nuevos' : '')], ['uniformes', 'Uniformes · ' + vivos.length], ['datos', 'Datos de la tienda'], ['pagina', 'Secciones de la página'], ['papelera', 'Papelera' + (papel.length ? ' · ' + papel.length : '')]];
     var h = '<nav class="pn-tabs" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" class="chip' + (P.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + esc(t[1]) + '</button>'; }).join('') + '</nav><div class="pn-cuerpo">';
     if (P.tab === 'folios') h += P.detalle !== null ? vistaDetalle() : vistaFolios();
     if (P.tab === 'uniformes') h += P.editando ? vistaEditor() : vistaUniformes();
-    if (P.tab === 'datos') h += vistaDatos();
+    if (P.tab === 'datos' || P.tab === 'pagina') h += vistaDatos();
     if (P.tab === 'papelera') h += vistaPapelera();
     h += '</div>';
     panel.innerHTML = marco(h); enlazarMarco();
     var pn1 = $('.pn', panel); if (pn1) pn1.scrollTop = irA == null ? antes : irA;
     $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; P.equipo = null; pintar(0); }); });
-    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
+    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, pagina: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
   }
 
   /* ---------- folios ----------
@@ -90,20 +92,33 @@
   function vistaFolios() {
     if (!P.folios.length) return '<div class="pn-vacio"><h3>Aún no hay folios</h3><p>Cuando un cliente arme su uniforme y toque "Cotizar por WhatsApp", aparece aquí con su número.</p></div>';
     var buscar = '<form class="pn-buscar-folio" data-buscar-folio><input class="campo" id="pn-bf" inputmode="numeric" placeholder="Número de folio, ej. 47" maxlength="8" autocomplete="off"><button type="submit" class="btn btn-oro">Buscar</button></form>';
-    return buscar + '<div class="pn-lista">' + P.folios.map(function (f, i) {
+    // pestañitas por estado: el dueño ve solo lo que le toca atender (los nuevos primero) y no una lista sin fin
+    var cuenta = {}; P.folios.forEach(function (f) { cuenta[f.estado] = (cuenta[f.estado] || 0) + 1; });
+    if (!P.filtroFolio) P.filtroFolio = cuenta.nuevo ? 'nuevo' : 'todos';
+    var filtros = '<p class="pn-ayuda">Cada folio es un pedido que un cliente armó en la página. Tócalo para ver tallas, nombres y números.</p><div class="pn-filtro-folios">' + ['nuevo'].concat(ESTADOS.filter(function (e) { return e !== 'nuevo'; })).filter(function (e) { return cuenta[e] || e === P.filtroFolio; }).concat(['todos']).map(function (e) {
+      var n = e === 'todos' ? P.folios.length : (cuenta[e] || 0);
+      return '<button type="button" class="chip' + (P.filtroFolio === e ? ' on' : '') + '" data-filtro-folio="' + e + '">' + esc(e === 'todos' ? 'Todos' : ES('est_' + e)) + ' · ' + n + '</button>';
+    }).join('') + '</div>';
+    var lista = P.folios.map(function (f, i) { return [f, i]; }).filter(function (p) { return P.filtroFolio === 'todos' || p[0].estado === P.filtroFolio; });
+    if (!lista.length) return buscar + filtros + '<p class="nota">No hay folios aquí.</p>';
+    return buscar + filtros + '<div class="pn-lista pn-lista-folios">' + lista.map(function (p) {
+      var f = p[0], i = p[1];
       var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }), n = totalDe(f);
       var e0 = f.equipos[0] || {}, j0 = (e0.jugadores || [])[0] || {}, quien = e0.nombre && e0.nombre !== 'Mi equipo' ? e0.nombre : ((j0.nombre || '') + (j0.numero ? ' ' + j0.numero : '')).trim();
+      // todo en dos renglones: arriba el folio con su estado y la fecha; abajo qué uniforme, de quién y cuántos
       return '<button type="button" class="pn-folio" data-folio="' + i + '"><img src="' + esc(f.equipos[0].vistas.frente) + '" alt="">' +
-        '<span class="pn-folio-txt"><b>' + esc(f.id) + '</b>' + (e0.base || quien ? '<span class="pn-que">' + esc([String(e0.base || '').split(' · ')[0], quien].filter(Boolean).join(' · ')) + '</span>' : '') + '<span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span><small>' + esc(fecha) + '</small></span>' +
-        '<span class="estado ' + esc(f.estado) + '">' + esc(T('est_' + f.estado)) + '</span></button>';
+        '<span class="pn-folio-txt"><span class="pn-folio-arriba"><b>' + esc(f.id) + '</b><span class="estado ' + esc(f.estado) + '">' + esc(ES('est_' + f.estado)) + '</span><small>' + esc(fecha) + '</small></span>' +
+        '<span class="pn-que">' + esc([String(e0.base || '').split(' · ')[0], quien].filter(Boolean).join(' · ') || 'Uniforme') + '</span>' +
+        '<span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span></span></button>';
     }).join('') + '</div>' + (P.masFolios ? '<div class="subir"><button type="button" class="btn btn-linea" data-mas-folios>Ver folios más antiguos</button></div>' : '');
   }
   function cambiarEstado(f, est) {
     var antes = f.estado; f.estado = est;
-    api('estado', { id: f.id, estado: est }).then(function () { A.toast('Folio ' + f.id + ': ' + T('est_' + est)); })
+    api('estado', { id: f.id, estado: est }).then(function () { A.toast('Folio ' + f.id + ': ' + ES('est_' + est)); })
       .catch(function () { f.estado = antes; A.toast('No se guardó. Inténtalo otra vez.'); pintar(); });
   }
   function enlazarFolios() {
+    $$('[data-filtro-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.filtroFolio = b.getAttribute('data-filtro-folio'); pintar(0); }); });
     $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = +b.getAttribute('data-folio'); pintar(0); }); });
     var bf = $('[data-buscar-folio]', panel);
     if (bf) bf.addEventListener('submit', function (e) {
@@ -168,7 +183,7 @@
       '<div class="pn-det-top"><h3 class="pn-h">' + esc(f.id) + '</h3><small>' + esc(fecha) + '</small></div>' +
       '<div class="pn-resumen"><div class="pn-total"><b>' + n + '</b><span>' + (n === 1 ? 'uniforme' : 'uniformes') + (f.equipos.length > 1 ? '<br>en ' + f.equipos.length + ' equipos' : '') + '</span></div>' +
       '<div class="pn-tallas"><span class="etq">Tallas</span><div>' + tallasDe(todos) + '</div></div></div>' +
-      '<span class="etq">Estado del pedido</span><div class="pn-estados">' + ESTADOS.map(function (e) { return '<button type="button" class="chip' + (f.estado === e ? ' on' : '') + '" data-est="' + e + '">' + esc(T('est_' + e)) + '</button>'; }).join('') + '</div>';
+      '<span class="etq">Estado del pedido</span><div class="pn-estados">' + ESTADOS.map(function (e) { return '<button type="button" class="chip' + (f.estado === e ? ' on' : '') + '" data-est="' + e + '">' + esc(ES('est_' + e)) + '</button>'; }).join('') + '</div>';
     f.equipos.forEach(function (e, i) {
       var jug = e.jugadores || [];
       h += '<section class="pn-eq"><h4>' + (f.equipos.length > 1 ? 'Equipo ' + (i + 1) + ': ' : '') + esc(e.nombre) + ' <small>· ' + plural(cuantos(e), 'uniforme', 'uniformes') + '</small></h4>' +
@@ -911,9 +926,19 @@
     var v = (c.textos || {})[k] || (k === 'intro_lema' && c.lema) || window.I18N.es[k] || '', largo = LARGO_TX[k] > 100;
     return '<div class="grupo"><label for="tx-' + k + '">' + esc(nombre || NOMBRE_TX[k] || k) + '</label>' + (largo ? '<textarea class="campo campo-largo" id="tx-' + k + '" data-tx="' + k + '" maxlength="' + LARGO_TX[k] + '">' + esc(v) + '</textarea>' : '<input class="campo" id="tx-' + k + '" data-tx="' + k + '" maxlength="' + LARGO_TX[k] + '" value="' + esc(v) + '">') + '</div>';
   }
+  // qué es cada parte de la página, dicho en sencillo (se lee sin abrirla)
+  var QUE_ES = {
+    'Arriba de todo (lo amarillo)': 'La frase grande que sale al abrir la página.',
+    'Arma tu uniforme': 'Lo primero que lee el cliente: le invita a armar su uniforme en 3D.',
+    'Catálogo': 'La fila de escudos de los equipos que puede escoger el cliente.',
+    'Quiénes somos': 'Tu historia, tu calificación de Google y dos datos de la tienda.',
+    'Equipos que visten M Sport': 'Equipos a los que ya les hiciste uniforme: se ven con su uniforme en 3D, su escudo y su red social.',
+    'Así de fácil': 'Los 3 pasos para pedir: escoger, mandar por WhatsApp y recibir.',
+    'Visítanos': 'Tu dirección, tu horario y los botones para escribirte o llegar.'
+  };
   function grupoTextos(titulo, keys, c, extra) {
     var abierto = (P.gruposAbiertos || {})[titulo];
-    return '<details class="pn-mas pn-seccion" data-grupo="' + esc(titulo) + '"' + (abierto ? ' open' : '') + '><summary>' + esc(titulo) + '</summary>' + keys.map(function (k) { return campoTexto(k, c); }).join('') + (extra || '') + '</details>';
+    return '<details class="pn-mas pn-seccion" data-grupo="' + esc(titulo) + '"' + (abierto ? ' open' : '') + '><summary><span>' + esc(titulo) + (QUE_ES[titulo] ? '<small class="pn-que-es">' + esc(QUE_ES[titulo]) + '</small>' : '') + '</span></summary>' + keys.map(function (k) { return campoTexto(k, c); }).join('') + (extra || '') + '</details>';
   }
   // equipos que visten M Sport: foto del uniforme que les hiciste, nombre y hasta 3 redes
   // el uniforme de cada equipo cliente: el que escogió el dueño o, si no escogió, el del catálogo con el mismo nombre de equipo
@@ -958,12 +983,21 @@
       return '<div class="pn-tags" id="' + id + '">' + (arr || []).map(function (t, i) { return '<span class="eq-chip">' + esc(t) + '<button type="button" data-quita-tag="' + id + '" data-i="' + i + '" aria-label="Quitar">×</button></span>'; }).join('') +
         '<span class="pn-tag-nueva"><input class="campo pn-tag-in" data-tag-in="' + id + '" placeholder="Nueva" maxlength="40"><button type="button" class="chip" data-tag-mas="' + id + '" aria-label="Agregar">+</button></span></div>';
     }
+    // dos pestañas con un solo formulario: "Datos de la tienda" (cómo encontrarte y pedidos) y "Secciones de la página" (lo que dice
+    // cada parte de la página). Las dos partes están siempre y solo se esconde la que no toca, así todo se guarda junto.
+    var pag = P.tab === 'pagina';
     return '<div class="pn-form pn-datos"><p class="pn-auto" id="dt-estado">Todo lo que cambies aquí se guarda solo.</p>' +
+      '<div data-parte="datos"' + (pag ? ' hidden' : '') + '><p class="pn-ayuda">Cómo te encuentran y te escriben tus clientes, y cómo te llegan los pedidos.</p>' +
       '<h3 class="pn-h">Tu tienda</h3>' +
       '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
       '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
       '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
-      '<h3 class="pn-h">Tu página</h3><p class="nota">Cada parte de la página, en el mismo orden en que la ve la gente. Toca una para cambiar sus textos.</p>' +
+      '<h3 class="pn-h">Pedidos</h3>' +
+      '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
+      sonidoHTML(c) +
+      '<div class="grupo pn-cambia-cod"><h3 class="pn-h">Tu código para entrar</h3><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
+      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div>' +
+      '<div data-parte="pagina"' + (pag ? '' : ' hidden') + '><p class="pn-ayuda">Cada parte de tu página, en el mismo orden en que la ve la gente. Toca una para cambiar lo que dice.</p>' +
       grupoTextos('Arriba de todo (lo amarillo)', ['intro_lema'], c) +
       grupoTextos('Arma tu uniforme', ['hero_k', 'hero_t', 'hero_p'], c) +
       grupoTextos('Catálogo', ['cat_t', 'cat_p'], c) +
@@ -975,11 +1009,7 @@
       grupoTextos('Así de fácil', ['como_t', 'como_1', 'como_2', 'como_3'], c) +
       grupoTextos('Visítanos', ['visita_t', 'escribenos', 'como_llegar'], c) +
       '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
-      '<h3 class="pn-h">Pedidos</h3>' +
-      '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
-      sonidoHTML(c) +
-      '<div class="grupo pn-cambia-cod"><h3 class="pn-h">Tu código para entrar</h3><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
-      '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div>';
+      '</div></div>';
   }
   // el sonido que suena cuando el cliente manda su cotización: con o sin sonido, el suyo propio y el volumen
   function sonidoHTML(c) {
