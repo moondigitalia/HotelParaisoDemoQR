@@ -173,7 +173,7 @@ export async function crear(canvas, opt = {}) {
   // estado
   const E = {
     manga: 'corta', taco: 'negro', vista: 0, zoom: 0, // vista: 0 frente, PI espalda; zoom: 0 completo, 1 tacos de cerca
-    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', ajNom: [1, 0, 0, 1], ajNum: [1, 0, 0, 1], sel: '',
+    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', foco: { k: 1, m: 0.92, a: 1 }, ajNom: [1, 0, 0, 1], ajNum: [1, 0, 0, 1], sel: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
   let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null;
@@ -487,7 +487,8 @@ diffuseColor.rgb *= base;`);
     cam.updateProjectionMatrix(); encuadrarFondo(w / h);
     // encuadre: el uniforme completo, con aire; con "zoom" la cámara baja a los pies para ver los tacos de cerca
     const distC = 5.7 * Math.max(1, (2 / 3) / cam.aspect), distP = 2.5 * Math.max(1, 1.2 / cam.aspect), z = E.zoom;
-    const dist = distC + (distP - distC) * z, ang = E.vista + 0.55 * z, alto = 1.0 + (0.55 - 1.0) * z, mira = 0.92 + (0.24 - 0.92) * z;
+    // F: el acercamiento a una pieza que el dueño está editando (k = qué tan cerca, m = a qué altura mira, a = altura de la cámara)
+    const F = E.foco, dist = distC * F.k + (distP - distC * F.k) * z, ang = E.vista + 0.55 * z, alto = F.a + (0.55 - F.a) * z, mira = F.m + (0.24 - F.m) * z;
     cam.position.set(Math.sin(ang) * dist, alto, Math.cos(ang) * dist); cam.lookAt(0, mira, 0.04 * z);
   }
   // acercar a los tacos y regresar al uniforme completo, con su propio tiempo (sin brincos)
@@ -502,6 +503,25 @@ diffuseColor.rgb *= base;`);
       animZoom = k < 1 ? requestAnimationFrame(paso) : null;
     };
     animZoom = requestAnimationFrame(paso);
+  }
+  // acercarse suave a la pieza que el dueño está editando (y regresar al uniforme completo al terminar)
+  let animFoco = null;
+  function enfocar(p) {
+    const Z = zonas; let dest = { k: 1, m: 0.92, a: 1 };
+    if (Z && p) {
+      const hemY = Z.Y0 + Z.hem * Z.YH, shortY = Z.Y0 + Z.shortBot * Z.YH;
+      if (p === 'short') dest = { k: 0.5, m: (hemY + shortY) / 2, a: (hemY + shortY) / 2 + 0.05 };
+      else if (p === 'nombre' || p === 'numero') { const y = hemY + (Z.top - hemY) * 0.62; dest = { k: 0.42, m: y, a: y + 0.04 }; }
+      else { const y = (hemY + Z.top) / 2; dest = { k: 0.62, m: y, a: y + 0.05 }; }
+    }
+    if (animFoco) cancelAnimationFrame(animFoco);
+    const desde = Object.assign({}, E.foco), t0 = performance.now(), ms = 520;
+    const paso = (ahora) => {
+      const k = Math.min(1, (ahora - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+      E.foco = { k: desde.k + (dest.k - desde.k) * e, m: desde.m + (dest.m - desde.m) * e, a: desde.a + (dest.a - desde.a) * e }; pedir();
+      animFoco = k < 1 ? requestAnimationFrame(paso) : null;
+    };
+    animFoco = requestAnimationFrame(paso);
   }
   let pendiente = false, animando = null;
   // mientras se cambia de uniforme no se dibuja nada: la pantalla se queda con el anterior y luego cambia de un jalón al nuevo
@@ -602,7 +622,7 @@ diffuseColor.rgb *= base;`);
     },
     // acomodo de cada foto: [tamaño, mover a los lados, mover arriba/abajo]; instantáneo (solo se repinta)
     // panel: ilumina una pieza ('frente', 'espalda', 'short', 'nombre', 'numero' o '' para ninguna)
-    seleccionar(p) { E.sel = p || ''; marcarSel(); },
+    seleccionar(p) { E.sel = p || ''; marcarSel(); enfocar(E.sel); },
     // panel: qué pieza hay bajo el dedo (o null si tocó fuera del uniforme)
     piezaEn(px, py) {
       // el rayo del dedo se cruza con el plano del cuerpo (el uniforme está quieto en el centro); con la silueta del modelo,
