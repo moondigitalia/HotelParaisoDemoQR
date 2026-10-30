@@ -977,14 +977,29 @@
     document.body.appendChild(aro); void aro.offsetWidth; aro.classList.add('va');
   }
   function quitarAro() { if (aro) { aro.remove(); aro = null; } }
+  // en la portada: desde el dedo, toda la parte amarilla se va llenando de azul en 2 segundos (y las letras se vuelven blancas)
+  var capaLlena = null;
+  function llenar(el, x, y) {
+    var pt = el.closest('.portada') || el; vaciar();
+    var r = pt.getBoundingClientRect();
+    capaLlena = document.createElement('div'); capaLlena.className = 'portada-llena';
+    capaLlena.style.setProperty('--x', (x - r.left) + 'px'); capaLlena.style.setProperty('--y', (y - r.top) + 'px');
+    var dx = Math.max(x - r.left, r.right - x), dy = Math.max(y - r.top, r.bottom - y); capaLlena.style.setProperty('--r', Math.ceil(Math.hypot(dx, dy)) + 'px');   // se llena justo a los 2 segundos
+    pt.insertBefore(capaLlena, pt.firstChild); void capaLlena.offsetWidth;
+    pt.classList.add('llenando');
+  }
+  function vaciar() {
+    if (!capaLlena) return; var c = capaLlena, pt = c.parentNode; capaLlena = null;
+    pt.classList.remove('llenando'); c.classList.add('se-va'); setTimeout(function () { c.remove(); }, 350);
+  }
   function entrada(el, color) {
     if (!el) return;
     var x0 = 0, y0 = 0;
-    function soltar() { clearTimeout(reloj); el.classList.remove('cargando'); quitarAro(); }
+    function soltar() { clearTimeout(reloj); el.classList.remove('cargando'); quitarAro(); vaciar(); }
     el.addEventListener('pointerdown', function (e) {
       if (e.button && e.button !== 0) return;
       x0 = e.clientX; y0 = e.clientY;
-      el.classList.add('cargando'); if (color) aroEn(e.clientX, e.clientY, color);
+      el.classList.add('cargando'); if (color) llenar(el, e.clientX, e.clientY);
       reloj = setTimeout(function () { soltar(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
     });
     el.addEventListener('pointermove', function (e) { if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 12) soltar(); });   // si mueve el dedo, está deslizando la página

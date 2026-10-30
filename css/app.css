@@ -1037,3 +1037,10 @@ details.pn-mas[open] summary{margin-bottom:6px}
 .toque-aro .lleno{stroke:var(--c);stroke-dasharray:164;stroke-dashoffset:164}
 .toque-aro.va .lleno{transition:stroke-dashoffset 1.95s linear;stroke-dashoffset:0}
 .portada-in{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+
+.portada-llena{position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(circle at var(--x) var(--y),#1F2E7A,#0A1033 70%);clip-path:circle(0px at var(--x) var(--y));transition:clip-path 1.9s cubic-bezier(.25,.1,.35,1),opacity .3s}
+.portada.llenando .portada-llena{clip-path:circle(var(--r) at var(--x) var(--y))}
+.portada-llena.se-va{opacity:0;transition:opacity .3s}
+.portada .portada-in{position:relative;z-index:1}.portada .portada-curva,.portada .portada-balon{z-index:1}
+.portada .portada-dep,.portada .portada-ms,.portada .portada-lema{transition:color 1s .8s}
+.portada.llenando .portada-dep,.portada.llenando .portada-ms,.portada.llenando .portada-lema{color:#fff}
