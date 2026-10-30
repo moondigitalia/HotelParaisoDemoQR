@@ -1103,3 +1103,33 @@ details.pn-seccion summary{font-size:16px}
 .cat-todo .carpetas{display:flex!important;flex-wrap:nowrap;gap:8px;grid-template-columns:none!important}
 .cat-todo .carpetas .chip{width:auto!important;min-width:0;padding:0 18px;min-height:42px}
 @media (min-width:900px){.cat-todo-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.cat-esc{width:110px}}
+
+.pn-cortina{position:fixed;inset:0;z-index:180;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(10,16,51,.92);color:#fff;animation:fade .25s ease}
+.pn-cortina b{font:800 30px/1 var(--display);text-transform:uppercase}
+.pn-cortina.se-va{opacity:0;transition:opacity .3s}
+.pn-gira{width:54px;height:54px;border-radius:50%;border:5px solid rgba(255,198,26,.25);border-top-color:var(--oro);animation:pnGira .9s linear infinite}
+@keyframes pnGira{to{transform:rotate(360deg)}}
+.pn-palomita{display:grid;place-items:center;width:84px;height:84px;border-radius:50%;background:#2fbf6b;color:#fff;font:800 46px/1 var(--display);font-style:normal;animation:pnSalta .45s var(--curva) both}
+@keyframes pnSalta{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+.pn-acomodo{position:fixed;left:0;right:0;bottom:0;z-index:170;background:rgba(10,16,51,.97);border-top:1px solid rgba(255,198,26,.35);border-radius:24px 24px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -14px 30px rgba(0,0,0,.45);animation:subeHoja .3s var(--curva)}
+@keyframes subeHoja{from{transform:translateY(100%)}to{transform:none}}
+.pn-acomodo p{margin:0 0 10px;color:var(--suave);font-size:14px;text-align:center}
+.pn-acomodo p b{color:#fff}
+.pn-acomodo-b{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;max-width:520px;margin:0 auto}
+.pn-acomodo-b button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:56px;border-radius:16px;border:1px solid rgba(196,206,255,.25);background:rgba(255,255,255,.06);color:#fff;font:800 24px/1 var(--display,inherit);touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.pn-acomodo-b button small{font:600 10px/1 var(--texto,inherit);color:var(--suave)}
+.pn-acomodo-b button:active{background:rgba(255,198,26,.25)}
+.pn-acomodo-f{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:520px;margin:12px auto 0}
+.pn-acomodo-f .btn{border-radius:999px;min-height:50px}
+
+/* dejar el dedo apretado no selecciona textos ni abre el menú del iPhone (en campos para escribir sí se puede) */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
+.pn-acomodo-l{display:grid;grid-template-columns:2fr 4fr;gap:8px;max-width:520px;margin:0 auto 6px;color:var(--suave);font-size:12px;font-weight:700;text-align:center}
+.pn-acomodo-b button{font-size:26px}
+/* al tocar en iPhone/Android no aparece el recuadro oscuro del sistema ni el contorno de enfoque */
+*{-webkit-tap-highlight-color:transparent}
+:focus:not(:focus-visible){outline:none}
+.mini:focus-visible,.cat-esc:focus-visible,.sec-mas:focus-visible{outline:none}

@@ -363,6 +363,15 @@
       guardarArbol(gr, 'Equipo guardado');
     });
   }
+  function conTiempo(pr, ms) { return Promise.race([pr, new Promise(function (ok) { setTimeout(function () { ok(null); }, ms); })]); }
+  // una cortina sobre el panel mientras publica, y el aviso de "Publicado" al terminar
+  function cortina(texto, listo) {
+    var c = $('.pn-cortina', panel);
+    if (!texto) { if (c) { c.classList.add('se-va'); setTimeout(function () { c.remove(); }, 300); } return; }
+    if (!c) { c = document.createElement('div'); c.className = 'pn-cortina'; panel.appendChild(c); }
+    c.className = 'pn-cortina' + (listo ? ' listo' : '');
+    c.innerHTML = (listo ? '<i class="pn-palomita">✓</i>' : '<i class="pn-gira"></i>') + '<b>' + esc(texto.replace(/^✓ /, '')) + '</b>';
+  }
   function guardarCatalogo(msg) {
     ordenados().forEach(function (u, i) { u.orden = i + 1; });
     P.respaldos = null;
@@ -444,6 +453,7 @@
       (angosto ? prev : '') +
       '<div id="ed-aviso"></div>' +
       ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
+      (f.frente ? '<div class="pn-borrar">' + ['frente', 'espalda', 'short'].filter(function (l) { return f[l] || l === 'espalda'; }).map(function (l) { return '<button type="button" class="chip" data-acomodar="' + l + '">⤢ Acomodar ' + ({ frente: 'frente', espalda: 'espalda', short: 'short' })[l] + '</button>'; }).join('') + '<small>Si la foto queda chueca, movida o muy justa, muévela y cámbiale el tamaño viendo el 3D.</small></div>' : '') +
       '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -505,6 +515,34 @@
     if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === W - 1 && y1 === H - 1)) return c;
     var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(c, -x0, -y0); return o;
   }
+  // acomodar: la foto se mueve y cambia de tamaño sobre el uniforme en 3D, con botones grandes (dejarlos apretados repite)
+  function acomodar(u, lado) {
+    if (!mEditor || !mEditor.m) { A.toast('Espera a que se vea el 3D.'); return; }
+    var m = mEditor.m; u.ajuste = u.ajuste || {}; var v = (u.ajuste[lado] || [1, 0, 0]).slice(), antes = v.slice();
+    pvVista = lado === 'espalda' ? 'espalda' : 'frente'; m.vista(pvVista); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === pvVista); });
+    var pv = $('.pn-prev3d', panel); if (pv) pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var hoja = document.createElement('div'); hoja.className = 'pn-acomodo';
+    hoja.innerHTML = '<p><b>Acomoda ' + ({ frente: 'el frente', espalda: 'la espalda', short: 'el short' })[lado] + '</b> · míralo en el 3D</p>' +
+      '<div class="pn-acomodo-l"><span>Tamaño</span><span>Mover</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chica">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
+      '<button type="button" data-aj="x-">←</button><button type="button" data-aj="y+">↑</button><button type="button" data-aj="y-">↓</button><button type="button" data-aj="x+">→</button></div>' +
+      '<div class="pn-acomodo-f"><button type="button" class="btn btn-linea" data-aj="0">Como estaba</button><button type="button" class="btn btn-oro" data-aj="ok">Listo</button></div>';
+    panel.appendChild(hoja);
+    function poner() { u.ajuste[lado] = v.map(function (n) { return Math.round(n * 1000) / 1000; }); m.ajuste(u.ajuste); }
+    function paso(k) {
+      if (k === 'z-') v[0] = Math.max(0.6, v[0] - 0.03); if (k === 'z+') v[0] = Math.min(1.7, v[0] + 0.03);
+      if (k === 'x-') v[1] = Math.max(-0.3, v[1] - 0.01); if (k === 'x+') v[1] = Math.min(0.3, v[1] + 0.01);
+      if (k === 'y+') v[2] = Math.min(0.3, v[2] + 0.01); if (k === 'y-') v[2] = Math.max(-0.3, v[2] - 0.01);
+      poner();
+    }
+    var rep = null;
+    $$('[data-aj]', hoja).forEach(function (b) {
+      var k = b.getAttribute('data-aj');
+      if (k === 'ok') return b.addEventListener('click', function () { hoja.remove(); var pub = $('[data-publicar]', panel); A.toast(pub && !pub.disabled ? 'Listo. Toca ' + pub.textContent.trim() + ' para que se vea en la página.' : 'Listo.'); });
+      if (k === '0') return b.addEventListener('click', function () { v = [1, 0, 0]; poner(); });
+      b.addEventListener('pointerdown', function (e) { e.preventDefault(); paso(k); clearInterval(rep); var t0 = setTimeout(function () { rep = setInterval(function () { paso(k); }, 70); }, 350); b._t = t0; });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(b._t); clearInterval(rep); }); });
+    });
+  }
   function borrador(u, lado) {
     imagenP(u.fotos[lado]).then(function (im) {
       if (!im) { A.toast('No se pudo abrir la foto. Intenta otra vez.'); return; }
@@ -558,7 +596,7 @@
       return mEditor.p.then(function (m) {
         mEditor.m = m;
         return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
-          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort });
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
         }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); });
       });
     });
@@ -751,6 +789,7 @@
     });
     var pap = $('[data-papelera]', panel);
     if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
+    $$('[data-acomodar]', panel).forEach(function (b) { b.addEventListener('click', function () { acomodar(u, b.getAttribute('data-acomodar')); }); });
     $$('[data-borrar]', panel).forEach(function (b) { b.addEventListener('click', function () { borrador(u, b.getAttribute('data-borrar')); }); });
     $$('[data-foto]', panel).forEach(function (inp) {
       inp.addEventListener('change', function () { if (inp.files && inp.files.length) procesarFoto(inp.files, inp.getAttribute('data-foto')); });
@@ -767,9 +806,10 @@
       var max = +P.config.maxEquipos || 10, equipos = {};
       P.catalogo.forEach(function (x) { if (!x.oculto && !x.borrado && x.id !== u.id) equipos[claveEq(x)] = 1; });
       if (!equipos[claveEq(u)] && Object.keys(equipos).length >= max) { A.toast('Ya tienes ' + max + ' equipos en la página. Oculta uno, súbelo como versión de un equipo que ya tienes o cambia el número en Datos de la tienda.'); return; }
-      btn.disabled = true; btn.textContent = 'Publicando…';
+      btn.disabled = true; btn.textContent = 'Publicando…'; cortina('Publicando…');
       // la foto de estudio del catálogo se hace aquí, una sola vez; así el catálogo carga rápido en cualquier celular
-      previsualizar().then(function () {
+      // (si el 3D de este celular tarda demasiado, se publica igual: la página hace la foto después)
+      conTiempo(previsualizar(), 15000).then(function () {
         if (!mEditor || !mEditor.m) return null;
         mEditor.m.dorsal({ nombre: '', numero: '' });
         var d = mEditor.m.foto(480, 720, 'frente');
@@ -782,9 +822,13 @@
         var limpio = A.clone(u); delete limpio.nuevo; delete limpio.colorTextoElegido; delete limpio.shortPropio; delete limpio.calcetaFoto; delete limpio.equipoNuevo;
         if (i >= 0) P.catalogo[i] = limpio; else { limpio.orden = 1e6; P.catalogo.push(limpio); }   // lo nuevo va al final de su equipo
         renumerar(arbol());
-        P.editando = null; pintar(P.scrollLista || 0);
-        return guardarCatalogo('Publicado en la página');
-      }).catch(function () { btn.disabled = false; btn.textContent = 'Publicar'; A.toast('No se pudo publicar. Revisa tu conexión e inténtalo otra vez.'); });
+        return api('catalogo', { catalogo: (ordenados().forEach(function (x, k) { x.orden = k + 1; }), P.catalogo) }).then(function () {
+          P.respaldos = null; P.editando = null; P.equipo = null;
+          cortina('✓ Publicado', true);   // que se vea que sí pasó algo, y de regreso a la lista de uniformes
+          setTimeout(function () { cortina(null); pintar(0); }, 1300);
+          A.cargarTienda().then(function () { A.pintarCatalogo(); });
+        });
+      }).catch(function () { cortina(null); btn.disabled = false; btn.textContent = 'Publicar'; A.toast('No se pudo publicar. Revisa tu conexión e inténtalo otra vez.'); });
     });
     previsualizar();
   }
@@ -1043,7 +1087,8 @@
       if (e.button && e.button !== 0) return;
       x0 = e.clientX; y0 = e.clientY;
       el.classList.add('cargando'); if (color) llenar(el, e.clientX, e.clientY);
-      reloj = setTimeout(function () { soltar(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
+      // primero se abre el panel (encima de lo azul) y ya tapado se regresa la portada: sin parpadeo
+      reloj = setTimeout(function () { reloj = 0; if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); setTimeout(soltar, 450); }, 2000);
     });
     el.addEventListener('pointermove', function (e) { if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 12) soltar(); });   // si mueve el dedo, está deslizando la página
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { el.addEventListener(ev, soltar); });

@@ -132,6 +132,7 @@ export async function crear(canvas, opt = {}) {
   uni = {
     uFoto: { value: null }, uEspalda: { value: null }, uManga: { value: null }, uShortTex: { value: null },
     uCaja: { value: new THREE.Vector4() }, uTorsoF: { value: new THREE.Vector2(0, 1) }, uTorsoB: { value: new THREE.Vector2(0, 1) },
+    uAjF: { value: new THREE.Vector3(1, 0, 0) }, uAjB: { value: new THREE.Vector3(1, 0, 0) }, uAjS: { value: new THREE.Vector3(1, 0, 0) },
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
     uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
     uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 }
@@ -143,7 +144,7 @@ export async function crear(canvas, opt = {}) {
       .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvMundo = (modelMatrix * vec4(transformed,1.0)).xyz; vNormMundo = normalize(mat3(modelMatrix) * objectNormal);');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex;
-uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
+uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;`)
       .replace('#include <map_fragment>', `
@@ -156,7 +157,9 @@ if (t > uZonas.z - 0.01) {
   float ux = (vMundo.x - uCaja.x) / uCaja.z; if (atras) ux = 1.0 - ux;
   vec2 tor = atras ? uTorsoB : uTorsoF;
   vec2 uv = vec2(tor.x + ux * tor.y, (vMundo.y - uCaja.y) / uCaja.w);
+  vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el dueño acomodó: más grande/chica y movida
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) f.a = 0.0;
   vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
   base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
 } else if (t > uShortBot) {
@@ -164,7 +167,9 @@ if (t > uZonas.z - 0.01) {
   if (uHayShort > 0.5) {
     // la foto del short se acomoda en lo que se ve de frente; los costados toman la franja de la orilla
     float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0); if (atras) sx = 1.0 - sx;
-    vec4 s = texture2D(uShortTex, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w));
+    vec2 suv = (vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w) - 0.5) / uAjS.x + 0.5 - uAjS.yz;
+    vec4 s = texture2D(uShortTex, suv);
+    if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) s.a = 0.0;
     // atrás solo van las franjas de los lados: escudos y logos del short van al frente
     vec3 sc = s.rgb / max(s.a, 0.004);
     if (atras) s.a *= 1.0 - smoothstep(0.09, 0.12, sx) * (1.0 - smoothstep(0.88, 0.91, sx));
@@ -404,6 +409,7 @@ diffuseColor.rgb *= base;`);
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
       if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || ''; E.numeroShort = !!o.numeroShort; E.torso = Array.isArray(o.torso) ? o.torso : null;
+      api.ajuste(o.ajuste);
       const m = o.manga || E.manga;
       if (!kit || m !== E.manga) { E.manga = m; await ponerModelo(); } else aplicarFotos();
     },
@@ -456,6 +462,12 @@ diffuseColor.rgb *= base;`);
       canvas.addEventListener('pointerup', fin); canvas.addEventListener('pointercancel', fin);
       // el toque que termina un deslizón no cuenta como toque (no abre ni cierra la pantalla grande)
       canvas.addEventListener('click', (e) => { if (tragar) { tragar = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    },
+    // acomodo de cada foto: [tamaño, mover a los lados, mover arriba/abajo]; instantáneo (solo se repinta)
+    ajuste(aj) {
+      aj = aj || {};
+      [['frente', uni.uAjF], ['espalda', uni.uAjB], ['short', uni.uAjS]].forEach(([k, u]) => { const v = Array.isArray(aj[k]) ? aj[k] : [1, 0, 0]; u.value.set(+v[0] || 1, +v[1] || 0, +v[2] || 0); });
+      pedir();
     },
     redibujar: pedir,
     // imagen para el folio o el catálogo
