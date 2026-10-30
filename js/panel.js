@@ -404,38 +404,49 @@
       '<div class="grupo"><span class="etq">Escudo <small>(opcional)</small></span><label class="pn-escudo"><span class="pn-escudo-img">' + (u.escudo ? '<img src="' + esc(u.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo></label></div></div>' +
       '<div class="grupo"><label for="ed-cat">Sección</label><select class="campo" id="ed-cat">' + cats.map(function (c) { return '<option' + (c === u.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '<option value=""' + (u.categoria ? '' : ' selected') + '>Sin sección</option></select></div></div>';
   }
+  function nombreAuto(u) { var eq = (u.etiquetas || {}).equipo || '', v = (u.version || '').trim(); return eq ? eq + (v ? ' · ' + v : '') : ''; }
   function vistaEditor() {
     var u = P.editando, cats = P.config.categorias || [], f = u.fotos, e = u.etiquetas || (u.etiquetas = { colores: [], pais: '', equipo: '' });
     function boton(lado, texto, opcional) {
       return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*" multiple data-foto="' + lado + '"></label>';
     }
+    // arriba lo único que hace falta: fotos → cómo se ve → equipo y versión → Publicar. Lo demás ya viene listo, en "Más opciones"
+    var angosto = window.innerWidth <= 980;   // en celular la vista 3D va justo debajo de las fotos; en compu, a un lado
+    var prev = '<div class="pn-prev3d"' + (f.frente ? '' : ' hidden') + '><div class="vistas pn-vistas3d"><button type="button" class="vista on" data-pv="frente">Frente</button><button type="button" class="vista" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">Así se verá en la página, con un nombre y número de ejemplo.</p></div>';
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
-      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Puedes subir varias fotos de cada lado: usamos la mejor. Si el short o las calcetas vienen en la misma foto, los separamos solos</li><li>Quita la etiqueta que cuelga antes de tomar la foto</li></ul></div>' +
+      '<p class="pn-paso"><b>1</b> Sube las fotos ' + (f.frente ? '<small>(toca una para cambiarla)</small>' : '<small>(puedes escoger varias)</small>') + '</p>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
-      ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
+      '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Si el short o las calcetas vienen en la misma foto, los separamos solos</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<div id="ed-aviso"></div>' +
-      '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
+      ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
+      (angosto ? prev : '') +
+      '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
       equipoHTML(u, cats) +
-      '<div class="fila2"><div class="grupo"><label for="ed-version">Versión</label><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local, Visitante"></div>' +
-      '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div></div>' +
+      '<div class="grupo"><label for="ed-version">Versión</label><div class="pn-version"><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local">' +
+      ['Local', 'Visitante', 'Tercera'].map(function (v) { return '<button type="button" class="chip' + (u.version === v ? ' on' : '') + '" data-ver="' + v + '">' + v + '</button>'; }).join('') + '</div></div>' +
+      '<details class="pn-mas" data-mas-op' + (P.masAbierto ? ' open' : '') + '><summary>Más opciones <small>(ya vienen listas)</small></summary>' +
+      '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y versión)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
+      '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div>' +
       '<div class="grupo"><span class="etq">Manga con la que se ve primero <small>(el cliente puede cambiarla)</small></span><div class="chips llenar"><button type="button" class="chip' + (u.manga !== 'larga' ? ' on' : '') + '" data-mg="corta">Corta</button><button type="button" class="chip' + (u.manga === 'larga' ? ' on' : '') + '" data-mg="larga">Larga</button></div></div>' +
-      '<div class="grupo"><span class="etq">Colores del uniforme <small>(se marcan solos con la foto; corrige si hace falta)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
+      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
       '<div class="grupo"><span class="etq">Color del short</span>' + bolitas('sh', u.colorShort, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta, TELAS) + '</div>' +
       '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="colores"><button type="button" class="color sin' + (!u.colorFranja ? ' on' : '') + '" data-fr="" aria-label="Sin franja">✕</button>' + TELAS.map(function (c) { return '<button type="button" class="color' + (u.colorFranja === c ? ' on' : '') + '" style="background:' + c + '" data-fr="' + c + '" aria-label="' + c + '"></button>'; }).join('') + '</div></div>' +
-      '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto, LETRAS_P) + '</div>' +
       '<div class="grupo"><span class="etq">Número chico en el short</span><div class="chips llenar"><button type="button" class="chip' + (u.numeroShort ? ' on' : '') + '" data-ns="1">Sí</button><button type="button" class="chip' + (!u.numeroShort ? ' on' : '') + '" data-ns="0">No</button></div></div>' +
-      (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(toca un color y se hace la copia)</small></span>' + bolitas('oc', '', TELAS) + '</div>' : '');
+      '<div class="grupo"><span class="etq">Colores para el buscador <small>(se marcan solos con la foto)</small></span><div class="pn-tags">' + COLORES_N.map(function (c) { return '<button type="button" class="chip' + (e.colores.indexOf(c[0]) >= 0 ? ' on' : '') + '" data-col="' + c[0] + '"><i class="pn-bolita" style="background:' + c[1] + '"></i>' + c[0] + '</button>'; }).join('') + '</div></div>' +
+      (f.frente && !/^data:/.test(f.frente) ? '<div class="grupo"><span class="etq">Misma playera, otro color <small>(toca un color y se hace la copia)</small></span>' + bolitas('oc', '', TELAS) + '</div>' : '') +
+      '</details>';
     if (!u.nuevo) {
       h += '<div class="grupo"><span class="etq">En la página</span><div class="pn-switches">' +
         '<button type="button" class="chip' + (u.destacado ? ' on' : '') + '" data-sw="destacado">★ ' + (u.destacado ? 'Destacado' : 'Destacar') + '</button>' +
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
         '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>';
     }
-    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (!f.frente || /^data:/.test(f.frente + f.espalda + f.short) ? ' disabled' : '') + '>Publicar</button></div></div>' +
-      '<div class="pn-prev3d"><div class="vistas pn-vistas3d"><button type="button" class="vista on" data-pv="frente">Frente</button><button type="button" class="vista" data-pv="espalda">Espalda</button></div><canvas id="ed-3d" class="ed-3d"></canvas><p class="nota">' + (f.frente ? 'Así se verá en la página, con el nombre y número de ejemplo.' : 'Sube la foto del frente para verlo en 3D.') + '</p></div></div>';
+    var listo = f.frente && !/^data:/.test(f.frente + f.espalda + f.short);
+    h += '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar cambios') + '</button>' + (f.frente ? '' : '<small class="pn-falta">Primero sube la foto del frente.</small>') + '</div></div>' +
+      (angosto ? '' : prev) + '</div>';
     return h;
   }
   var mEditor = null, pvVista = 'frente';
@@ -559,6 +570,14 @@
     if (!u.calcetaFoto && (!u.colorCalceta || lado === 'short')) u.colorCalceta = u.colorShort;
     return A.subirConReintento(r.data, 'catalogo').then(function (url) { u.fotos[lado] = url; });
   }
+  // el color del fondo de la foto: el que más se repite en las orillas
+  function colorFondo(c) {
+    var W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, cajas = {}, mejor = null;
+    function cuenta(x, y) { var i = (y * W + x) * 4, k = (d[i] >> 4) + ',' + (d[i + 1] >> 4) + ',' + (d[i + 2] >> 4), cj = cajas[k] = cajas[k] || { n: 0, r: 0, g: 0, b: 0 }; cj.n++; cj.r += d[i]; cj.g += d[i + 1]; cj.b += d[i + 2]; if (!mejor || cj.n > mejor.n) mejor = cj; }
+    for (var x = 0; x < W; x += 2) { cuenta(x, 0); cuenta(x, H - 1); }
+    for (var y = 0; y < H; y += 2) { cuenta(0, y); cuenta(W - 1, y); }
+    return mejor && mejor.n > (W + H) * 0.25 ? [mejor.r / mejor.n, mejor.g / mejor.n, mejor.b / mejor.n] : null;   // fondo parejo; si es un paisaje, no se usa
+  }
   // una foto: se recorta, se le quita la persona si la trae, se separa el short y se mide qué tan de frente viene
   function analizar(file, lado) {
     var M = window.Motor3D;
@@ -573,7 +592,7 @@
         r.persona = lado !== 'short' && M.tienePersona(cut);
         if (r.persona) {
           // se confirma con la piel (cabeza arriba de los hombros); si no hay, era una playera con tonos raros, no una persona
-          var q = M.quitarPersona(cut); r.persona = !!q;
+          var q = M.quitarPersona(cut, colorFondo(base)); r.persona = !!q;
           if (q) { cut = q; pz.short = null; if (q.calceta && !pz.calceta) pz.calceta = q.calceta; }   // con alguien puesto, las piezas sueltas son piernas, no un short
         }
         var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
@@ -675,7 +694,11 @@
     $('#ed-pais').addEventListener('input', function (e) { u.etiquetas.pais = e.target.value; });
     $('#ed-equipo').addEventListener('input', function (e) { u.etiquetas.equipo = e.target.value; });
     $$('[data-mg]', panel).forEach(function (b) { b.addEventListener('click', function () { u.manga = b.getAttribute('data-mg'); $$('[data-mg]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
-    $('#ed-version').addEventListener('input', function (e) { u.version = e.target.value; });
+    function verPh() { var n = $('#ed-nombre'); if (n) n.placeholder = nombreAuto(u) || 'Ej. México · Local'; }
+    $('#ed-version').addEventListener('input', function (e) { u.version = e.target.value; $$('[data-ver]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-ver') === u.version); }); verPh(); });
+    $$('[data-ver]', panel).forEach(function (b) { b.addEventListener('click', function () { u.version = b.getAttribute('data-ver'); $('#ed-version').value = u.version; $$('[data-ver]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); verPh(); }); });
+    selEq.addEventListener('change', verPh); $('#ed-equipo').addEventListener('input', verPh);
+    var mas = $('[data-mas-op]', panel); if (mas) mas.addEventListener('toggle', function () { P.masAbierto = mas.open; });
     $$('[data-ns]', panel).forEach(function (b) { b.addEventListener('click', function () { u.numeroShort = b.getAttribute('data-ns') === '1'; $$('[data-ns]', panel).forEach(function (x) { x.classList.toggle('on', x === b); }); previsualizar(); }); });
     // el escudo de un equipo nuevo (el de un equipo que ya existe se cambia en el equipo)
     var inEsc = $('[data-escudo]', panel);
@@ -715,12 +738,12 @@
     });
     $('[data-publicar]', panel).addEventListener('click', function () {
       var btn = this;
-      if (!u.nombre.trim()) { A.toast('Ponle un nombre al uniforme.'); $('#ed-nombre').focus(); return; }
       if (selEq.value === '__nuevo') {
         u.etiquetas.equipo = $('#ed-equipo').value.trim().replace(/\s+/g, ' '); u.categoria = $('#ed-cat').value;
         if (!u.etiquetas.equipo) { A.toast('Ponle nombre al equipo nuevo.'); $('#ed-equipo').focus(); return; }
         if (equipoDe(arbol(), u.etiquetas.equipo.toLowerCase())) { A.toast('Ese equipo ya existe: escógelo de la lista.'); return; }
       }
+      if (!u.nombre.trim()) u.nombre = nombreAuto(u) || 'Uniforme';   // sin nombre escrito: el equipo y la versión
       // la página muestra hasta N equipos (el dueño elige N en Datos de la tienda); cada equipo con sus versiones
       var max = +P.config.maxEquipos || 10, equipos = {};
       P.catalogo.forEach(function (x) { if (!x.oculto && !x.borrado && x.id !== u.id) equipos[claveEq(x)] = 1; });

@@ -238,7 +238,7 @@ export function separarConjunto(c, persona) {
   const tela = prom(Math.round(H * 0.2), Math.round(H * 0.4)), abajoC = prom(Math.round(H * 0.92), H);
   const tono = (c) => { const t = c[0] + c[1] + c[2] + 1; return [c[0] / t, c[1] / t, c[2] / t]; };   // el tono sin la luz: un short en sombra sigue siendo del mismo color
   const mismoColor = persona && tela && abajoC && (Math.abs(tela[0] - abajoC[0]) + Math.abs(tela[1] - abajoC[1]) + Math.abs(tela[2] - abajoC[2]) < 70 || tono(tela).reduce((s2, v, i) => s2 + Math.abs(v - tono(abajoC)[i]), 0) < 0.26);
-  for (let y = Math.round(H * 0.4); y < Math.round(H * (mismoColor ? 0.94 : 0.78)) - k; y++) {   // con alguien puesto y todo del mismo color, la foto suele cortar el short: el dobladillo queda más abajo
+  for (let y = Math.round(H * 0.4); y < Math.round(H * (persona ? 0.94 : 0.78)) - k; y++) {   // con alguien puesto, la foto suele cortar el short: el dobladillo queda más abajo
     if (L[y - k] < 0 || L[y + k] < 0) continue;
     // 1) el dobladillo: las dos orillas se meten de golpe
     const s = Math.min(L[y + k] - L[y - k], R[y - k] - R[y + k]);
@@ -255,6 +255,10 @@ export function separarConjunto(c, persona) {
   // del dobladillo a la cintura del short el ancho cambia poco; de la manga al torso cambia muchísimo (eso no es un corte)
   const anchoEn = (y) => R[y] - L[y];
   if (mismoColor) cand.sort((a2, b2) => (b2.p >= 1) - (a2.p >= 1) || a2.y - b2.y);   // mismo color: el primer dobladillo claro de arriba hacia abajo (más abajo ya es el short)
+  else if (persona && cand.length) {   // con alguien puesto: el primer corte fuerte de arriba hacia abajo (más abajo puede haber piernas o la base del maniquí)
+    const tope = cand[0].p * 0.6;
+    cand.sort((a2, b2) => (b2.p >= tope) - (a2.p >= tope) || a2.y - b2.y);
+  }
   let elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : piernas(c2.y)));   // abajo tiene que verse un short (piernas o que se abra): un patrocinador de otro color (AKRON) no es un corte
   // playera y short del mismo color (blanco con blanco): si nada es claro, el dobladillo más marcado de la parte de abajo
   if (!elegido && mismoColor) elegido = cand.filter((c2) => c2.y > H * 0.6 && c2.p >= 0.3 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * 1.2).sort((a2, b2) => b2.p - a2.p)[0];
@@ -458,7 +462,7 @@ export function deFrente(c) {
 
 /* Foto con alguien puesto el uniforme: se quedan solo las prendas. Se quita la piel (cara, cuello, brazos,
    piernas) y el pelo (queda suelto arriba al quitar el cuello); se rellenan los huecos de adentro. */
-export function quitarPersona(c) {
+export function quitarPersona(c, fondo) {
   const W = c.width, H = c.height, o = lienzo(W, H), g = o.getContext('2d'); g.drawImage(c, 0, 0);
   const img = g.getImageData(0, 0, W, H), d = img.data, m = new Uint8Array(W * H);
   for (let k = 0; k < W * H; k++) {
@@ -478,6 +482,17 @@ export function quitarPersona(c) {
     let p = 0, t = 0; for (let y = 0; y < a0; y++) for (let x = Math.round(W * 0.3); x < W * 0.7; x++) { const k = y * W + x; if (d[k * 4 + 3] >= 128) { t++; if (!m[k]) p++; } }
     if (t < 30 || p / t < 0.2) return null; }
   // la cabeza: todo lo que queda arriba de los hombros (el cuello de la playera sube un poco, se respeta)
+  // el fondo que queda atrapado entre el brazo y el cuerpo (la IA lo toma como parte de la persona): al quitar el brazo
+  // queda suelto junto a la playera. Se quita todo lo que sea del color exacto del fondo y toque lo que ya se quitó.
+  if (fondo) {
+    const cerca = (k) => { const i = k * 4; return Math.abs(d[i] - fondo[0]) + Math.abs(d[i + 1] - fondo[1]) + Math.abs(d[i + 2] - fondo[2]) < 26; };
+    const cola = [];
+    for (let k = 0; k < W * H; k++) if (!m[k]) cola.push(k);
+    while (cola.length) {
+      const k = cola.pop(), x = k % W;
+      for (const v of [-1, 1, -W, W]) { const j = k + v; if (j < 0 || j >= W * H || (v === -1 && x === 0) || (v === 1 && x === W - 1)) continue; if (m[j] && cerca(j)) { m[j] = 0; cola.push(j); } }
+    }
+  }
   let anchoMax = 0; const ancho = new Int32Array(H);
   for (let y = 0; y < H; y++) { let a = -1, b = -1; for (let x = 0; x < W; x++) if (m[y * W + x]) { if (a < 0) a = x; b = x; } ancho[y] = a < 0 ? 0 : b - a; if (ancho[y] > anchoMax) anchoMax = ancho[y]; }
   let hombro = 0; while (hombro < H && ancho[hombro] < anchoMax * 0.6) hombro++;
