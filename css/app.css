@@ -934,3 +934,18 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .pn-borrador-lienzo{flex:1;min-height:0;display:flex;justify-content:center;background:repeating-conic-gradient(#3a3f55 0 25%,#2a2e40 0 50%) 0 0/20px 20px;border-radius:14px;overflow:hidden}
 .pn-borrador-lienzo canvas{max-width:100%;max-height:calc(100dvh - 190px);touch-action:none;cursor:crosshair}
 .pn-borrador-b{display:flex;gap:8px;justify-content:flex-end}
+
+textarea.campo{font-family:inherit}
+.pn-auto{margin:0 0 6px;padding:10px 14px;border-radius:999px;background:rgba(120,220,150,.1);color:#bfeccb;font-size:14px;text-align:center}
+.pn-auto.mal{background:rgba(255,138,122,.12);color:#ffc3b9}
+.pn-datos .pn-h{margin:22px 0 4px}
+.pn-cambia-cod .pn-h{margin-top:28px}
+.pn-tag-nueva{display:inline-flex;gap:6px;align-items:center}
+.pn-tag-nueva .pn-tag-in{width:110px}
+.pn-tag-nueva .chip{min-width:44px;justify-content:center;font-size:20px}
+.pn-datos .pn-h{font-size:24px}
+
+.pn-buscar-folio{display:flex;gap:8px;margin:4px 0 12px}
+.pn-buscar-folio .campo{flex:1;min-width:0}
+.pn-folio-txt .pn-que{display:block;font-weight:700;color:#fff;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.pn-auto{position:sticky;top:0;z-index:5;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:rgba(30,60,50,.85)}.pn-auto.mal{background:rgba(90,30,30,.9)}

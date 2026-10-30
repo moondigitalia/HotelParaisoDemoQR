@@ -89,10 +89,12 @@
   }
   function vistaFolios() {
     if (!P.folios.length) return '<div class="pn-vacio"><h3>Aún no hay folios</h3><p>Cuando un cliente arme su uniforme y toque "Cotizar por WhatsApp", aparece aquí con su número.</p></div>';
-    return '<div class="pn-lista">' + P.folios.map(function (f, i) {
+    var buscar = '<form class="pn-buscar-folio" data-buscar-folio><input class="campo" id="pn-bf" inputmode="numeric" placeholder="Número de folio, ej. 47" maxlength="8" autocomplete="off"><button type="submit" class="btn btn-oro">Buscar</button></form>';
+    return buscar + '<div class="pn-lista">' + P.folios.map(function (f, i) {
       var fecha = new Date(f.creado).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }), n = totalDe(f);
+      var e0 = f.equipos[0] || {}, j0 = (e0.jugadores || [])[0] || {}, quien = e0.nombre && e0.nombre !== 'Mi equipo' ? e0.nombre : ((j0.nombre || '') + (j0.numero ? ' ' + j0.numero : '')).trim();
       return '<button type="button" class="pn-folio" data-folio="' + i + '"><img src="' + esc(f.equipos[0].vistas.frente) + '" alt="">' +
-        '<span class="pn-folio-txt"><b>' + esc(f.id) + '</b><span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span><small>' + esc(fecha) + '</small></span>' +
+        '<span class="pn-folio-txt"><b>' + esc(f.id) + '</b>' + (e0.base || quien ? '<span class="pn-que">' + esc([String(e0.base || '').split(' · ')[0], quien].filter(Boolean).join(' · ')) + '</span>' : '') + '<span class="pn-cuantos">' + plural(n, 'uniforme', 'uniformes') + (f.equipos.length > 1 ? ' · ' + plural(f.equipos.length, 'equipo', 'equipos') : '') + '</span><small>' + esc(fecha) + '</small></span>' +
         '<span class="estado ' + esc(f.estado) + '">' + esc(T('est_' + f.estado)) + '</span></button>';
     }).join('') + '</div>' + (P.masFolios ? '<div class="subir"><button type="button" class="btn btn-linea" data-mas-folios>Ver folios más antiguos</button></div>' : '');
   }
@@ -103,6 +105,18 @@
   }
   function enlazarFolios() {
     $$('[data-folio]', panel).forEach(function (b) { b.addEventListener('click', function () { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = +b.getAttribute('data-folio'); pintar(0); }); });
+    var bf = $('[data-buscar-folio]', panel);
+    if (bf) bf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var n = parseInt($('#pn-bf').value.replace(/\D/g, ''), 10); if (!n) { A.toast('Escribe el número del folio. Ej. 47'); return; }
+      var id = 'M-' + String(n).padStart(4, '0'), k = P.folios.findIndex(function (f) { return f.id === id; });
+      var abrir = function (i) { P.scrollLista = $('.pn', panel).scrollTop; P.detalle = i; pintar(0); };
+      if (k >= 0) return abrir(k);
+      api('buscarFolio', { numero: n }).then(function (j) {
+        if (!j.folio) { A.toast('No existe el folio ' + id + '. Revisa el número.'); return; }
+        P.folios.push(j.folio); abrir(P.folios.length - 1);
+      }).catch(function () { A.toast('No se pudo buscar. Revisa tu internet.'); });
+    });
     var mas = $('[data-mas-folios]', panel);
     if (mas) mas.addEventListener('click', function () {
       var ult = P.folios[P.folios.length - 1], n = ult ? parseInt(String(ult.id).slice(2), 10) : 0;
@@ -140,7 +154,7 @@
       filas.push(['Short', sh.mismo ? 'Igual que la playera' : bolita(sh.color || '#FFFFFF') + 'Color liso']);
       filas.push(['Número en el short', d.numeroShort ? 'Sí' : 'No']);
       (d.logos || []).forEach(function (g) { filas.push(['Logo del equipo', esc((LUGAR[g.pos] || g.pos) + ' · ' + TAMANO[g.tam == null ? 2 : g.tam])]); });
-      var ps = A.patros(d);
+      var ps = window.Kit && window.Kit.patros ? window.Kit.patros(d) : [];
       if (ps.length) filas.push(['Patrocinadores', ps.map(function (p, i) { return (i + 1) + '. ' + esc((p.pos === 'espalda' ? LUGAR['espalda-p'] : LUGAR[p.pos] || p.pos) + ' · ' + TAMANO[p.tam]); }).join('<br>')]);
     }
     filas.push(['Nombre y número', bolita(d.colorTexto)]);
@@ -738,23 +752,24 @@
     var c = P.config;
     function lista(id, arr) {
       return '<div class="pn-tags" id="' + id + '">' + (arr || []).map(function (t, i) { return '<span class="eq-chip">' + esc(t) + '<button type="button" data-quita-tag="' + id + '" data-i="' + i + '" aria-label="Quitar">×</button></span>'; }).join('') +
-        '<input class="campo pn-tag-in" data-tag-in="' + id + '" placeholder="Agregar y Enter" maxlength="40"></div>';
+        '<span class="pn-tag-nueva"><input class="campo pn-tag-in" data-tag-in="' + id + '" placeholder="Nueva" maxlength="40"><button type="button" class="chip" data-tag-mas="' + id + '" aria-label="Agregar">+</button></span></div>';
     }
-    return '<div class="pn-form pn-datos">' +
+    return '<div class="pn-form pn-datos"><p class="pn-auto" id="dt-estado">Todo lo que cambies aquí se guarda solo.</p>' +
+      '<h3 class="pn-h">Tu tienda</h3>' +
       '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
       '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
       '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
+      '<h3 class="pn-h">Tu página</h3>' +
       '<div class="grupo"><label for="dt-lema">Lema</label><input class="campo" id="dt-lema" value="' + esc(c.lema) + '"></div>' +
       '<div class="grupo"><label for="dt-hist">Tu historia (la ve la gente en "Quiénes somos")</label><textarea class="campo campo-largo" id="dt-hist" maxlength="900" placeholder="Si lo dejas vacío, se muestra el texto de ejemplo.">' + esc(c.historia || '') + '</textarea></div>' +
       '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
-      '<div class="grupo"><span class="etq">Tallas que manejas</span>' + lista('tallas', c.tallas) + '</div>' +
       '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven en la página?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
       '<div class="grupo"><label for="dt-tit">Título de la portada <small>(vacío = el de siempre)</small></label><input class="campo" id="dt-tit" maxlength="80" value="' + esc((c.textos || {}).hero_t || '') + '" placeholder="' + esc(window.I18N.es.hero_t) + '"></div>' +
       '<div class="grupo"><label for="dt-sub">Texto debajo del título <small>(vacío = el de siempre)</small></label><textarea class="campo campo-largo" id="dt-sub" maxlength="240" placeholder="' + esc(window.I18N.es.hero_p) + '">' + esc((c.textos || {}).hero_p || '') + '</textarea></div>' +
-      '<p class="nota">Las secciones (Liga MX, Europa…) se cambian en la pestaña Uniformes.</p>' +
+      '<h3 class="pn-h">Pedidos</h3>' +
+      '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
       sonidoHTML(c) +
-      '<div class="subir"><button type="button" class="btn btn-oro btn-xl" data-guardar-datos>Guardar cambios</button></div>' +
-      '<div class="grupo pn-codigo"><span class="etq">Código para entrar a este panel</span><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
+      '<div class="grupo pn-cambia-cod"><h3 class="pn-h">Tu código para entrar</h3><div class="fila2"><input class="campo" id="dt-cod1" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Código nuevo" maxlength="32"><input class="campo" id="dt-cod2" type="password" inputmode="numeric" autocomplete="new-password" placeholder="Repítelo" maxlength="32"></div>' +
       '<button type="button" class="btn btn-linea" data-cambiar-codigo>Cambiar código</button><p class="nota">Mínimo 4 dígitos. Si algún día lo olvidas, el código maestro que te dio MOON Digital siempre funciona.</p></div></div>';
   }
   // el sonido que suena cuando el cliente manda su cotización: con o sin sonido, el suyo propio y el volumen
@@ -782,7 +797,7 @@
       var r = new FileReader();
       r.onload = function () {
         var data = String(r.result).replace(/^data:audio\/(x-)?m4a/, 'data:audio/mp4');
-        A.subirConReintento(data, 'catalogo').then(function (url) { s.sonidoUrl = url; $('#dt-son-cual', panel).textContent = 'Suena tu sonido. Toca Guardar cambios.'; A.toast('Listo: escúchalo y guarda'); })
+        A.subirConReintento(data, 'catalogo').then(function (url) { s.sonidoUrl = url; $('#dt-son-cual', panel).textContent = 'Suena tu sonido.'; A.toast('Listo: toca Escuchar para oírlo'); if (P.sonidoGuardar) P.sonidoGuardar(); })
           .catch(function () { A.toast('No se pudo subir ese sonido. Prueba con un MP3.'); });
       };
       r.readAsDataURL(f);
@@ -799,11 +814,12 @@
       '<button type="button" class="icon-btn" data-hquita="' + i + '" aria-label="Quitar renglón">×</button></div></div>';
     }).join('') + '<button type="button" class="btn btn-linea" data-hmas>+ Otro horario</button></div>';
   }
-  function leerHorario() {
-    return P.horario.map(function (r, i) {
+  function leerHorario(todos) {
+    var l = P.horario.map(function (r, i) {
       var a = $('[data-habre="' + i + '"]', panel), c = $('[data-hcierra="' + i + '"]', panel);
       return { dias: r.dias, abre: a ? a.value : r.abre, cierra: c ? c.value : r.cierra };
-    }).filter(function (r) { return r.dias.length; });
+    });
+    return todos ? l : l.filter(function (r) { return r.dias.length; });   // un renglón sin días no se guarda (pero se queda en pantalla para llenarlo)
   }
   function enlazarDatos() {
     $$('[data-hdia]', panel).forEach(function (b) {
@@ -813,15 +829,16 @@
         b.classList.toggle('on', k < 0);
       });
     });
-    $$('[data-hquita]', panel).forEach(function (b) { b.addEventListener('click', function () { P.config.horario = leerHorario(); P.config.horario.splice(+b.getAttribute('data-hquita'), 1); pintar(); }); });
-    var mas = $('[data-hmas]', panel); if (mas) mas.addEventListener('click', function () { P.config.horario = leerHorario().concat([{ dias: [], abre: '09:00', cierra: '18:00' }]); pintar(); });
+    $$('[data-hquita]', panel).forEach(function (b) { b.addEventListener('click', function () { P.leerDatos(); var h = leerHorario(true); h.splice(+b.getAttribute('data-hquita'), 1); P.config.horario = h; pintar(); P.guardarDatos(); }); });
+    var mas = $('[data-hmas]', panel); if (mas) mas.addEventListener('click', function () { P.leerDatos(); P.config.horario = leerHorario(true).concat([{ dias: [], abre: '09:00', cierra: '18:00' }]); pintar(); });
     var c = P.config;
-    $$('[data-quita-tag]', panel).forEach(function (b) { b.addEventListener('click', function () { c[b.getAttribute('data-quita-tag')].splice(+b.getAttribute('data-i'), 1); pintar(); }); });
+    $$('[data-quita-tag]', panel).forEach(function (b) { b.addEventListener('click', function () { c[b.getAttribute('data-quita-tag')].splice(+b.getAttribute('data-i'), 1); P.leerDatos(); pintar(); P.guardarDatos(); }); });
+    $$('[data-tag-mas]', panel).forEach(function (b) { b.addEventListener('click', function () { P.leerDatos(); pintar(); P.guardarDatos(); var n = $('[data-tag-in]', panel); if (n) n.focus(); }); });
     $$('[data-tag-in]', panel).forEach(function (inp) {
       inp.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return; e.preventDefault();
         var v = inp.value.trim(); if (!v) return;
-        var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); pintar();
+        P.leerDatos(); pintar(); P.guardarDatos();
         var n = $('[data-tag-in="' + k + '"]', panel); if (n) n.focus();
       });
     });
@@ -833,18 +850,39 @@
       api('codigo', { nuevo: a }).then(function () { P.pin = a; ses.set(a); $('#dt-cod1').value = ''; $('#dt-cod2').value = ''; A.toast('Código cambiado. Desde ahora entras con el nuevo.'); })
         .catch(function () { A.toast('No se cambió. Inténtalo otra vez.'); });
     });
-    $('[data-guardar-datos]', panel).addEventListener('click', function () {
-      var wa = $('#dt-wa').value.replace(/\D/g, '');
-      if (wa && wa.length === 10) wa = '52' + wa;
-      if (wa && wa.length !== 12) { A.toast('El WhatsApp debe tener 10 dígitos.'); $('#dt-wa').focus(); return; }
-      $$('[data-tag-in]', panel).forEach(function (inp) { var v = inp.value.trim(); if (v) { var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); } });
+    // todo se guarda solo: al salir de un campo o al tocar una opción (un momento después, para juntar varios toques)
+    var estado = $('#dt-estado', panel);
+    function marca(t, mal) { if (estado) { estado.textContent = t; estado.classList.toggle('mal', !!mal); } }
+    function leer() {
+      $$('[data-tag-in]', panel).forEach(function (inp) { var v = inp.value.trim(); if (v) { var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); inp.value = ''; } });
       var mx = parseInt($('#dt-max').value, 10); c.maxEquipos = mx >= 1 && mx <= 30 ? mx : 10;
       c.textos = { hero_t: $('#dt-tit').value.trim(), hero_p: $('#dt-sub').value.trim() };
       Object.assign(c, P.sonido);
-      c.whatsapp = wa; c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
-      api('config', { config: c }).then(function () { A.toast('Datos guardados'); return A.cargarTienda(); }).then(function () { A.pintarDatos(); A.pintarCatalogo(); pintar(); })
-        .catch(function () { A.toast('No se guardó. Inténtalo otra vez.'); });
+      c.direccion = $('#dt-dir').value; c.horario = leerHorario(true); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
+      var wa = $('#dt-wa').value.replace(/\D/g, ''); if (wa.length === 12 && wa.indexOf('52') === 0) wa = wa.slice(2);
+      if (wa.length === 10) { c.whatsapp = '52' + wa; return true; }
+      return !wa ? (c.whatsapp = '', true) : false;
+    }
+    var reloj = null;
+    function guardar() {
+      clearTimeout(reloj);
+      reloj = setTimeout(function () {
+        if (!leer()) { marca('El WhatsApp debe tener 10 dígitos. Lo demás sí se guardó cuando lo corrijas.', true); return; }
+        marca('Guardando…');
+        var envio = Object.assign({}, c, { horario: c.horario.filter(function (r) { return r.dias.length; }) });
+        api('config', { config: envio }).then(function () { marca('Guardado ✓'); return A.cargarTienda(); }).then(function () { A.pintarDatos(); A.pintarCatalogo(); })
+          .catch(function () { marca('No se guardó: revisa tu internet. Lo intentamos otra vez en cuanto cambies algo.', true); });
+      }, 700);
+    }
+    P.guardarDatos = guardar; P.leerDatos = leer;
+    $$('.pn-datos input, .pn-datos textarea', panel).forEach(function (inp) {
+      if (/^dt-cod/.test(inp.id) || inp.type === 'file') return;
+      inp.addEventListener('change', guardar);
+      if (inp.tagName === 'TEXTAREA' || inp.type === 'text' || !inp.type || inp.type === 'tel' || inp.type === 'number') inp.addEventListener('input', function () { marca('Escribiendo…'); });
     });
+    $$('.pn-datos [data-hdia], .pn-datos [data-son], .pn-datos [data-son-quitar]', panel).forEach(function (b) { b.addEventListener('click', guardar); });
+    var vol2 = $('#dt-vol', panel); if (vol2) vol2.addEventListener('change', guardar);
+    P.sonidoGuardar = guardar;
   }
 
   /* ---------- papelera ---------- */

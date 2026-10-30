@@ -49,6 +49,15 @@ module.exports = async (req, res) => {
     fo.folios.forEach((x) => { delete x.historial; });
     return send(res, 200, { folios: fo.folios, masFolios: fo.mas });
   }
+  // buscar un folio por su número (el cliente lo manda por WhatsApp): aunque sea viejo, se encuentra
+  if (accion === 'buscarFolio') {
+    const n = parseInt(String(b.numero || '').replace(/\D/g, ''), 10);
+    if (!n) return send(res, 400, { error: 'numero' });
+    const id = 'M-' + String(n).padStart(4, '0');
+    const fo = await readJSON('folios/' + id + '.json', null);
+    if (fo) delete fo.historial;
+    return send(res, 200, { folio: fo });
+  }
   // cómo estaba antes: los últimos respaldos, y regresar a uno
   if (accion === 'respaldos') {
     const out = [];
