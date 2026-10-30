@@ -1133,3 +1133,10 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 *{-webkit-tap-highlight-color:transparent}
 :focus:not(:focus-visible){outline:none}
 .mini:focus-visible,.cat-esc:focus-visible,.sec-mas:focus-visible{outline:none}
+
+/* renglones parejos: cada renglón centrado, todos los elementos del mismo ancho */
+.cat-todo-grid,.eq-casa.con-renglones{display:flex!important;flex-direction:column;gap:22px}
+.renglon{display:flex;justify-content:center;gap:14px}
+.renglon>*{flex:0 0 calc((100% - (var(--cols) - 1) * 14px) / var(--cols));width:auto!important;min-width:0}
+.sec-pista>.mini-grid{display:flex!important;justify-content:center!important;gap:8px!important}
+.sec-pista>.mini-grid>.mini{flex:0 0 calc((100% - 16px) / 3);min-width:0}

@@ -550,19 +550,19 @@
   function filaSeccion(eqs) {
     if (eqs.length <= 3) return '<div class="mini-grid">' + eqs.map(tarjetaEquipo).join('') + '</div>';
     var pags = [], actual = equipoDeId(S.baseId), ini = 0;
-    for (var i = 0; i < eqs.length; i += 3) pags.push(eqs.slice(i, i + 3));
+    pags = renglones(eqs, 3);   // 4 equipos → 2 y 2; 5 → 3 y 2: ninguno se queda solo
     pags.forEach(function (pg, k) { if (actual && pg.some(function (q) { return q.clave === actual.clave; })) ini = k; });
     var n = pags.length;
     return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%;transform:translateX(' + (-ini * 100 / n) + '%)">' +
       pags.map(function (pg) { return '<div class="mini-grid" style="flex-basis:' + (100 / n) + '%">' + pg.map(tarjetaEquipo).join('') + '</div>'; }).join('') + '</div></div>' +
-      '<button type="button" class="sec-mas' + (ini === n - 1 ? ' atras' : '') + '" data-sec-mas aria-label="' + esc(T('mas_equipos')) + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i><small>' + esc(ini === n - 1 ? T('volver') : '+' + (eqs.length - (ini + 1) * 3 > 0 ? eqs.length - (ini + 1) * 3 : 0)) + '</small></button>';
+      '<button type="button" class="sec-mas' + (ini === n - 1 ? ' atras' : '') + '" data-sec-mas aria-label="' + esc(T('mas_equipos')) + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i><small>' + esc(ini === n - 1 ? T('volver') : '+' + pags.slice(ini + 1).reduce(function (s2, g2) { return s2 + g2.length; }, 0)) + '</small></button>';
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-sec-mas]'); if (!b) return;
     var v = b.parentNode.querySelector('.sec-vista'), n = +v.getAttribute('data-pags'), p = (+v.getAttribute('data-pag') + 1) % n, tot = v.querySelectorAll('[data-equipo]').length;
     v.setAttribute('data-pag', p); v.firstChild.style.transform = 'translateX(' + (-p * 100 / n) + '%)';
     b.classList.toggle('atras', p === n - 1);
-    var resto = tot - (p + 1) * 3; b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto;
+    var resto = $$('.mini-grid', v).slice(p + 1).reduce(function (s2, g2) { return s2 + g2.children.length; }, 0); b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto;
   });
   function tarjetasPorSeccion(lista) {
     var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
@@ -907,6 +907,18 @@
   /* ---------- catálogo de la página: las mismas carpetas y el mismo buscador que dentro del probador ---------- */
   /* Catálogo: una sola fila de escudos que se desliza de lado, con una barrita que dice cuánto falta y la píldora
      "Ver todos". "Ver todos" abre una pantalla con todos los escudos grandes; arriba siempre quedan la búsqueda y las secciones. */
+  // renglones parejos: nunca un elemento solo en su renglón. Se reparten entre los renglones necesarios (7 en 3 por renglón → 3, 2, 2)
+  function renglones(items, C) {
+    var n = items.length; if (!n) return [];
+    C = Math.max(1, Math.min(C, n)); var r = Math.ceil(n / C), base = Math.floor(n / r), extra = n % r, out = [], k = 0;
+    for (var i = 0; i < r; i++) { var t = base + (i < extra ? 1 : 0); out.push(items.slice(k, k + t)); k += t; }
+    return out;
+  }
+  function pintarRenglones(cont, items, minAncho, gap) {
+    var w = cont.clientWidth || cont.parentNode.clientWidth || 320, C = Math.max(1, Math.floor((w + gap) / (minAncho + gap)));
+    cont.style.setProperty('--cols', Math.min(C, items.length));
+    cont.innerHTML = renglones(items, C).map(function (fila) { return '<div class="renglon">' + fila.join('') + '</div>'; }).join('');
+  }
   function escudoCat(q) {
     var u = q.items[0], img = q.escudo ? '<img src="' + esc(q.escudo) + '" alt="" loading="lazy" decoding="async">' : '<img class="sin" src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async">';
     return '<button type="button" class="cat-esc" data-cat="' + esc(u.id) + '"><span class="cat-cara' + (q.escudo ? '' : ' sin-escudo') + '">' + img + (q.items.length > 1 ? '<i class="mini-n">' + q.items.length + '</i>' : '') + '</span><b>' + esc(q.nombre) + '</b></button>';
@@ -943,16 +955,20 @@
       document.body.appendChild(catTodo);
       $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && !catTodo.hidden) cerrarCatTodo(); });
+      window.addEventListener('resize', function () { var rr = $('#t-resultados', catTodo); if (!catTodo.hidden && rr._pinta) rr._pinta(); });
     }
     $('h2', catTodo).textContent = T('cat_t');
     $('#t-filtros', catTodo).innerHTML = filtrosHTML('t');
     function lista() {
       var vis = filtrar(catalogoVisible()), qs = equiposDe(vis), r = $('#t-resultados', catTodo);
-      r.innerHTML = qs.length ? '<div class="cat-todo-grid">' + qs.map(escudoCat).join('') + '</div>' : '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
-      enlazarCat(r);
+      if (!qs.length) { r.innerHTML = '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>'; return; }
+      r.innerHTML = '<div class="cat-todo-grid"></div>'; var g = $('.cat-todo-grid', r);
+      var pinta = function () { pintarRenglones(g, qs.map(escudoCat), window.innerWidth >= 900 ? 140 : 100, 14); enlazarCat(r); };
+      pinta(); r._pinta = pinta;
     }
     enlazarFiltros(catTodo, 't', lista); lista();
     if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
+    var rr = $('#t-resultados', catTodo); if (rr._pinta) rr._pinta();   // ya visible: se mide el ancho real
     $('.cat-todo-in', catTodo).scrollTop = 0;
   }
   function cerrarCatTodo() {
@@ -1034,15 +1050,17 @@
     var cl = (TIENDA.config.clientes || []).filter(function (x) { return x.foto || x.nombre; });
     if (cl.length) {
       cont.classList.add('clientes');
-      cont.innerHTML = cl.map(function (x) {
+      var piezas = cl.map(function (x) {
         var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
           return '<a class="red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener" aria-label="' + esc(REDES[t][0] + ' de ' + x.nombre) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg></a>';
         }).join('');
         return '<div class="eq-cliente">' + (x.foto ? '<img src="' + esc(x.foto) + '" alt="' + esc(x.nombre) + '" loading="lazy" decoding="async">' : '') + '<b>' + esc(x.nombre) + '</b>' + (redes ? '<span class="redes">' + redes + '</span>' : '') + '</div>';
-      }).join('');
+      });
+      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 130, 14);
+      if (!cont._oyeAncho) { cont._oyeAncho = 1; window.addEventListener('resize', function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
       return;
     }
-    cont.classList.remove('clientes');
+    cont.classList.remove('clientes'); cont.classList.remove('con-renglones');
     var lista = catalogoVisible().filter(function (u) { return u.destacado; }).slice(0, 4);
     if (!lista.length) lista = catalogoVisible().slice(0, 2);
     cont.innerHTML = lista.map(function (u) {
