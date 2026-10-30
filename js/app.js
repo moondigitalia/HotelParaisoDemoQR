@@ -131,7 +131,7 @@
       var s = document.createElement('script'); s.src = '/js/motor3d.js?v=' + (window.VERSION || '1'); s.onload = ok; s.onerror = no; document.head.appendChild(s);
     }); }).then(function () { return document.fonts && document.fonts.load ? document.fonts.load('700 100px "Saira Extra Condensed"').catch(function () {}) : null; })
       .then(function () { return window.Motor3D.crear(lienzo); })
-      .then(function (m) { motor = m; return m; })
+      .then(function (m) { motor = m; if (m.deslizable) m.deslizable(function (v) { enfocar('cuerpo'); if (v !== S.vista) marcarVista(v); }); return m; })
       .catch(function (e) { sin3D = true; throw e; });
     return motorP;
   }
@@ -153,7 +153,8 @@
   }
   function dibujar() {
     var u = uniformeActual(); if (!u) return;
-    if (respaldo && !motor) { if (respaldo.getAttribute('src') !== u.mini) respaldo.src = u.mini; }
+    // mientras llega el 3D: el uniforme recortado (sin estadio) sobre el mismo estadio, en el mismo lugar y tamaño que el 3D
+    if (respaldo && !motor) { if (!u.silueta) respaldo.removeAttribute('src'); else if (respaldo.getAttribute('src') !== u.silueta) respaldo.src = u.silueta; }
     var c = config(u, S.d);
     cola = cola.then(function () { return cargarMotor(); }).then(function (m) { return aplicar(m, c); }).then(function () {
       if (respaldo) respaldo.classList.add('fuera'); lienzo.classList.add('listo');
@@ -168,12 +169,15 @@
   }
   window.addEventListener('resize', function () { moverPulgar(); if (motor) motor.redibujar(); });
   function enfocar(que) { if (motor && motor.enfoque) motor.enfoque(que); }
-  function cambiarVista(v) {
-    enfocar('cuerpo');
-    if (v === S.vista) return;
+  function marcarVista(v) {
     S.vista = v;
     $$('.vista').forEach(function (b) { var on = b.getAttribute('data-vista') === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     moverPulgar();
+  }
+  function cambiarVista(v) {
+    enfocar('cuerpo');
+    if (v === S.vista) return;
+    marcarVista(v);
     if (motor) motor.vista(v);
   }
   $$('.vista').forEach(function (b) { b.addEventListener('click', function () { cambiarVista(b.getAttribute('data-vista')); }); });
@@ -322,8 +326,23 @@
     enlazarComunes();
     if (ENLACES[id]) ENLACES[id]();
     acomodar(vista);
+    ajustarEscenario();
     vigilarMas();
   }
+  /* En celular, los pasos de elegir y escribir nunca llevan scroll: el uniforme toma justo el alto que sobra
+     (si el navegador come pantalla con pestañas o barras, el uniforme se achica un poco, las opciones no). */
+  var FIJOS = { tacos: 1, dorsal: 1, listo: 1 };
+  function ajustarEscenario() {
+    if (!escenario) return;
+    if (probador.hidden || probador.classList.contains('grande') || !esCelular()) { escenario.style.height = probador.classList.contains('grande') ? escenario.style.height : ''; return; }
+    var id = pasos()[S.paso], c = $('#paso-cuerpo'), v = $('#paso-vista'), b = $('#paso-barra');
+    if (!FIJOS[id] || !c || !v || !b) { escenario.style.height = ''; return; }
+    var cab = v.querySelector('.paso-cab'), cs = getComputedStyle(v);
+    var necesita = (cab ? cab.offsetHeight : 0) + c.scrollHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 8;
+    var ideal = Math.min(window.innerHeight * 0.6, 520), cabe = window.innerHeight - b.offsetHeight - necesita;
+    escenario.style.height = Math.round(Math.max(170, Math.min(ideal, cabe))) + 'px';
+  }
+  window.addEventListener('resize', function () { ajustarEscenario(); });
   function vigilarMas() {
     var c = $('#paso-cuerpo'); if (!c) return;
     var w = c.parentNode;
@@ -380,7 +399,71 @@
     equipo: function () { return '<h3>' + esc(T('p_equipo')) + '</h3>'; },
     listo: function () { return '<h3>' + esc(T('p_listo')) + '</h3>'; }
   };
-  var TACO_COLOR = { negro: ['#141518', '#2b8a94'], rosa: ['#f6588a', '#c9f23a'], turquesa: ['#f4f6f8', '#16b0b5'] };
+  /* Tacos de un solo color: 5 colores de siempre a un toque y uno libre. El libre abre, en la misma fila, una barra
+     con todos los colores: se desliza el dedo y el taco cambia en vivo. Nada de listas largas ni scroll. */
+  var TACOS_FILA = { negro: '#141518', blanco: '#f2f3f5', dorado: '#c9a23a', rojo: '#d7262e', azul: '#1f4fd1' };
+  var TACOS_VIEJOS = { rosa: '#f6588a', turquesa: '#16b0b5' };
+  var BARRA = [[0, '#ffffff'], [0.08, '#ff2a2a'], [0.18, '#ff8a00'], [0.28, '#ffd400'], [0.36, '#c9a23a'], [0.47, '#3ccf4e'], [0.58, '#16b0b5'], [0.69, '#1f4fd1'], [0.8, '#7b3fe4'], [0.9, '#f6588a'], [1, '#141518']];
+  var NOMBRES_COLOR = { negro: '#141518', blanco: '#f2f3f5', gris: '#8a8f98', dorado: '#c9a23a', amarillo: '#ffd400', naranja: '#ff8a00', rojo: '#d7262e', rosa: '#f6588a', morado: '#7b3fe4', azul: '#1f4fd1', turquesa: '#16b0b5', verde: '#3ccf4e' };
+  function rgbDe(h) { return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); }); }
+  function hexTaco(t) { return TACOS_FILA[t] || TACOS_VIEJOS[t] || (/^#[0-9a-f]{6}$/i.test(t || '') ? t : TACOS_FILA.negro); }
+  function colorBarra(k) {
+    k = Math.max(0, Math.min(1, k));
+    for (var i = 1; i < BARRA.length; i++) if (k <= BARRA[i][0]) {
+      var a = BARRA[i - 1], b = BARRA[i], t = (k - a[0]) / (b[0] - a[0]), ca = rgbDe(a[1]), cb = rgbDe(b[1]);
+      return '#' + ca.map(function (v, j) { return ('0' + Math.round(v + (cb[j] - v) * t).toString(16)).slice(-2); }).join('');
+    }
+    return BARRA[BARRA.length - 1][1];
+  }
+  // el nombre del color libre (para el folio): el más parecido de la lista
+  function nombreTaco(t) {
+    if (TACOS_FILA[t] || TACOS_VIEJOS[t]) return T('taco_' + t);
+    var c = rgbDe(hexTaco(t)), mejor = 'negro', menor = 1e9;
+    Object.keys(NOMBRES_COLOR).forEach(function (n) { var q = rgbDe(NOMBRES_COLOR[n]), d = (q[0] - c[0]) * (q[0] - c[0]) * 0.3 + (q[1] - c[1]) * (q[1] - c[1]) * 0.59 + (q[2] - c[2]) * (q[2] - c[2]) * 0.11; if (d < menor) { menor = d; mejor = n; } });
+    return T('taco_' + mejor);
+  }
+  window.APP_TACOS = { nombre: nombreTaco, hex: hexTaco };
+  function filaTacos() {
+    var libre = !TACOS_FILA[S.d.taco];
+    return Object.keys(TACOS_FILA).map(function (t) {
+      return '<button type="button" class="taco-c' + (S.d.taco === t ? ' on' : '') + '" data-taco="' + t + '" style="--c:' + TACOS_FILA[t] + '" aria-label="' + esc(T('taco_' + t)) + '" aria-pressed="' + (S.d.taco === t) + '"></button>';
+    }).join('') + '<button type="button" class="taco-c otro' + (libre ? ' on' : '') + '" data-taco-otro' + (libre ? ' style="--c:' + hexTaco(S.d.taco) + '"' : '') + ' aria-label="' + esc(T('taco_otro')) + '"></button>';
+  }
+  function barraTacos() {
+    return '<div class="barra-color" data-barra role="slider" aria-label="' + esc(T('taco_otro')) + '" tabindex="0" style="background:linear-gradient(90deg,' + BARRA.map(function (b) { return b[1] + ' ' + b[0] * 100 + '%'; }).join(',') + ')"><i class="barra-pulgar"></i></div>' +
+      '<button type="button" class="taco-listo" data-taco-listo aria-label="' + esc(T('taco_listo')) + '">✓</button>';
+  }
+  function ponerTaco(t) {
+    S.d.taco = t;
+    if (motor) motor.taco(t);   // solo se repinta: es instantáneo, aunque el dedo vaya rápido
+  }
+  function enlazarTacos(fila) {
+    if (!fila) return;
+    fila.classList.remove('abierta'); fila.innerHTML = filaTacos();
+    $$('[data-taco]', fila).forEach(function (b) {
+      b.addEventListener('click', function () {
+        ponerTaco(b.getAttribute('data-taco'));
+        $$('.taco-c', fila).forEach(function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+        enfocar('tacos');   // la cámara baja sola a los pies: los tacos se ven sin abrir pantalla completa
+        guardarBorrador();
+      });
+    });
+    $('[data-taco-otro]', fila).addEventListener('click', function () {
+      // la barra ocupa el lugar de los círculos: mismo alto, nada se mueve en la pantalla
+      fila.classList.add('abierta'); fila.innerHTML = barraTacos(); enfocar('tacos');
+      var barra = $('[data-barra]', fila), pulgar = $('.barra-pulgar', fila), pend = null;
+      var k = 0.36; if (!TACOS_FILA[S.d.taco]) { var mejor = 1e9, c = rgbDe(hexTaco(S.d.taco)); for (var i = 0; i <= 200; i++) { var q = rgbDe(colorBarra(i / 200)), d = Math.abs(q[0] - c[0]) + Math.abs(q[1] - c[1]) + Math.abs(q[2] - c[2]); if (d < mejor) { mejor = d; k = i / 200; } } }
+      function mover(nk) { k = Math.max(0, Math.min(1, nk)); var col = colorBarra(k); pulgar.style.left = (k * 100) + '%'; pulgar.style.background = col; if (pend === null) pend = requestAnimationFrame(function () { pend = null; ponerTaco(colorBarra(k)); }); }
+      mover(k);
+      var x0 = 0, w = 1, id = null;
+      barra.addEventListener('pointerdown', function (e) { var r = barra.getBoundingClientRect(); x0 = r.left; w = r.width; id = e.pointerId; try { barra.setPointerCapture(id); } catch (_) {} mover((e.clientX - x0) / w); barra.classList.add('tocando'); });
+      barra.addEventListener('pointermove', function (e) { if (e.pointerId === id) mover((e.clientX - x0) / w); });
+      var soltar = function (e) { if (e.pointerId !== id) return; id = null; barra.classList.remove('tocando'); guardarBorrador(); };
+      barra.addEventListener('pointerup', soltar); barra.addEventListener('pointercancel', soltar);
+      barra.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); mover(k + (e.key === 'ArrowRight' ? 0.02 : -0.02)); guardarBorrador(); } });
+      $('[data-taco-listo]', fila).addEventListener('click', function () { guardarBorrador(); enlazarTacos(fila); });
+    });
+  }
   /* ---------- equipos: se ve el escudo; al tocarlo salen sus uniformes (local, visita…) ---------- */
   function claveEquipo(u) { var e = (u.etiquetas || {}).equipo; return e ? 'e:' + normal(e) : 'u:' + u.id; }
   function equiposDe(lista) {
@@ -423,10 +506,7 @@
       }).join('') + '</div></div>' : '';
       return vers + '<div class="grupo' + (vers ? '' : ' g0') + '"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
         '<button type="button" class="chip' + (S.d.manga === 'larga' ? ' on' : '') + '" data-manga="larga">' + esc(T('manga_larga')) + '</button></div></div>' +
-        '<div class="grupo"><span class="etq">' + esc(T('tus_tacos')) + '</span><div class="chips llenar tacos">' + ['negro', 'rosa', 'turquesa'].map(function (t) {
-          var c = TACO_COLOR[t];
-          return '<button type="button" class="chip chip-taco' + (S.d.taco === t ? ' on' : '') + '" data-taco="' + t + '"><i style="background:linear-gradient(135deg,' + c[0] + ' 55%,' + c[1] + ' 55%)"></i>' + esc(T('taco_' + t)) + '</button>';
-        }).join('') + '</div></div><p class="nota-corta">' + esc(T('tacos_s')) + '</p>';
+        '<div class="grupo"><span class="etq">' + esc(T('tus_tacos')) + '</span><div class="tacos-fila" id="tacos-fila">' + filaTacos() + '</div></div><p class="nota-corta">' + esc(T('tacos_s')) + '</p>';
     },
     dorsal: function () {
       return '<div class="fila2 g0"><div><label class="etq" for="f-nombre">' + esc(T('nombre_espalda')) + '</label><input class="campo" id="f-nombre" maxlength="16" autocomplete="off" placeholder="' + esc(T('ej_nombre')) + '" value="' + esc(S.d.nombre || '') + '"></div>' +
@@ -456,7 +536,7 @@
       var d = S.d, u = uniformeActual(), items = [];
       if (u) items.push(u.nombre);
       items.push(T(d.manga === 'larga' ? 'manga_larga' : 'manga_corta'));
-      items.push(T('taco_' + d.taco));
+      items.push(T('tus_tacos') + ': ' + nombreTaco(d.taco).toLowerCase());
       if (d.nombre || d.numero) items.push((d.nombre || '') + (d.numero ? ' · ' + d.numero : ''));
       var nEq = S.equipos.length + 1, nJug = S.equipos.reduce(function (s, e) { return s + e.jugadores.length; }, 0) + (S.esEquipo ? S.jugadores.filter(function (j) { return j.nombre || j.numero; }).length : 0);
       if (nEq > 1 || nJug) items.push(nEq + ' ' + T(nEq > 1 ? 'equipos' : 'equipo_1') + (nJug ? ' · ' + nJug + ' ' + T(nJug > 1 ? 'jugadores' : 'jugador_1') : ''));
@@ -519,14 +599,7 @@
           dibujar(); guardarBorrador();
         });
       });
-      $$('[data-taco]', tablero).forEach(function (b) {
-        b.addEventListener('click', function () {
-          S.d.taco = b.getAttribute('data-taco');
-          $$('[data-taco]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
-          enfocar('tacos');   // la cámara baja sola a los pies: los tacos se ven sin abrir pantalla completa
-          dibujar(); guardarBorrador();
-        });
-      });
+      enlazarTacos($('#tacos-fila', tablero));
     },
     dorsal: function () {
       var n = $('#f-nombre'), num = $('#f-numero');
@@ -843,6 +916,7 @@
     var desde = escenario.getBoundingClientRect().height;
     probador.classList.toggle('grande', si);
     escenario.style.height = '';
+    if (!si) ajustarEscenario();
     var hasta = si ? altoGrande() : escenario.getBoundingClientRect().height;
     pintarLupa();
     if (sinAnim) { escenario.style.height = si ? hasta + 'px' : ''; return; }
@@ -851,7 +925,7 @@
     escenario.classList.add('creciendo');
     escenario.style.height = hasta + 'px';
     var listo = false;
-    function fin() { if (listo) return; listo = true; escenario.classList.remove('creciendo'); if (!probador.classList.contains('grande')) escenario.style.height = ''; moverPulgar(); }
+    function fin() { if (listo) return; listo = true; escenario.classList.remove('creciendo'); if (!probador.classList.contains('grande')) { escenario.style.height = ''; ajustarEscenario(); } moverPulgar(); }
     escenario.addEventListener('transitionend', function te(e) { if (e.target === escenario) { escenario.removeEventListener('transitionend', te); fin(); } });
     setTimeout(fin, 700);
   }
@@ -918,10 +992,15 @@
   }
 
   /* ---------- arranque ---------- */
+  // lo guardado por el dueño puede ser de antes de una mejora: lo que falte de los uniformes de arranque se toma de ahí
+  function completarCatalogo(lista) {
+    var base = {}; window.CATALOGO_BASE.forEach(function (u) { base[u.id] = u; });
+    return lista.map(function (u) { var b = base[u.id]; if (b && !u.silueta && b.silueta) u.silueta = b.silueta; return u; });
+  }
   function cargarTienda() {
     return fetch('/api/tienda', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (t) {
       // un catálogo guardado del sistema anterior (dibujos) no se usa: solo uniformes con foto real en 3D
-      if (Array.isArray(t.catalogo) && t.catalogo.some(function (u) { return u.tipo === '3d'; })) TIENDA.catalogo = t.catalogo;
+      if (Array.isArray(t.catalogo) && t.catalogo.some(function (u) { return u.tipo === '3d'; })) TIENDA.catalogo = completarCatalogo(t.catalogo);
       TIENDA.config = Object.assign({}, window.CONFIG_BASE, t.config || {});
     }).catch(function () { /* si no hay conexión, se queda el catálogo de arranque */ });
   }
@@ -938,6 +1017,11 @@
     if (!new URLSearchParams(location.search).has('folio')) window.scrollTo(0, 0);
     $('#marca-logo').insertAdjacentHTML('afterbegin', logoSVG('#1F2E7A', '#FFFFFF'));
     $('#portada-logo').innerHTML = logoSVG('#1F2E7A', '#FFFFFF');
+    // la barra muestra el logo solo cuando la portada (que ya lo trae) quedó arriba, fuera de la vista
+    var top = $('.top'), portadaTxt = $('.portada-txt');
+    if (top && portadaTxt && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { top.classList.toggle('con-marca', !es[0].isIntersecting); }, { rootMargin: '-67px 0px 0px 0px' }).observe(portadaTxt);
+    } else if (top) top.classList.add('con-marca');
     $('#portada-balon').innerHTML = BALON;
     intro();
     cargarBorrador();
@@ -952,6 +1036,6 @@
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
 
-  window.APP = { T: T, esc: esc, clone: clone, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
+  window.APP = { T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
   iniciar();
 })();

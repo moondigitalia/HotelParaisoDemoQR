@@ -1,7 +1,7 @@
 /* Todos los textos visibles viven aquí, por idioma. */
 window.I18N = {
   es: {
-    inicio_t2: 'Arma tu uniforme', inicio_p2: 'Escoge uno de nuestros uniformes y velo en 3D con tus tacos.', inicio_a_p2: 'Busca por liga, color, país o equipo.', p_diseno2: 'Elige tu equipo', p_tacos: 'Tu uniforme', version: 'Versión', manga: 'Manga', tus_tacos: 'Tus tacos', taco_negro: 'Negros', taco_rosa: 'Rosas', taco_turquesa: 'Turquesa', tacos_s: 'Elige el color de tus tacos para ver si combinan con el uniforme.', buscar_ph: 'Busca: rojo, México, Chivas…', sin_resultados: 'No encontramos uniformes con eso. Prueba otro color, país o equipo.',
+    inicio_t2: 'Arma tu uniforme', inicio_p2: 'Escoge uno de nuestros uniformes y velo en 3D con tus tachones.', inicio_a_p2: 'Busca por liga, color, país o equipo.', p_diseno2: 'Elige tu equipo', p_tacos: 'Tu uniforme', version: 'Versión', manga: 'Manga', tus_tacos: 'Tachones', taco_negro: 'Negros', taco_rosa: 'Rosas', taco_turquesa: 'Turquesa', taco_blanco: 'Blancos', taco_gris: 'Grises', taco_dorado: 'Dorados', taco_amarillo: 'Amarillos', taco_naranja: 'Naranjas', taco_rojo: 'Rojos', taco_morado: 'Morados', taco_azul: 'Azules', taco_verde: 'Verdes', taco_otro: 'Otro color', taco_listo: 'Listo', tacos_s: 'Ponle el color de tus tachones para ver cómo se ven con el uniforme.', buscar_ph: 'Busca: rojo, México, Chivas…', sin_resultados: 'No encontramos uniformes con eso. Prueba otro color, país o equipo.',
     cotizar_corto: 'Cotizar por WhatsApp', mas_jugador: 'Jugador', mas_equipo: 'Otro equipo', jugador_1: 'jugador',
     p_detalles: 'Cuello y costados', ver_mas: 'Desliza para ver más', tela_mueve_corto: 'Toca o arrastra la foto para elegir la parte.', cambiar: 'Cambiar', donde_va: '¿Dónde va?', subir_orden: 'Subir un lugar', equipos: 'equipos', equipo_1: 'equipo',
     seguir_armando: 'Seguir armando mi uniforme', seguir_armando_p: 'Retoma donde te quedaste.',
@@ -11,8 +11,8 @@ window.I18N = {
     tela_parte: 'La parte de la tela que usamos', tela_mueve: 'Si tu foto trae la playera completa, tomamos solo la tela. Mueve el recuadro para elegir otra parte.', tela_tam: 'Tamaño del dibujo',
     _nombre: 'Español',
     nav_crear: 'Arma tu uniforme', nav_cat: 'Catálogo', nav_visita: 'Visítanos',
-    hero_k: 'Uniformes de fútbol en Cancún', hero_t: 'Arma tu uniforme y míralo antes de pedirlo',
-    hero_p: 'Elige tu uniforme, ponle tu nombre y número, y míralo en 3D con el color de tus tacos. Al final nos lo mandas por WhatsApp y te lo cotizamos.',
+    hero_k: 'Uniformes de fútbol en Cancún', hero_t: 'Arma y ve tu uniforme antes de pedirlo',
+    hero_p: 'Elige tu uniforme, ponle tu nombre y número, y míralo en 3D con el color de tus tachones. Al final nos lo mandas por WhatsApp y te lo cotizamos.',
     inicio_t: '¿Cómo quieres empezar?',
     inicio_a: 'Elige un diseño', inicio_a_p: 'Escoge uno del catálogo y ponle nombre y número.',
     inicio_b: 'Créalo desde cero', inicio_b_p: 'Sube la foto de una tela que te guste y tu logo.',
@@ -64,7 +64,7 @@ window.I18N = {
     sin_nombre: 'Mi equipo', cargando: 'Cargando…'
   },
   en: {
-    inicio_t2: 'Build your kit', inicio_p2: 'Pick one of our kits and see it in 3D with your cleats.', inicio_a_p2: 'Search by league, color, country or team.', p_diseno2: 'Pick your team', p_tacos: 'Your kit', version: 'Version', manga: 'Sleeves', tus_tacos: 'Your cleats', taco_negro: 'Black', taco_rosa: 'Pink', taco_turquesa: 'Teal', tacos_s: 'Pick your cleat color to see if it matches the kit.', buscar_ph: 'Search: red, Mexico, Chivas…', sin_resultados: 'No kits match that. Try another color, country or team.',
+    inicio_t2: 'Build your kit', inicio_p2: 'Pick one of our kits and see it in 3D with your cleats.', inicio_a_p2: 'Search by league, color, country or team.', p_diseno2: 'Pick your team', p_tacos: 'Your kit', version: 'Version', manga: 'Sleeves', tus_tacos: 'Your cleats', taco_negro: 'Black', taco_rosa: 'Pink', taco_turquesa: 'Teal', taco_blanco: 'White', taco_gris: 'Gray', taco_dorado: 'Gold', taco_amarillo: 'Yellow', taco_naranja: 'Orange', taco_rojo: 'Red', taco_morado: 'Purple', taco_azul: 'Blue', taco_verde: 'Green', taco_otro: 'Other color', taco_listo: 'Done', tacos_s: 'Set your cleat color to see how they look with the kit.', buscar_ph: 'Search: red, Mexico, Chivas…', sin_resultados: 'No kits match that. Try another color, country or team.',
     cotizar_corto: 'Quote on WhatsApp', mas_jugador: 'Player', mas_equipo: 'Another team', jugador_1: 'player',
     p_detalles: 'Collar and sides', ver_mas: 'Scroll for more', tela_mueve_corto: 'Tap or drag the photo to pick the part.', cambiar: 'Change', donde_va: 'Where does it go?', subir_orden: 'Move up', equipos: 'teams', equipo_1: 'team',
     seguir_armando: 'Keep building my kit', seguir_armando_p: 'Pick up where you left off.',
@@ -74,7 +74,7 @@ window.I18N = {
     tela_parte: 'The part of the fabric we use', tela_mueve: 'If your photo shows a whole shirt, we take only the fabric. Move the box to pick another part.', tela_tam: 'Pattern size',
     _nombre: 'English',
     nav_crear: 'Build your kit', nav_cat: 'Catalog', nav_visita: 'Visit us',
-    hero_k: 'Soccer uniforms in Cancún', hero_t: 'Build your kit and see it before you order',
+    hero_k: 'Soccer uniforms in Cancún', hero_t: 'Build and see your kit before you order',
     hero_p: 'Pick your kit, add your name and number, and see it in 3D with the color of your cleats. Send it to us on WhatsApp and we will quote it.',
     inicio_t: 'How do you want to start?',
     inicio_a: 'Pick a design', inicio_a_p: 'Choose one from the catalog and add a name and number.',
@@ -127,7 +127,7 @@ window.I18N = {
     sin_nombre: 'My team', cargando: 'Loading…'
   },
   fr: {
-    inicio_t2: 'Crée ton maillot', inicio_p2: 'Choisis un de nos maillots et vois-le en 3D avec tes crampons.', inicio_a_p2: 'Cherche par ligue, couleur, pays ou équipe.', p_diseno2: 'Choisis ton équipe', p_tacos: 'Ton maillot', version: 'Version', manga: 'Manches', tus_tacos: 'Tes crampons', taco_negro: 'Noirs', taco_rosa: 'Roses', taco_turquesa: 'Turquoise', tacos_s: 'Choisis la couleur de tes crampons pour voir s’ils vont avec le maillot.', buscar_ph: 'Cherche : rouge, Mexique, Chivas…', sin_resultados: 'Aucun maillot ne correspond. Essaie une autre couleur, un autre pays ou une autre équipe.',
+    inicio_t2: 'Crée ton maillot', inicio_p2: 'Choisis un de nos maillots et vois-le en 3D avec tes crampons.', inicio_a_p2: 'Cherche par ligue, couleur, pays ou équipe.', p_diseno2: 'Choisis ton équipe', p_tacos: 'Ton maillot', version: 'Version', manga: 'Manches', tus_tacos: 'Tes crampons', taco_negro: 'Noirs', taco_rosa: 'Roses', taco_turquesa: 'Turquoise', taco_blanco: 'Blancs', taco_gris: 'Gris', taco_dorado: 'Dorés', taco_amarillo: 'Jaunes', taco_naranja: 'Orange', taco_rojo: 'Rouges', taco_morado: 'Violets', taco_azul: 'Bleus', taco_verde: 'Verts', taco_otro: 'Autre couleur', taco_listo: 'OK', tacos_s: 'Mets la couleur de tes crampons pour voir le rendu avec le maillot.', buscar_ph: 'Cherche : rouge, Mexique, Chivas…', sin_resultados: 'Aucun maillot ne correspond. Essaie une autre couleur, un autre pays ou une autre équipe.',
     cotizar_corto: 'Devis sur WhatsApp', mas_jugador: 'Joueur', mas_equipo: 'Autre équipe', jugador_1: 'joueur',
     p_detalles: 'Col et côtés', ver_mas: 'Fais défiler pour voir plus', tela_mueve_corto: 'Touche ou glisse la photo pour choisir.', cambiar: 'Changer', donde_va: 'Où va-t-il ?', subir_orden: 'Monter', equipos: 'équipes', equipo_1: 'équipe',
     seguir_armando: 'Continuer mon maillot', seguir_armando_p: 'Reprends là où tu t’es arrêté.',
@@ -137,7 +137,7 @@ window.I18N = {
     tela_parte: 'La partie du tissu utilisée', tela_mueve: 'Si ta photo montre un maillot entier, on prend seulement le tissu. Déplace le cadre pour choisir une autre partie.', tela_tam: 'Taille du motif',
     _nombre: 'Français',
     nav_crear: 'Crée ton maillot', nav_cat: 'Catalogue', nav_visita: 'Nous trouver',
-    hero_k: 'Maillots de football à Cancún', hero_t: 'Crée ton maillot et vois-le avant de commander',
+    hero_k: 'Maillots de football à Cancún', hero_t: 'Crée et vois ton maillot avant de commander',
     hero_p: 'Choisis ton maillot, ajoute ton nom et ton numéro, et vois-le en 3D avec la couleur de tes crampons. Envoie-le sur WhatsApp et on te fait un devis.',
     inicio_t: 'Comment veux-tu commencer ?',
     inicio_a: 'Choisir un modèle', inicio_a_p: 'Prends-en un du catalogue et ajoute nom et numéro.',
@@ -190,7 +190,7 @@ window.I18N = {
     sin_nombre: 'Mon équipe', cargando: 'Chargement…'
   },
   pt: {
-    inicio_t2: 'Monte seu uniforme', inicio_p2: 'Escolha um dos nossos uniformes e veja em 3D com sua chuteira.', inicio_a_p2: 'Busque por liga, cor, país ou time.', p_diseno2: 'Escolha seu time', p_tacos: 'Seu uniforme', version: 'Versão', manga: 'Manga', tus_tacos: 'Suas chuteiras', taco_negro: 'Pretas', taco_rosa: 'Rosa', taco_turquesa: 'Turquesa', tacos_s: 'Escolha a cor da sua chuteira para ver se combina com o uniforme.', buscar_ph: 'Busque: vermelho, México, Chivas…', sin_resultados: 'Nenhum uniforme encontrado. Tente outra cor, país ou time.',
+    inicio_t2: 'Monte seu uniforme', inicio_p2: 'Escolha um dos nossos uniformes e veja em 3D com sua chuteira.', inicio_a_p2: 'Busque por liga, cor, país ou time.', p_diseno2: 'Escolha seu time', p_tacos: 'Seu uniforme', version: 'Versão', manga: 'Manga', tus_tacos: 'Suas chuteiras', taco_negro: 'Pretas', taco_rosa: 'Rosa', taco_turquesa: 'Turquesa', taco_blanco: 'Brancas', taco_gris: 'Cinza', taco_dorado: 'Douradas', taco_amarillo: 'Amarelas', taco_naranja: 'Laranja', taco_rojo: 'Vermelhas', taco_morado: 'Roxas', taco_azul: 'Azuis', taco_verde: 'Verdes', taco_otro: 'Outra cor', taco_listo: 'Pronto', tacos_s: 'Coloque a cor da sua chuteira para ver como fica com o uniforme.', buscar_ph: 'Busque: vermelho, México, Chivas…', sin_resultados: 'Nenhum uniforme encontrado. Tente outra cor, país ou time.',
     cotizar_corto: 'Orçar no WhatsApp', mas_jugador: 'Jogador', mas_equipo: 'Outro time', jugador_1: 'jogador',
     p_detalles: 'Gola e laterais', ver_mas: 'Deslize para ver mais', tela_mueve_corto: 'Toque ou arraste a foto para escolher.', cambiar: 'Trocar', donde_va: 'Onde vai?', subir_orden: 'Subir', equipos: 'times', equipo_1: 'time',
     seguir_armando: 'Continuar meu uniforme', seguir_armando_p: 'Continue de onde parou.',
@@ -200,7 +200,7 @@ window.I18N = {
     tela_parte: 'A parte do tecido que usamos', tela_mueve: 'Se a foto mostra a camisa inteira, usamos só o tecido. Mova o quadro para escolher outra parte.', tela_tam: 'Tamanho do desenho',
     _nombre: 'Português',
     nav_crear: 'Monte seu uniforme', nav_cat: 'Catálogo', nav_visita: 'Visite-nos',
-    hero_k: 'Uniformes de futebol em Cancún', hero_t: 'Monte seu uniforme e veja antes de pedir',
+    hero_k: 'Uniformes de futebol em Cancún', hero_t: 'Monte e veja seu uniforme antes de pedir',
     hero_p: 'Escolha seu uniforme, coloque seu nome e número e veja em 3D com a cor da sua chuteira. Envie pelo WhatsApp e fazemos o orçamento.',
     inicio_t: 'Como você quer começar?',
     inicio_a: 'Escolher um modelo', inicio_a_p: 'Escolha um do catálogo e coloque nome e número.',

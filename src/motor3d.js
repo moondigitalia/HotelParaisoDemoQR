@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { enderezarShort } from './foto.js';
+import { enderezarShort, limpiarTela, coloresBase } from './foto.js';
 
 // alturas de cada parte en cada modelo (0 = abajo, 1 = arriba), medidas sobre las imágenes con que se hicieron
 const MODELOS = {
@@ -18,6 +18,13 @@ export const TACOS = {
   rosa: { cuerpo: 0xf6588a, suela: 0xf1eef3, tachones: 0xc9f23a },
   turquesa: { cuerpo: 0xf4f6f8, suela: 0xd4f1f4, tachones: 0x16b0b5 }
 };
+// el taco del cliente es de un solo color: la suela y los tachones son el mismo color, apenas más oscuros (como la luz real)
+const COLOR_TACO = { negro: '#141518', blanco: '#f2f3f5', dorado: '#c9a23a', rojo: '#d7262e', azul: '#1f4fd1' };
+function coloresTaco(t) {
+  if (TACOS[t]) return [TACOS[t].cuerpo, TACOS[t].suela, TACOS[t].tachones].map((v) => new THREE.Color(v));
+  const hex = COLOR_TACO[t] || (/^#[0-9a-f]{6}$/i.test(t || '') ? t : COLOR_TACO.negro), c = new THREE.Color(hex);
+  return [c, c.clone().multiplyScalar(0.82), c.clone().multiplyScalar(0.68)];
+}
 const ALTO = 1.8, LARGO_TACO = 0.40;
 
 function gamaBaja() {
@@ -81,7 +88,7 @@ function fondoEstudio() {
 export async function crear(canvas, opt = {}) {
   const base = opt.base || '/assets/3d/';
   const baja = opt.baja != null ? opt.baja : gamaBaja();
-  const r = new THREE.WebGLRenderer({ canvas, antialias: !baja, preserveDrawingBuffer: false, alpha: false, powerPreference: baja ? 'low-power' : 'default' });
+  const r = new THREE.WebGLRenderer({ canvas, antialias: !baja, preserveDrawingBuffer: false, alpha: true, powerPreference: baja ? 'low-power' : 'default' });
   r.setPixelRatio(Math.min(window.devicePixelRatio || 1, baja ? 1.25 : 2));
   r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.NeutralToneMapping; r.toneMappingExposure = 1.0;
   r.shadowMap.enabled = true; r.shadowMap.type = baja ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
@@ -118,7 +125,7 @@ export async function crear(canvas, opt = {}) {
     fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
-  let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null;
+  let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null;
   const corte = { value: -1 };
 
   // uniformes del material del uniforme (se comparten entre recompilaciones)
@@ -217,7 +224,6 @@ diffuseColor.rgb *= base;`);
     uni.uSockTop.value = top; uni.uFranjaAlto.value = (top - zonas.Y0) * 0.13;
   }
   async function ponerTacos() {
-    const T = TACOS[E.taco];
     const modelo = await cargarGLB(base + 'taco.glb');
     let tm; modelo.traverse((o) => { if (o.isMesh) tm = o; });
     modelo.updateMatrixWorld(true);
@@ -228,7 +234,7 @@ diffuseColor.rgb *= base;`);
     const puntaMasX = (sx / n) < (tbb.min.x + tbb.max.x) / 2;
     tm.geometry.computeBoundingBox(); const gb = tm.geometry.boundingBox;
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.42, metalness: 0.05 });
-    const col = { value: [new THREE.Color(T.cuerpo), new THREE.Color(T.suela), new THREE.Color(T.tachones)] };
+    const col = tacoCol = { value: coloresTaco(E.taco) };
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uCol = col; sh.uniforms.uAlt = { value: new THREE.Vector2(gb.min.y, gb.max.y - gb.min.y) };
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vAltura; uniform vec2 uAlt;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvAltura = (position.y - uAlt.x) / uAlt.y;');
@@ -263,7 +269,7 @@ diffuseColor.rgb *= base;`);
   }
 
   // ---- fotos ----
-  let espaldaBase = null;
+  let espaldaBase = null, espaldaLimpia = null, espaldaLimpiaDe = null;
   function aplicarFotos() {
     const f = E.fotos.frente;
     if (f) {
@@ -289,8 +295,8 @@ diffuseColor.rgb *= base;`);
     for (let y = 1; y < H; y++) { let e = 0; for (let x = x0; x <= x1; x += 2) { const i = (y * W + x) * 4, j = i - W * 4; e += Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]); } fila[y] = e; }
     const banda = (a, b) => { let e = 0; for (let y = Math.max(1, Math.round(a * H)); y < Math.min(H, Math.round(b * H)); y++) e += fila[y]; return e / Math.max(1, (b - a) * H); };
     let mejor = 0, menor = 1e18;
-    for (let dy = -0.02; dy <= 0.081; dy += 0.01) {
-      const costo = banda(0.19 + dy, 0.26 + dy) * 2 + banda(0.29 + dy, 0.62 + dy) + Math.abs(dy) * 4000;
+    for (let dy = -0.02; dy <= 0.101; dy += 0.01) {
+      const costo = banda(0.15 + dy, 0.22 + dy) * 2 + banda(0.245 + dy, 0.56 + dy) + Math.abs(dy) * 4000;
       if (costo < menor) { menor = costo; mejor = dy; }
     }
     huecos.set(src, mejor); return mejor;
@@ -316,12 +322,16 @@ diffuseColor.rgb *= base;`);
     const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const g = c.getContext('2d');
     if (!E.fotos.espalda) { g.translate(c.width, 0); g.scale(-1, 1); }
     g.drawImage(src, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
+    if (!E.fotos.espalda) {   // la espalda sale del frente: sin escudo, marca ni patrocinadores (y nada al revés)
+      if (!espaldaLimpia || espaldaLimpiaDe !== src) { espaldaLimpia = limpiarTela(c, coloresBase(c)); espaldaLimpiaDe = src; }
+      g.clearRect(0, 0, c.width, c.height); g.drawImage(espaldaLimpia, 0, 0);
+    }
     const [bx0, bw] = E.torso ? (E.fotos.espalda ? E.torso : [1 - E.torso[0] - E.torso[1], E.torso[1]]) : torsoFoto(c, 0.30);
     const cx = (bx0 + bw / 2) * c.width, ancho = bw * c.width, d = E.dorsal;
     if (window.Kit && (d.nombre || d.numero)) {
       const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
-      window.Kit.drawName(g, d.nombre, cx, H * (0.24 + dy), H * 0.075, d.color, ancho * 0.72);
-      window.Kit.drawNumber(g, d.numero, cx, H * (0.29 + dy), H * 0.33, d.color, d.sello !== false, ancho * 0.72);
+      window.Kit.drawName(g, d.nombre, cx, H * (0.2 + dy), H * 0.075, d.color, ancho * 0.72);
+      window.Kit.drawNumber(g, d.numero, cx, H * (0.245 + dy), H * 0.31, d.color, d.sello !== false, ancho * 0.72);
     }
     poner(uni.uEspalda, textura(c));
     const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew);
@@ -398,7 +408,8 @@ diffuseColor.rgb *= base;`);
       if (!kit || m !== E.manga) { E.manga = m; await ponerModelo(); } else aplicarFotos();
     },
     async manga(m) { if (m === E.manga && kit) return; E.manga = m; await ponerModelo(); },
-    async taco(t) { if (t === E.taco) return; E.taco = t; tacos.forEach((g) => raiz.remove(g)); tacos = []; await ponerTacos(); pedir(); },
+    // cambiar el color de los tacos ya puestos es solo pintarlos (instantáneo, sirve para la barra de colores)
+    async taco(t) { if (t === E.taco) return; E.taco = t; if (tacos.length && tacoCol) { tacoCol.value = coloresTaco(t); pedir(); return; } tacos.forEach((g) => raiz.remove(g)); tacos = []; await ponerTacos(); pedir(); },
     dorsal(d) {
       Object.assign(E.dorsal, d);
       if (dorsalPend) return; dorsalPend = true;
@@ -406,16 +417,60 @@ diffuseColor.rgb *= base;`);
     },
     // con "reducir movimiento" también gira igual (estándar de Moon: se ve y se siente igual)
     enfoque(que) { zoomA(que === 'tacos' ? 1 : 0); },
-    vista(v, animar) { const dest = v === 'espalda' ? Math.PI : 0; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
+    // frente o espalda: gira por el lado más corto (después de deslizar el dedo el ángulo puede ir en 2π, 3π…)
+    vista(v, animar) { const b = v === 'espalda' ? Math.PI : 0, dest = b + Math.round((E.vista - b) / (2 * Math.PI)) * 2 * Math.PI; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
+    // deslizar el dedo a los lados: el uniforme gira pegado al dedo y al soltar se acomoda de frente o de espalda
+    // (con la velocidad del dedo: un deslizón rápido y corto también lo voltea). Arriba-abajo no se toca: sigue siendo de la página.
+    deslizable(alCambiar) {
+      let x0 = 0, y0 = 0, a0 = 0, id = null, activo = false, decidido = false, ultX = 0, ultT = 0, vel = 0, tragar = false;
+      const ancho = () => canvas.clientWidth || 300;
+      canvas.style.touchAction = 'pan-y';
+      canvas.addEventListener('pointerdown', (e) => {
+        if (e.button > 0) return;
+        x0 = ultX = e.clientX; y0 = e.clientY; ultT = performance.now(); a0 = E.vista; id = e.pointerId; activo = true; decidido = false; vel = 0;
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!activo || e.pointerId !== id) return;
+        const dx = e.clientX - x0, dy = e.clientY - y0;
+        if (!decidido) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          if (Math.abs(dy) > Math.abs(dx)) { activo = false; return; }
+          decidido = true; try { canvas.setPointerCapture(id); } catch (_) {}
+          if (animando) { cancelAnimationFrame(animando.id); animando = null; } a0 = E.vista - dx / ancho() * Math.PI;
+        }
+        const t = performance.now(); vel = vel * 0.4 + 0.6 * (e.clientX - ultX) / Math.max(8, t - ultT); ultX = e.clientX; ultT = t;
+        E.vista = a0 + dx / ancho() * Math.PI; pedir();
+      });
+      const fin = (e) => {
+        if (!activo || e.pointerId !== id) return; activo = false;
+        if (!decidido) return;
+        tragar = true; setTimeout(() => { tragar = false; }, 350);
+        if (performance.now() - ultT > 90) vel = 0;   // si el dedo se quedó quieto antes de soltar, no hay empujón
+        // se voltea si el dedo llevó el uniforme casi un tercio de vuelta, o si fue un deslizón rápido hacia ese lado
+        const base = Math.round(a0 / Math.PI) * Math.PI, movido = E.vista - base;
+        const voltea = Math.abs(movido) > Math.PI * 0.3 || (Math.abs(vel) > 0.15 && Math.sign(vel) === Math.sign(movido) && Math.abs(movido) > Math.PI * 0.04);
+        const destino = voltea ? base + Math.sign(movido) * Math.PI : base;
+        girarA(destino, 300 + 200 * Math.min(1, Math.abs(destino - E.vista) / Math.PI));
+        if (alCambiar) alCambiar(Math.abs(Math.round(destino / Math.PI)) % 2 ? 'espalda' : 'frente');
+      };
+      canvas.addEventListener('pointerup', fin); canvas.addEventListener('pointercancel', fin);
+      // el toque que termina un deslizón no cuenta como toque (no abre ni cierra la pantalla grande)
+      canvas.addEventListener('click', (e) => { if (tragar) { tragar = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    },
     redibujar: pedir,
     // imagen para el folio o el catálogo
-    foto(w, h, v) {
+    // transparente: solo el uniforme con su sombra, sin el estadio (la página lo pone encima del mismo estadio mientras carga el 3D)
+    foto(w, h, v, transparente) {
       if (dorsalPend) { dorsalPend = false; pintarEspalda(); pintarShort(); }   // la foto lleva el nombre recién escrito
       const antes = E.vista; E.vista = v === 'espalda' ? Math.PI : 0;
       const pw = canvas.style.width, ph = canvas.style.height, ratio = r.getPixelRatio();
       const z0 = E.zoom; E.zoom = 0; r.setPixelRatio(1); r.setSize(w, h, false); encuadre(w, h, [0, 0]); E.zoom = z0;
+      const fondo = scene.background;
+      if (transparente) { scene.background = null; r.setClearColor(0x000000, 0); }
       r.render(scene, cam);
-      const url = canvas.toDataURL('image/jpeg', 0.88);
+      let url = transparente ? canvas.toDataURL('image/webp', 0.9) : canvas.toDataURL('image/jpeg', 0.88);
+      if (transparente && url.indexOf('image/webp') < 0) url = canvas.toDataURL('image/png');   // Safari no hace webp
+      scene.background = fondo;
       r.setPixelRatio(ratio); E.vista = antes; canvas.style.width = pw; canvas.style.height = ph; dibujar();
       return url;
     },

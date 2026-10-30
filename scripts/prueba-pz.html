@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><script src="/js/motor3d.js"></script>
+<script>
+(async()=>{
+  const P=new URLSearchParams(location.search), out={}, M=Motor3D;
+  const ld=s=>new Promise(ok=>{const i=new Image(); i.onload=()=>ok(i); i.src=s;});
+  for (const f of P.getAll('f')) {
+    const pz=await M.piezasIA(await ld('/scripts/.fuentes/raw/'+f)); let c=pz.playera;
+    const per=M.tienePersona(c); if(per){const q=M.quitarPersona(c); if(q) c=q;}
+    const sep=M.separarConjunto(c, per); if(sep){c=sep.playera;}
+    out[f]={per, frente:+M.deFrente(c).toFixed(3), cut:c.toDataURL(), sh: sep?sep.short.toDataURL():(pz.short?pz.short.toDataURL():null), cal: pz.calceta||null};
+  }
+  window.R=out; document.title='listo';
+})().catch(e=>{window.R={error:String(e)}; document.title='listo';});
+</script>

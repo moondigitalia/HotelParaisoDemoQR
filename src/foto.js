@@ -204,7 +204,7 @@ export async function recortarIA(im) {
 
 /* Playera y short en la misma foto: se separan donde termina el dobladillo de la playera (la orilla de la
    silueta se mete de golpe hacia adentro, de los dos lados). Devuelve null si es una sola prenda. */
-export function separarConjunto(c) {
+export function separarConjunto(c, persona) {
   const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
   if (H < W * 1.05) return null;
   const op = (x, y) => d[(y * W + x) * 4 + 3] > 128;
@@ -239,12 +239,13 @@ export function separarConjunto(c) {
     // 2) cambia el color de golpe (playera amarilla, short negro)
     const ar = prom(y - 4 * k, y - k), ab = prom(y + k, y + 4 * k);
     const cc = ar && ab ? Math.abs(ar[0] - ab[0]) + Math.abs(ar[1] - ab[1]) + Math.abs(ar[2] - ab[2]) : 0;
-    cand.push({ y, p: Math.max(s / (W * 0.04), cc / 140), pc: cc / 140 });
+    const cv = persona ? 28 : 140; // con alguien puesto, playera y short suelen ser del mismo color: basta la sombra del dobladillo
+    cand.push({ y, p: Math.max(s / (W * (persona ? 0.025 : 0.04)), cc / cv), pc: cc / cv });
   }
   cand.sort((a, b) => b.p - a.p);
   // del dobladillo a la cintura del short el ancho cambia poco; de la manga al torso cambia muchísimo (eso no es un corte)
   const anchoEn = (y) => R[y] - L[y];
-  const elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * 1.7 && (c2.pc >= 1.5 || piernas(c2.y)));
+  const elegido = cand.find((c2) => c2.p >= 1 && anchoEn(c2.y - k) < anchoEn(c2.y + k) * (persona ? 1.2 : 1.7) && (persona ? c2.y > H * 0.55 : c2.pc >= 1.5 || piernas(c2.y)));
   if (!elegido) return null;
   const corte = elegido.y;
   const parte = (y0, y1) => { const o = lienzo(W, y1 - y0); o.getContext('2d').drawImage(c, 0, -y0); return recortar(o); };
@@ -291,13 +292,175 @@ export function recolorear(c, base, T) {
   g.putImageData(img, 0, 0); return o;
 }
 
-// ¿la foto trae a una persona con la playera puesta? (cara y brazos arriba): así no queda bien en 3D
+// ¿la foto trae a una persona (cabeza, cuello, pelo) o un gancho arriba al centro? Se busca algo "ajeno":
+// colores que están arriba al centro y casi no aparecen en el resto de la prenda (una playera a rayas rojas no cuenta).
 export function tienePersona(c) {
-  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, Math.round(H * 0.22)).data; let piel = 0, n = 0;
-  for (let i = 0; i < d.length; i += 16) {
-    if (d[i + 3] < 200) continue; n++;
-    const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-    if (r > 95 && g > 40 && b > 20 && r > g && r > b && r - g > 15 && mx - mn > 15 && r < 250 && g < 220) piel++;
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data;
+  const q = (i) => (d[i] >> 5) * 64 + (d[i + 1] >> 5) * 8 + (d[i + 2] >> 5);
+  const resto = new Float32Array(512), arriba = new Float32Array(512); let nR = 0, nA = 0;
+  const x0 = Math.round(W * 0.3), x1 = Math.round(W * 0.7), yA = Math.round(H * 0.2);
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+    const i = (y * W + x) * 4; if (d[i + 3] < 200) continue;
+    if (y < yA && x >= x0 && x < x1) { arriba[q(i)]++; nA++; } else if (y > H * 0.3) { resto[q(i)]++; nR++; }
   }
-  return n > 0 && piel / n > 0.16;
+  if (nA < 50 || nR < 50) return false;
+  let ajeno = 0;
+  for (let k = 0; k < 512; k++) if (arriba[k] && resto[k] / nR < 0.004) ajeno += arriba[k];
+  return ajeno / nA > 0.35;
+}
+
+// la espalda limpia a partir de una foto: se quitan logos, patrocinadores, nombre y número viejos, dejando la tela
+// (rayas, degradados y lisos se rellenan siguiendo su columna, así las rayas siguen derechas)
+export function limpiarTela(c, base, dorsal = false) {
+  const W = c.width, H = c.height, o = lienzo(W, H), g = o.getContext('2d'); g.drawImage(c, 0, 0);
+  const img = g.getImageData(0, 0, W, H), d = img.data, quitar = new Uint8Array(W * H);
+  const lejos = (i, p) => Math.abs(d[i] - p[0]) + Math.abs(d[i + 1] - p[1]) + Math.abs(d[i + 2] - p[2]);
+  const x0 = Math.round(W * 0.16), x1 = Math.round(W * 0.84), y0 = Math.round(H * 0.13), y1 = Math.round(H * 0.95);
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = (y * W + x) * 4; if (d[i + 3] < 200) continue;
+    const dA = lejos(i, base.A), dB = base.B ? lejos(i, base.B) : 999;
+    // ni del color principal ni del segundo (con su sombra): es un logo, una letra o un número
+    const lum = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11, lA = base.A[0] * 0.3 + base.A[1] * 0.59 + base.A[2] * 0.11;
+    const sombraA = Math.abs((d[i] - base.A[0]) - (d[i + 1] - base.A[1])) + Math.abs((d[i + 1] - base.A[1]) - (d[i + 2] - base.A[2])) < 40 && Math.abs(lum - lA) < 70;
+    if (dA > 95 && dB > 95 && !sombraA) quitar[y * W + x] = 1;
+  }
+  // espalda con nombre y número de otro jugador: solo se borra ese bloque (el número y el renglón del nombre pegado
+  // arriba); los patrocinadores separados (junto al cuello, abajo) son parte de la playera y se quedan
+  if (dorsal) {
+    const fila = new Float32Array(H), lim = (x1 - x0) * 0.03;
+    for (let y = y0; y < y1; y++) { let n = 0; for (let x = x0; x < x1; x++) n += quitar[y * W + x]; fila[y] = n; }
+    let pico = -1; for (let y = Math.round(H * 0.24); y < H * 0.6; y++) if (pico < 0 || fila[y] > fila[pico]) pico = y;
+    if (pico < 0 || fila[pico] < lim) return o;
+    const extender = (dir, hueco) => { let y = pico, ult = pico, vacio = 0;
+      while (y + dir >= y0 && y + dir < y1) { y += dir; if (fila[y] >= lim) { ult = y; vacio = 0; } else if (++vacio > hueco) break; }
+      return ult; };
+    const ya = extender(-1, Math.round(H * 0.045)), yb = extender(1, Math.round(H * 0.02));
+    for (let y = y0; y < y1; y++) if (y < ya - 2 || y > yb + 2) for (let x = x0; x < x1; x++) quitar[y * W + x] = 0;
+  }
+  // se agranda un poco lo marcado (orillas de las letras)
+  const m2 = quitar.slice();
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (quitar[y * W + x]) for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const yy = y + dy, xx = x + dx; if (yy >= y0 && yy < y1 && xx >= x0 && xx < x1) m2[yy * W + xx] = 1; }
+  // relleno por columna: el pixel limpio más cercano arriba y abajo, mezclados
+  for (let x = x0; x < x1; x++) {
+    let y = y0;
+    while (y < y1) {
+      if (!m2[y * W + x]) { y++; continue; }
+      let ya = y - 1; while (ya >= y0 && m2[ya * W + x]) ya--;
+      let yb = y; while (yb < y1 && m2[yb * W + x]) yb++;
+      const ia = ya >= y0 ? (ya * W + x) * 4 : -1, ib = yb < y1 ? (yb * W + x) * 4 : -1;
+      for (let yy = y; yy < yb; yy++) {
+        const t = ia < 0 ? 1 : ib < 0 ? 0 : (yy - ya) / (yb - ya), i = (yy * W + x) * 4;
+        for (let k = 0; k < 3; k++) d[i + k] = Math.round((ia < 0 ? d[ib + k] : d[ia + k]) * (1 - t) + (ib < 0 ? d[ia + k] : d[ib + k]) * t);
+      }
+      y = yb;
+    }
+  }
+  g.putImageData(img, 0, 0); return o;
+}
+// cuánto de la espalda está ocupado por un nombre/número ya impreso (para limpiarlo)
+export function tieneDorsal(c, base) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data; let n = 0, t = 0;
+  for (let y = Math.round(H * 0.24); y < H * 0.6; y += 2) for (let x = Math.round(W * 0.3); x < W * 0.7; x += 2) {
+    const i = (y * W + x) * 4; if (d[i + 3] < 200) continue; t++;
+    const dA = Math.abs(d[i] - base.A[0]) + Math.abs(d[i + 1] - base.A[1]) + Math.abs(d[i + 2] - base.A[2]);
+    const dB = base.B ? Math.abs(d[i] - base.B[0]) + Math.abs(d[i + 1] - base.B[1]) + Math.abs(d[i + 2] - base.B[2]) : 999;
+    if (dA > 95 && dB > 95) n++;
+  }
+  return t > 0 && n / t > 0.12;
+}
+
+// las piezas de una foto con todo el uniforme (playera, short, calcetas acomodados uno junto al otro)
+export async function piezasIA(im) {
+  const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height, esc = Math.min(1, 1400 / Math.max(iw, ih));
+  const w = Math.round(iw * esc), h = Math.round(ih * esc);
+  let ia = null; try { ia = await mascaraIA(im, w, h); } catch (e) { return { playera: recortar(im) }; }
+  // piezas grandes según la IA (en chico, para que sea rápido)
+  const s = 4, ws = Math.ceil(w / s), hs = Math.ceil(h / s), m = new Uint8Array(ws * hs), et = new Int32Array(ws * hs);
+  for (let y = 0; y < hs; y++) for (let x = 0; x < ws; x++) m[y * ws + x] = ia[Math.min(h - 1, y * s) * w + Math.min(w - 1, x * s)] > 0.5 ? 1 : 0;
+  const comps = []; let n = 0;
+  for (let k = 0; k < ws * hs; k++) {
+    if (!m[k] || et[k]) continue; n++; const cola = [k]; et[k] = n; let a = 0, x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    while (cola.length) { const q = cola.pop(), qx = q % ws, qy = (q - qx) / ws; a++; if (qx < x0) x0 = qx; if (qx > x1) x1 = qx; if (qy < y0) y0 = qy; if (qy > y1) y1 = qy;
+      [qx > 0 ? q - 1 : -1, qx < ws - 1 ? q + 1 : -1, qy > 0 ? q - ws : -1, qy < hs - 1 ? q + ws : -1].forEach((v) => { if (v >= 0 && m[v] && !et[v]) { et[v] = n; cola.push(v); } }); }
+    comps.push({ a, x0: x0 * s, y0: y0 * s, x1: Math.min(w, (x1 + 1) * s), y1: Math.min(h, (y1 + 1) * s) });
+  }
+  comps.sort((p, q) => q.a - p.a);
+  const base = lienzo(w, h); base.getContext('2d').drawImage(im, 0, 0, w, h);
+  const parte = (c) => { const pad = 8, X0 = Math.max(0, c.x0 - pad), Y0 = Math.max(0, c.y0 - pad), X1 = Math.min(w, c.x1 + pad), Y1 = Math.min(h, c.y1 + pad);
+    const o = lienzo(X1 - X0, Y1 - Y0); o.getContext('2d').drawImage(base, -X0, -Y0);
+    const sub = new Float32Array(o.width * o.height); for (let y = 0; y < o.height; y++) for (let x = 0; x < o.width; x++) sub[y * o.width + x] = ia[(Y0 + y) * w + X0 + x];
+    return recortar(o, sub); };
+  if (!comps.length) return { playera: recortar(im, ia) };
+  const P = comps[0], res = { playera: recortar(im, ia) };
+  if (comps.length > 1) res.playera = parte(P);
+  const pw = P.x1 - P.x0;
+  comps.slice(1).forEach((c) => {
+    const cw = c.x1 - c.x0, ch = c.y1 - c.y0;
+    // las calcetas son chiquitas y largas: se aceptan aunque ocupen poco
+    if (c.a < P.a * (ch > cw * 1.4 ? 0.012 : 0.06)) return;
+    if (!res.short && cw > pw * 0.3 && ch < (P.y1 - P.y0) * 0.95 && cw > ch * 0.6) res.short = parte(c);
+    else if (!res.calceta && ch > cw * 1.4) res.calceta = colorPrincipal(parte(c));
+  });
+  return res;
+}
+
+/* Qué tan de frente viene la playera (1 = de frente y derecha). Una foto tomada de lado tiene la silueta
+   cargada hacia un lado y el cuello fuera del centro: así el panel escoge, de varias fotos, la mejor. */
+export function deFrente(c) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, op = (x, y) => d[(y * W + x) * 4 + 3] > 128;
+  let inter = 0, uni = 0;
+  for (let y = 0; y < H; y += 2) for (let x = 0; x < W / 2; x += 2) { const a = op(x, y), b = op(W - 1 - x, y); if (a && b) inter++; if (a || b) uni++; }
+  // el cuello: lo más alto de la playera debe quedar al centro
+  let cx = 0, n = 0;
+  for (let y = 0; y < H * 0.04; y++) for (let x = 0; x < W; x++) if (op(x, y)) { cx += x; n++; }
+  const cuello = n ? Math.abs(cx / n - W / 2) / W : 0.5;
+  return Math.max(0, (uni ? inter / uni : 0) - cuello * 2);
+}
+
+/* Foto con alguien puesto el uniforme: se quedan solo las prendas. Se quita la piel (cara, cuello, brazos,
+   piernas) y el pelo (queda suelto arriba al quitar el cuello); se rellenan los huecos de adentro. */
+export function quitarPersona(c) {
+  const W = c.width, H = c.height, o = lienzo(W, H), g = o.getContext('2d'); g.drawImage(c, 0, 0);
+  const img = g.getImageData(0, 0, W, H), d = img.data, m = new Uint8Array(W * H);
+  for (let k = 0; k < W * H; k++) {
+    const i = k * 4; if (d[i + 3] < 128) continue;
+    const r = d[i], gg = d[i + 1], b = d[i + 2], Y = 0.299 * r + 0.587 * gg + 0.114 * b;
+    const Cr = 128 + 0.5 * r - 0.419 * gg - 0.081 * b, Cb = 128 - 0.169 * r - 0.331 * gg + 0.5 * b;
+    const piel = Y > 35 && Cr > 136 && Cr < 178 && Cb > 77 && Cb < 128 && r > gg && r > b && gg > b - 6; // la piel tiene más verde que azul; el rosa de una franja no
+    if (!piel) m[k] = 1;
+  }
+  // piezas: la prenda es la pieza grande; el pelo y los zapatos quedan sueltos
+  const et = new Int32Array(W * H), comps = []; let n = 0, mejor = 0, mejorA = 0;
+  for (let k = 0; k < W * H; k++) {
+    if (!m[k] || et[k]) continue; n++; let a = 0; const cola = [k]; et[k] = n;
+    while (cola.length) { const q = cola.pop(), qx = q % W; a++;
+      if (qx > 0 && m[q - 1] && !et[q - 1]) { et[q - 1] = n; cola.push(q - 1); }
+      if (qx < W - 1 && m[q + 1] && !et[q + 1]) { et[q + 1] = n; cola.push(q + 1); }
+      if (q >= W && m[q - W] && !et[q - W]) { et[q - W] = n; cola.push(q - W); }
+      if (q < W * (H - 1) && m[q + W] && !et[q + W]) { et[q + W] = n; cola.push(q + W); } }
+    if (a > mejorA) { mejorA = a; mejor = n; }
+    comps.push({ n, a, k });
+  }
+  if (!mejor || mejorA < W * H * 0.05) return null;
+  // las calcetas quedan sueltas abajo (entre short y calceta está la rodilla): se toma su color
+  let calceta = null, yPrenda = 0;
+  for (let k = W * H - 1; k >= 0; k--) if (et[k] === mejor) { yPrenda = Math.floor(k / W); break; }
+  comps.filter((q) => q.n !== mejor && q.a > mejorA * 0.01 && Math.floor(q.k / W) > yPrenda).sort((p2, q) => q.a - p2.a).slice(0, 1).forEach((q) => {
+    const t = lienzo(W, H), tg = t.getContext('2d'), ti = tg.createImageData(W, H);
+    for (let k = 0; k < W * H; k++) if (et[k] === q.n) { ti.data.set(d.subarray(k * 4, k * 4 + 3), k * 4); ti.data[k * 4 + 3] = 255; }
+    tg.putImageData(ti, 0, 0); calceta = colorPrincipal(t);
+  });
+  // lo que no es la prenda se vuelve transparente; los huecos encerrados en la prenda se devuelven (tela con tono de piel)
+  const fuera = new Uint8Array(W * H), cola = [];
+  for (let x = 0; x < W; x++) { cola.push(x, (H - 1) * W + x); } for (let y = 0; y < H; y++) { cola.push(y * W, y * W + W - 1); }
+  cola.forEach((q) => { if (et[q] !== mejor) fuera[q] = 1; });
+  const pila = cola.filter((q) => fuera[q]);
+  while (pila.length) { const q = pila.pop(), qx = q % W;
+    [qx > 0 ? q - 1 : -1, qx < W - 1 ? q + 1 : -1, q - W, q + W].forEach((v) => { if (v >= 0 && v < W * H && !fuera[v] && et[v] !== mejor) { fuera[v] = 1; pila.push(v); } }); }
+  for (let k = 0; k < W * H; k++) if (fuera[k]) d[k * 4 + 3] = 0;
+  // orilla: se quita 1px para que no quede borde de piel
+  const a0 = new Uint8Array(W * H); for (let k = 0; k < W * H; k++) a0[k] = d[k * 4 + 3] > 0 ? 1 : 0;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const k = y * W + x; if (a0[k] && (!a0[k - 1] || !a0[k + 1] || !a0[k - W] || !a0[k + W])) d[k * 4 + 3] = 0; }
+  g.putImageData(img, 0, 0);
+  const res = recortar(o); res.calceta = calceta; return res;
 }

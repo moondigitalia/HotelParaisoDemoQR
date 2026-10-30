@@ -47,7 +47,7 @@
     panel.innerHTML = marco('<p class="pn-cargando">Cargando tu panel…</p>'); enlazarMarco();
     api('todo').then(function (j) {
       ses.set(P.pin);
-      P.folios = j.folios || []; P.catalogo = (Array.isArray(j.catalogo) && j.catalogo.some(function (u) { return u.tipo === '3d'; })) ? j.catalogo : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
+      P.folios = j.folios || []; P.catalogo = (Array.isArray(j.catalogo) && j.catalogo.some(function (u) { return u.tipo === '3d'; })) ? (A.completarCatalogo ? A.completarCatalogo(j.catalogo) : j.catalogo) : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
       pintar();
     }).catch(function (e) {
       ses.set(''); var pin = P.pin; P.pin = null;
@@ -117,10 +117,9 @@
     var d = e.diseno || {}, filas = [];
     if (d.taco) {
       // pedido hecho con el catálogo 3D
-      var TACOS_N = { negro: 'Negros', rosa: 'Rosas', turquesa: 'Turquesa' };
       filas.push(['Uniforme', esc(e.base || '—')]);
       filas.push(['Manga', d.manga === 'larga' ? 'Larga' : 'Corta']);
-      filas.push(['Tacos del cliente', TACOS_N[d.taco] || d.taco]);
+      filas.push(['Tachones del cliente', window.APP_TACOS ? bolita(window.APP_TACOS.hex(d.taco)) + esc(window.APP_TACOS.nombre(d.taco)) : esc(d.taco)]);
       filas.push(['Nombre y número', bolita(d.colorTexto) + esc([d.nombre, d.numero].filter(Boolean).join(' · ') || 'Sin nombre')]);
       return '<dl class="pn-como">' + filas.map(function (f) { return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>'; }).join('') + '</dl>';
     }
@@ -250,11 +249,11 @@
   function vistaEditor() {
     var u = P.editando, cats = P.config.categorias || [], f = u.fotos, e = u.etiquetas || (u.etiquetas = { colores: [], pais: '', equipo: '' });
     function boton(lado, texto, opcional) {
-      return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*" data-foto="' + lado + '"></label>';
+      return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*" multiple data-foto="' + lado + '"></label>';
     }
     var h = '<button type="button" class="link-x" data-volver>← Uniformes</button><h3 class="pn-h">' + (u.nuevo ? 'Nuevo uniforme' : 'Editar uniforme') + '</h3>' +
       '<div class="pn-editor"><div class="pn-form">' +
-      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Una del frente y una de la espalda; si el short viene abajo en la misma foto, lo separamos solos</li><li>Quita la etiqueta que cuelga antes de tomar la foto</li></ul></div>' +
+      '<div class="pn-guia"><b>Cómo tomar las fotos</b><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>Puedes subir varias fotos de cada lado: usamos la mejor. Si el short o las calcetas vienen en la misma foto, los separamos solos</li><li>Quita la etiqueta que cuelga antes de tomar la foto</li></ul></div>' +
       '<div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short', true) + '</div>' +
       '<div id="ed-aviso"></div>' +
       '<div class="grupo"><label for="ed-nombre">Nombre</label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="Ej. México 2026 local"></div>' +
@@ -285,7 +284,14 @@
     var u = P.editando, c = $('#ed-3d'); if (!c || !u.fotos.frente) return Promise.resolve();
     return A.cargarMotor().catch(function () {}).then(function () {
       if (!window.Motor3D) return;
-      if (!mEditor || mEditor.lienzo !== c) { if (mEditor) mEditor.m.destruir(); mEditor = { lienzo: c, p: window.Motor3D.crear(c) }; }
+      if (!mEditor || mEditor.lienzo !== c) {
+        if (mEditor && mEditor.m) mEditor.m.destruir();
+        mEditor = { lienzo: c, p: window.Motor3D.crear(c).then(function (m) {
+          // deslizar a los lados también voltea la vista previa
+          if (m.deslizable) m.deslizable(function (v) { pvVista = v; $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === v); }); });
+          return m;
+        }) };
+      }
       return mEditor.p.then(function (m) {
         mEditor.m = m;
         return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
@@ -297,6 +303,21 @@
   // la foto del dueño: se recorta el fondo, se revisa y se sube; de la del frente salen los colores para el buscador
   // la foto del dueño: la IA de su propio celular separa la prenda del fondo (sin créditos ni cuentas);
   // si trae playera y short juntos, se separan solos. De la del frente salen los colores para el buscador.
+  // el color para nombre y número: de los colores de letra, el que ya trae la playera como detalle y contrasta con su tela
+  function colorLetras(c) {
+    var M = window.Motor3D, b = M.coloresBase(c), lum = function (p) { return p[0] * 0.3 + p[1] * 0.59 + p[2] * 0.11; };
+    var cand = LETRAS_P.map(function (h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16), h]; });
+    var t = A.aCanvas(c, 80), d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data, n = 0, cuenta = cand.map(function () { return 0; });
+    for (var i = 0; i < d.length; i += 4) { if (d[i + 3] < 200) continue; n++; cand.forEach(function (k, j) { if (Math.abs(d[i] - k[0]) + Math.abs(d[i + 1] - k[1]) + Math.abs(d[i + 2] - k[2]) < 90) cuenta[j]++; }); }
+    var mejor = null, puntos = -1;
+    cand.forEach(function (k, j) {
+      var con = Math.min(Math.abs(lum(k) - lum(b.A)), b.B ? Math.abs(lum(k) - lum(b.B)) : 999);
+      if (con < 60) return;   // no se leería sobre la tela
+      var p = con + (cuenta[j] / Math.max(1, n) > 0.01 && cuenta[j] / n < 0.25 ? 200 : 0);   // premio si ya es un detalle de la playera
+      if (p > puntos) { puntos = p; mejor = k[3]; }
+    });
+    return mejor || (lum(b.A) > 140 ? '#111111' : '#FFFFFF');
+  }
   function prepararCanvas(cut) { var out = A.aCanvas(cut, 900), data = out.toDataURL('image/webp', 0.86); if (data.indexOf('data:image/webp') !== 0) data = out.toDataURL('image/png'); return { out: out, data: data }; }
   function ponerFoto(u, lado, cut) {
     var r = prepararCanvas(cut);
@@ -308,34 +329,68 @@
       if (!u.colorTextoElegido) u.colorTexto = lum > 140 ? '#111111' : '#FFFFFF';
     }
     if (lado === 'short') u.colorShort = hexDe(window.Motor3D.colorPrincipal(r.out));
-    if (!u.colorCalceta || lado === 'short') u.colorCalceta = u.colorShort;
+    if (!u.calcetaFoto && (!u.colorCalceta || lado === 'short')) u.colorCalceta = u.colorShort;
     return A.subirConReintento(r.data, 'catalogo').then(function (url) { u.fotos[lado] = url; });
   }
-  function procesarFoto(file, lado) {
-    var u = P.editando;
-    A.toast('Preparando la foto…', true);
+  // una foto: se recorta, se le quita la persona si la trae, se separa el short y se mide qué tan de frente viene
+  function analizar(file, lado) {
+    var M = window.Motor3D;
     return A.cargarArchivo(file).then(function (im) {
-      return A.cargarMotor().catch(function () {}).then(function () { return im; });
-    }).then(function (im) {
-      var av = [], w = im.naturalWidth, h = im.naturalHeight;
-      if (Math.min(w, h) < 600) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
-      if (A.nitidez(im) < 22) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
-      var base = A.aCanvas(im, 1400);
-      return window.Motor3D.recortarIA(base).then(function (cut) {
-        if (cut.width * cut.height > base.width * base.height * 0.93) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
-        if (window.Motor3D.tienePersona(cut)) av.push('La foto trae a una persona con la playera puesta. Para que se vea perfecto, toma la prenda sola, extendida.');
-        var tareas = [], sep = lado !== 'short' ? window.Motor3D.separarConjunto(cut) : null;
-        if (sep) {
-          tareas.push(ponerFoto(u, lado, sep.playera));
-          if (lado === 'frente') { tareas.push(ponerFoto(u, 'short', sep.short)); av.unshift('Venían playera y short en la misma foto: los separamos solos.'); }
-        } else tareas.push(ponerFoto(u, lado, cut));
-        P.avisos = av;
-        pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
-        return Promise.all(tareas).then(function () {
-          A.toast('Foto lista');
-          var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
-          previsualizar();
-        });
+      var base = A.aCanvas(im, 1400), r = { av: [], chica: Math.min(im.naturalWidth, im.naturalHeight) < 600, movida: A.nitidez(im) < 22 };
+      return (lado === 'short' ? M.recortarIA(base).then(function (c) { return { playera: c }; }) : M.piezasIA(base)).then(function (pz) {
+        var cut = pz.playera;
+        r.sinFondo = cut.width * cut.height > base.width * base.height * 0.93;
+        r.persona = lado !== 'short' && M.tienePersona(cut);
+        if (r.persona) { var q = M.quitarPersona(cut); if (q) { cut = q; if (q.calceta && !pz.calceta) pz.calceta = q.calceta; } }
+        var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
+        if (sep) { cut = sep.playera; pz.short = sep.short; }
+        r.cut = cut; r.short = pz.short || null; r.calceta = pz.calceta || null;
+        // la mejor foto: de frente y derecha, grande, sin persona
+        r.nota = lado === 'short' ? cut.width * cut.height : M.deFrente(cut) - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0);
+        return r;
+      });
+    });
+  }
+  // el dueño puede subir varias fotos de una vez: el panel usa la mejor para cada lado y saca de todas el short y las calcetas
+  function procesarFoto(files, lado) {
+    var u = P.editando, M;
+    files = Array.prototype.slice.call(files || []).slice(0, 8); if (!files.length) return;
+    A.toast(files.length > 1 ? 'Revisando ' + files.length + ' fotos…' : 'Preparando la foto…', true);
+    return A.cargarMotor().catch(function () {}).then(function () {
+      M = window.Motor3D;
+      return files.reduce(function (cadena, f) { return cadena.then(function (lista) { return analizar(f, lado).then(function (r) { lista.push(r); return lista; }, function () { return lista; }); }); }, Promise.resolve([]));
+    }).then(function (lista) {
+      if (!lista.length) throw new Error('sin fotos');
+      lista.sort(function (x, y) { return y.nota - x.nota; });
+      var r = lista[0], av = [], cut = r.cut, tareas = [];
+      if (lista.length > 1) av.push('De ' + lista.length + ' fotos usamos la que viene más de frente.');
+      if (r.sinFondo) av.push('No pudimos separar la prenda del fondo. Tómala sobre el piso o una sábana de un solo color.');
+      if (r.chica) av.push('La foto es pequeña: en la página se verá bien, pero pide una más grande para imprimir.');
+      if (r.movida) av.push('La foto parece movida. Si puedes, tómala otra vez con el celular quieto.');
+      if (r.persona) av.push('La foto traía a alguien con el uniforme puesto: tomamos solo la ropa.');
+      if (lado !== 'short' && r.nota < 0.86) av.push('La playera viene un poco de lado y puede verse chueca. Si tienes una foto de frente, súbela aquí.');
+      if (lado === 'espalda' && M.tieneDorsal(cut, M.coloresBase(cut))) {
+        // solo el nombre y el número: los patrocinadores de arriba (junto al cuello) y de abajo se quedan
+        cut = M.limpiarTela(cut, M.coloresBase(cut), true);
+        av.push('La espalda traía nombre y número impresos: los quitamos para poner los del cliente.');
+      }
+      tareas.push(ponerFoto(u, lado, cut));
+      // short y calcetas: de cualquier foto que los traiga (el short de su propia foto manda)
+      if (lado !== 'short' && !u.shortPropio) {
+        var conShort = lista.filter(function (x) { return x.short; }).sort(function (x, y) { return y.short.width * y.short.height - x.short.width * x.short.height; })[0];
+        if (conShort && (lado === 'frente' || !u.fotos.short)) { tareas.push(ponerFoto(u, 'short', conShort.short)); av.unshift('Venía el short en la foto: lo separamos solo.'); }
+      }
+      if (lado === 'short') u.shortPropio = true;
+      var conCalceta = lista.filter(function (x) { return x.calceta; })[0];
+      if (conCalceta) { u.colorCalceta = hexDe(conCalceta.calceta); u.calcetaFoto = true; av.unshift('También venían las calcetas: tomamos su color.'); }
+      // nombre y número: el color de acento de la playera si se lee bien (amarillo en el Barça), si no blanco o negro
+      if (lado === 'frente' && !u.colorTextoElegido) u.colorTexto = colorLetras(cut);
+      P.avisos = av;
+      pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
+      return Promise.all(tareas).then(function () {
+        A.toast('Foto lista');
+        var pub = $('[data-publicar]', panel); if (pub && u.fotos.frente && !/^data:/.test(u.fotos.frente + u.fotos.espalda + u.fotos.short)) pub.disabled = false;
+        previsualizar();
       });
     }).catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
   }
@@ -396,7 +451,7 @@
     var pap = $('[data-papelera]', panel);
     if (pap) pap.addEventListener('click', function () { var real = porId(u.id); if (!real) return; real.borrado = Date.now(); P.editando = null; pintar(P.scrollLista || 0); guardarCatalogo('Se fue a la papelera. Lo puedes recuperar durante 30 días.'); });
     $$('[data-foto]', panel).forEach(function (inp) {
-      inp.addEventListener('change', function () { var file = inp.files && inp.files[0]; if (file) procesarFoto(file, inp.getAttribute('data-foto')); });
+      inp.addEventListener('change', function () { if (inp.files && inp.files.length) procesarFoto(inp.files, inp.getAttribute('data-foto')); });
     });
     $('[data-publicar]', panel).addEventListener('click', function () {
       var btn = this;
@@ -407,12 +462,13 @@
         if (!mEditor || !mEditor.m) return null;
         mEditor.m.dorsal({ nombre: '', numero: '' });
         var d = mEditor.m.foto(480, 720, 'frente');
+        var sil = mEditor.m.foto(480, 720, 'frente', true);   // la que se ve mientras carga el 3D en la página
         mEditor.m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto });
-        return A.subirConReintento(d, 'catalogo');
-      }).then(function (mini) {
-        if (mini) u.mini = mini;
+        return Promise.all([A.subirConReintento(d, 'catalogo'), A.subirConReintento(sil, 'catalogo').catch(function () { return ''; })]);
+      }).then(function (r) {
+        var mini = r && r[0]; if (mini) u.mini = mini; if (r && r[1]) u.silueta = r[1];
         var i = -1; P.catalogo.forEach(function (x, k) { if (x.id === u.id) i = k; });
-        var limpio = A.clone(u); delete limpio.nuevo; delete limpio.colorTextoElegido;
+        var limpio = A.clone(u); delete limpio.nuevo; delete limpio.colorTextoElegido; delete limpio.shortPropio; delete limpio.calcetaFoto;
         if (i >= 0) P.catalogo[i] = limpio; else { limpio.orden = 0; P.catalogo.unshift(limpio); }
         P.editando = null; pintar(P.scrollLista || 0);
         return guardarCatalogo('Publicado en la página');
@@ -502,15 +558,20 @@
 
   // Entrada del dueño: mantener presionado el logo 2 segundos. No es un enlace, así que el iPhone
   // no ofrece abrirlo en otra pestaña ni muestra vista previa.
+  // (también el logo grande de la portada: arriba de la página el logo de la barra no se ve)
   var marca = $('#marca'), reloj = 0;
-  function soltarMarca() { clearTimeout(reloj); marca.classList.remove('cargando'); }
-  marca.addEventListener('pointerdown', function (e) {
-    if (e.button && e.button !== 0) return;
-    marca.classList.add('cargando');
-    reloj = setTimeout(function () { soltarMarca(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
-  });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { marca.addEventListener(ev, soltarMarca); });
-  marca.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  function entrada(el) {
+    if (!el) return;
+    function soltar() { clearTimeout(reloj); el.classList.remove('cargando'); }
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button && e.button !== 0) return;
+      el.classList.add('cargando');
+      reloj = setTimeout(function () { soltar(); if (navigator.vibrate) { try { navigator.vibrate(30); } catch (x) { /* nada */ } } abrir(); }, 2000);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { el.addEventListener(ev, soltar); });
+    el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  }
+  entrada(marca); entrada($('#portada-logo'));
   marca.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   if (location.hash === '#panel') abrir();
   window.addEventListener('hashchange', function () { if (location.hash === '#panel') abrir(); });
