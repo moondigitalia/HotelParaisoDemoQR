@@ -920,7 +920,10 @@
   function pintarRenglones(cont, items, minAncho, gap, maxCols) {
     var w = cont.clientWidth || cont.parentNode.clientWidth || 320, C = Math.max(1, Math.floor((w + gap) / (minAncho + gap)));
     C = Math.min(C, maxCols || 6); cont.style.setProperty('--cols', C);   // el ancho de cada uno no depende de cuántos haya: uno solo no se hace gigante
-    cont.innerHTML = renglones(items, C).map(function (fila) { return '<div class="renglon">' + fila.join('') + '</div>'; }).join('');
+    // si queda igual que lo que ya se ve, no se vuelve a crear (volver a crear las imágenes las hace parpadear)
+    var html = renglones(items, C).map(function (fila) { return '<div class="renglon">' + fila.join('') + '</div>'; }).join('');
+    if (cont._html === html && cont.firstChild) return false;
+    cont.innerHTML = html; cont._html = html; return true;
   }
   function escudoCat(q) {
     var u = q.items[0], img = q.escudo ? '<img src="' + esc(q.escudo) + '" alt="">' : '<img class="sin" src="' + esc(u.mini) + '" alt="">';
@@ -966,12 +969,12 @@
       var vis = filtrar(catalogoVisible()), qs = equiposDe(vis), r = $('#t-resultados', catTodo);
       if (!qs.length) { r.innerHTML = '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>'; return; }
       r.innerHTML = '<div class="cat-todo-grid"></div>'; var g = $('.cat-todo-grid', r);
-      var pinta = function () { pintarRenglones(g, qs.map(escudoCat), window.innerWidth >= 900 ? 140 : 100, 14); enlazarCat(r); };
+      var pinta = function () { if (pintarRenglones(g, qs.map(escudoCat), window.innerWidth >= 900 ? 140 : 100, 14)) enlazarCat(r); };
       pinta(); r._pinta = pinta;
     }
-    enlazarFiltros(catTodo, 't', lista); lista();
+    // primero se abre y luego se acomodan los escudos una sola vez, ya con el ancho real (antes se acomodaban dos veces y parpadeaban)
     if (catTodo.hidden) { window.FIJAR.on(); catTodo.hidden = false; }
-    var rr = $('#t-resultados', catTodo); if (rr._pinta) rr._pinta();   // ya visible: se mide el ancho real
+    enlazarFiltros(catTodo, 't', lista); lista();
     $('#t-resultados', catTodo).scrollTop = 0;
   }
   function cerrarCatTodo() {
@@ -1070,9 +1073,9 @@
           '<div class="eq-cli-lado">' + (x.logo ? '<span class="eq-cli-circ eq-cli-logo"><img src="' + esc(x.logo) + '" alt=""></span>' : '') + redes + '</div></div>' +
           '<b>' + esc(x.nombre) + '</b></div>';
       });
-      cont.classList.add('con-renglones'); pintarRenglones(cont, piezas, 220, 14, 3);
+      cont.classList.add('con-renglones'); var nuevo = pintarRenglones(cont, piezas, 220, 14, 3);
       // tocar el uniforme lo abre en 3D para girarlo
-      $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { abrirProbador(cl[+b.getAttribute('data-cliente')].u, b); }); });
+      if (nuevo) $$('[data-cliente]', cont).forEach(function (b) { b.addEventListener('click', function () { abrirProbador(cl[+b.getAttribute('data-cliente')].u, b); }); });
       if (!cont._oyeAncho) { cont._oyeAncho = 1; alCambiarAncho(function () { if (cont.classList.contains('con-renglones')) pintarEquiposCasa(); }); }
       return;
     }

@@ -155,6 +155,9 @@
   /* ---------- texto de espalda ---------- */
   var NUM_FONT = '"Saira Extra Condensed", "Arial Narrow", sans-serif';
   var SELLO_Y = [0.6, 0.27, 0.44, 0.33, 0.52];
+  // dónde va la línea de abajo del número para que su parte de arriba quede justo en "top" (y = 0). No se usa
+  // textBaseline 'top': cada navegador lo mide distinto (en Safari viejo el número quedaba mucho más abajo).
+  function baseNum(g, fs) { var m = g.measureText('0'), a = m && m.actualBoundingBoxAscent; return (a > 0 ? a : fs * 0.7) - fs * 0.035; }
   // Busca dentro del trazo real de cada cifra un lugar donde el sello completo quepa sin salirse
   var spotCache = {};
   function selloSpot(ch, fs, hgt, k, pref, s0) {
@@ -164,8 +167,8 @@
     g.font = '700 ' + fs + 'px ' + NUM_FONT;
     var w = Math.ceil(g.measureText(ch).width) + 4, h = Math.ceil(hgt * 1.2);
     c.width = w; c.height = h;
-    g.font = '700 ' + fs + 'px ' + NUM_FONT; g.textBaseline = 'top'; g.fillStyle = '#000';
-    g.fillText(ch, 2, -fs * 0.06);
+    g.font = '700 ' + fs + 'px ' + NUM_FONT; g.textBaseline = 'alphabetic'; g.fillStyle = '#000';
+    g.fillText(ch, 2, baseNum(g, fs));
     var d = g.getImageData(0, 0, w, h).data, I = new Uint32Array((w + 1) * (h + 1)), x, y;
     for (y = 0; y < h; y++) { var fila = 0; for (x = 0; x < w; x++) { fila += d[(y * w + x) * 4 + 3] > 140 ? 1 : 0; I[(y + 1) * (w + 1) + x + 1] = I[y * (w + 1) + x + 1] + fila; } }
     function suma(x0, y0, x1, y1) { return I[y1 * (w + 1) + x1] - I[y0 * (w + 1) + x1] - I[y1 * (w + 1) + x0] + I[y0 * (w + 1) + x0]; }
@@ -192,8 +195,8 @@
     var k = Math.min(1, maxW / total);
     ctx.save(); ctx.translate(cx, top); ctx.scale(k, 1);
     var x = -total / 2, starts = [];
-    ctx.fillStyle = color; ctx.textBaseline = 'top';
-    for (i = 0; i < num.length; i++) { ctx.fillText(num[i], x, -fs * 0.06); starts.push(x); x += widths[i] + gap; }
+    ctx.fillStyle = color; ctx.textBaseline = 'alphabetic'; var yb = baseNum(ctx, fs);
+    for (i = 0; i < num.length; i++) { ctx.fillText(num[i], x, yb); starts.push(x); x += widths[i] + gap; }
     ctx.restore();
     if (sello) {
       for (i = 0; i < num.length; i++) {
