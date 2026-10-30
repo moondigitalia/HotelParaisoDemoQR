@@ -29,6 +29,28 @@
     };
   })();
   window.FIJAR = FIJAR;
+  // en iPhone (sobre todo los viejos) arrastrar al llegar al final de una ventana encimada mueve la página de atrás:
+  // solo se deja arrastrar lo que de verdad tiene para dónde moverse
+  (function () {
+    var y0 = 0;
+    function rodante(el, tope) {
+      for (; el && el !== tope.parentNode; el = el.parentNode) {
+        if (el.nodeType !== 1) continue;
+        var o = getComputedStyle(el).overflowY;
+        if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return el;
+      }
+      return null;
+    }
+    document.addEventListener('touchstart', function (e) { if (e.touches.length === 1) y0 = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!document.body.style.position || e.touches.length !== 1) return;   // solo cuando hay algo abierto encima
+      var capa = e.target.closest && e.target.closest('.panel,.probador,.capa,.fiesta,.pn-borrador'); if (!capa) { e.preventDefault(); return; }
+      if (e.target.closest('input[type=range],canvas')) return;
+      var r = rodante(e.target, capa), dy = e.touches[0].clientY - y0;
+      if (!r) { e.preventDefault(); return; }
+      if ((dy > 0 && r.scrollTop <= 0) || (dy < 0 && r.scrollTop + r.clientHeight >= r.scrollHeight - 1)) e.preventDefault();
+    }, { passive: false });
+  })();
   // al recargar, la página empieza siempre hasta arriba
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 

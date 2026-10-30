@@ -827,33 +827,39 @@
     });
   }
   var DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  // horario: un renglón por día, como en Google Maps (abierto/cerrado y sus horas). Se guarda juntando los días con las mismas horas.
+  var ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0], DIAS_L = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   function horarioHTML(h) {
     if (!Array.isArray(h)) h = A.clone(window.CONFIG_BASE.horario);
-    P.horario = h;
-    return '<div class="pn-hor" id="pn-hor">' + h.map(function (r, i) {
-      return '<div class="pn-hor-fila"><div class="chips">' + [1, 2, 3, 4, 5, 6, 0].map(function (d) {
-        return '<button type="button" class="chip chip-dia' + (r.dias.indexOf(d) >= 0 ? ' on' : '') + '" data-hdia="' + d + '" data-hi="' + i + '">' + DIAS[d] + '</button>';
-      }).join('') + '</div><div class="pn-hor-horas"><label>Abre <input class="campo" type="time" data-habre="' + i + '" value="' + r.abre + '"></label><label>Cierra <input class="campo" type="time" data-hcierra="' + i + '" value="' + r.cierra + '"></label>' +
-      '<button type="button" class="icon-btn" data-hquita="' + i + '" aria-label="Quitar renglón">×</button></div></div>';
-    }).join('') + '<button type="button" class="btn btn-linea" data-hmas>+ Otro horario</button></div>';
+    var pd = {}; ORDEN_DIAS.forEach(function (d) { pd[d] = { abierto: false, abre: '09:00', cierra: '19:00' }; });
+    h.forEach(function (r) { (r.dias || []).forEach(function (d) { pd[d] = { abierto: true, abre: r.abre, cierra: r.cierra }; }); });
+    P.horDia = pd;
+    return '<div class="pn-hor" id="pn-hor">' + ORDEN_DIAS.map(function (d) {
+      var x = pd[d];
+      return '<div class="pn-dia' + (x.abierto ? '' : ' cerrado') + '" data-dia="' + d + '"><b>' + DIAS_L[d] + '</b>' +
+        '<button type="button" class="pn-sw' + (x.abierto ? ' on' : '') + '" data-dia-ab="' + d + '" aria-pressed="' + x.abierto + '"><i></i><span>' + (x.abierto ? 'Abierto' : 'Cerrado') + '</span></button>' +
+        '<span class="pn-dia-horas"><input class="campo" type="time" data-habre="' + d + '" value="' + x.abre + '" aria-label="Abre"><em>a</em><input class="campo" type="time" data-hcierra="' + d + '" value="' + x.cierra + '" aria-label="Cierra"></span></div>';
+    }).join('') + '</div>';
   }
-  function leerHorario(todos) {
-    var l = P.horario.map(function (r, i) {
-      var a = $('[data-habre="' + i + '"]', panel), c = $('[data-hcierra="' + i + '"]', panel);
-      return { dias: r.dias, abre: a ? a.value : r.abre, cierra: c ? c.value : r.cierra };
+  function leerHorario() {
+    var grupos = [];
+    ORDEN_DIAS.forEach(function (d) {
+      var x = P.horDia[d], a = $('[data-habre="' + d + '"]', panel), c = $('[data-hcierra="' + d + '"]', panel);
+      if (a) x.abre = a.value || x.abre; if (c) x.cierra = c.value || x.cierra;
+      if (!x.abierto) return;
+      var g = grupos.filter(function (r) { return r.abre === x.abre && r.cierra === x.cierra; })[0];
+      if (g) g.dias.push(d); else grupos.push({ dias: [d], abre: x.abre, cierra: x.cierra });
     });
-    return todos ? l : l.filter(function (r) { return r.dias.length; });   // un renglón sin días no se guarda (pero se queda en pantalla para llenarlo)
+    return grupos;
   }
   function enlazarDatos() {
-    $$('[data-hdia]', panel).forEach(function (b) {
+    $$('[data-dia-ab]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
-        var r = P.horario[+b.getAttribute('data-hi')], d = +b.getAttribute('data-hdia'), k = r.dias.indexOf(d);
-        if (k >= 0) r.dias.splice(k, 1); else r.dias.push(d);
-        b.classList.toggle('on', k < 0);
+        var d = +b.getAttribute('data-dia-ab'), x = P.horDia[d]; x.abierto = !x.abierto;
+        b.classList.toggle('on', x.abierto); b.setAttribute('aria-pressed', x.abierto); $('span', b).textContent = x.abierto ? 'Abierto' : 'Cerrado';
+        b.parentNode.classList.toggle('cerrado', !x.abierto);
       });
     });
-    $$('[data-hquita]', panel).forEach(function (b) { b.addEventListener('click', function () { P.leerDatos(); var h = leerHorario(true); h.splice(+b.getAttribute('data-hquita'), 1); P.config.horario = h; pintar(); P.guardarDatos(); }); });
-    var mas = $('[data-hmas]', panel); if (mas) mas.addEventListener('click', function () { P.leerDatos(); P.config.horario = leerHorario(true).concat([{ dias: [], abre: '09:00', cierra: '18:00' }]); pintar(); });
     var c = P.config;
     $$('[data-quita-tag]', panel).forEach(function (b) { b.addEventListener('click', function () { c[b.getAttribute('data-quita-tag')].splice(+b.getAttribute('data-i'), 1); P.leerDatos(); pintar(); P.guardarDatos(); }); });
     $$('[data-tag-mas]', panel).forEach(function (b) { b.addEventListener('click', function () { P.leerDatos(); pintar(); P.guardarDatos(); var n = $('[data-tag-in]', panel); if (n) n.focus(); }); });
@@ -881,7 +887,7 @@
       var mx = parseInt($('#dt-max').value, 10); c.maxEquipos = mx >= 1 && mx <= 30 ? mx : 10;
       c.textos = { hero_t: $('#dt-tit').value.trim(), hero_p: $('#dt-sub').value.trim() };
       Object.assign(c, P.sonido);
-      c.direccion = $('#dt-dir').value; c.horario = leerHorario(true); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
+      c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
       var wa = $('#dt-wa').value.replace(/\D/g, ''); if (wa.length === 12 && wa.indexOf('52') === 0) wa = wa.slice(2);
       if (wa.length === 10) { c.whatsapp = '52' + wa; return true; }
       return !wa ? (c.whatsapp = '', true) : false;
@@ -892,8 +898,7 @@
       reloj = setTimeout(function () {
         if (!leer()) { marca('El WhatsApp debe tener 10 dígitos. Lo demás sí se guardó cuando lo corrijas.', true); return; }
         marca('Guardando…');
-        var envio = Object.assign({}, c, { horario: c.horario.filter(function (r) { return r.dias.length; }) });
-        api('config', { config: envio }).then(function () { marca('Guardado ✓'); return A.cargarTienda(); }).then(function () { A.pintarDatos(); A.pintarCatalogo(); })
+        api('config', { config: c }).then(function () { marca('Guardado ✓'); return A.cargarTienda(); }).then(function () { A.pintarDatos(); A.pintarCatalogo(); })
           .catch(function () { marca('No se guardó: revisa tu internet. Lo intentamos otra vez en cuanto cambies algo.', true); });
       }, 700);
     }
@@ -903,7 +908,7 @@
       inp.addEventListener('change', guardar);
       if (inp.tagName === 'TEXTAREA' || inp.type === 'text' || !inp.type || inp.type === 'tel' || inp.type === 'number') inp.addEventListener('input', function () { marca('Escribiendo…'); });
     });
-    $$('.pn-datos [data-hdia], .pn-datos [data-son], .pn-datos [data-son-quitar]', panel).forEach(function (b) { b.addEventListener('click', guardar); });
+    $$('.pn-datos [data-dia-ab], .pn-datos [data-son], .pn-datos [data-son-quitar]', panel).forEach(function (b) { b.addEventListener('click', guardar); });
     var vol2 = $('#dt-vol', panel); if (vol2) vol2.addEventListener('change', guardar);
     P.sonidoGuardar = guardar;
   }
