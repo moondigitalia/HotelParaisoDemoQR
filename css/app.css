@@ -920,3 +920,8 @@ input[type=range]{width:100%;accent-color:var(--oro)}
   .historia-in{grid-template-columns:minmax(0,1fr) !important;gap:28px;align-items:start}
   .eq-casa{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:14px}
 }
+/* tachones: 6 lugares iguales que siempre caben en el ancho (Firefox recortaba el círculo de "otro color") */
+.tacos-fila:not(.abierta){display:grid;grid-template-columns:repeat(6,minmax(0,42px));justify-content:start;gap:8px}
+.tacos-fila:not(.abierta) .taco-c{width:100%;max-width:42px;min-width:0}
+/* "M Sport" en letra cursiva: la última letra se sale de su caja y Safari la recortaba al aparecer la barra */
+.marca-txt i{padding-right:.18em;margin-right:-.18em}
