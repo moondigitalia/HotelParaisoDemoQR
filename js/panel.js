@@ -119,7 +119,6 @@
       // pedido hecho con el catálogo 3D
       filas.push(['Uniforme', esc(e.base || '—')]);
       filas.push(['Manga', d.manga === 'larga' ? 'Larga' : 'Corta']);
-      filas.push(['Tachones del cliente', window.APP_TACOS ? bolita(window.APP_TACOS.hex(d.taco)) + esc(window.APP_TACOS.nombre(d.taco)) : esc(d.taco)]);
       filas.push(['Nombre y número', bolita(d.colorTexto) + esc([d.nombre, d.numero].filter(Boolean).join(' · ') || 'Sin nombre')]);
       return '<dl class="pn-como">' + filas.map(function (f) { return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>'; }).join('') + '</dl>';
     }

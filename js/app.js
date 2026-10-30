@@ -404,7 +404,6 @@
   var TACOS_FILA = { negro: '#141518', blanco: '#f2f3f5', dorado: '#c9a23a', rojo: '#d7262e', azul: '#1f4fd1' };
   var TACOS_VIEJOS = { rosa: '#f6588a', turquesa: '#16b0b5' };
   var BARRA = [[0, '#ffffff'], [0.08, '#ff2a2a'], [0.18, '#ff8a00'], [0.28, '#ffd400'], [0.36, '#c9a23a'], [0.47, '#3ccf4e'], [0.58, '#16b0b5'], [0.69, '#1f4fd1'], [0.8, '#7b3fe4'], [0.9, '#f6588a'], [1, '#141518']];
-  var NOMBRES_COLOR = { negro: '#141518', blanco: '#f2f3f5', gris: '#8a8f98', dorado: '#c9a23a', amarillo: '#ffd400', naranja: '#ff8a00', rojo: '#d7262e', rosa: '#f6588a', morado: '#7b3fe4', azul: '#1f4fd1', turquesa: '#16b0b5', verde: '#3ccf4e' };
   function rgbDe(h) { return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); }); }
   function hexTaco(t) { return TACOS_FILA[t] || TACOS_VIEJOS[t] || (/^#[0-9a-f]{6}$/i.test(t || '') ? t : TACOS_FILA.negro); }
   function colorBarra(k) {
@@ -415,14 +414,6 @@
     }
     return BARRA[BARRA.length - 1][1];
   }
-  // el nombre del color libre (para el folio): el más parecido de la lista
-  function nombreTaco(t) {
-    if (TACOS_FILA[t] || TACOS_VIEJOS[t]) return T('taco_' + t);
-    var c = rgbDe(hexTaco(t)), mejor = 'negro', menor = 1e9;
-    Object.keys(NOMBRES_COLOR).forEach(function (n) { var q = rgbDe(NOMBRES_COLOR[n]), d = (q[0] - c[0]) * (q[0] - c[0]) * 0.3 + (q[1] - c[1]) * (q[1] - c[1]) * 0.59 + (q[2] - c[2]) * (q[2] - c[2]) * 0.11; if (d < menor) { menor = d; mejor = n; } });
-    return T('taco_' + mejor);
-  }
-  window.APP_TACOS = { nombre: nombreTaco, hex: hexTaco };
   function filaTacos() {
     var libre = !TACOS_FILA[S.d.taco];
     return Object.keys(TACOS_FILA).map(function (t) {
@@ -536,7 +527,6 @@
       var d = S.d, u = uniformeActual(), items = [];
       if (u) items.push(u.nombre);
       items.push(T(d.manga === 'larga' ? 'manga_larga' : 'manga_corta'));
-      items.push(T('tus_tacos') + ': ' + nombreTaco(d.taco).toLowerCase());
       if (d.nombre || d.numero) items.push((d.nombre || '') + (d.numero ? ' · ' + d.numero : ''));
       var nEq = S.equipos.length + 1, nJug = S.equipos.reduce(function (s, e) { return s + e.jugadores.length; }, 0) + (S.esEquipo ? S.jugadores.filter(function (j) { return j.nombre || j.numero; }).length : 0);
       if (nEq > 1 || nJug) items.push(nEq + ' ' + T(nEq > 1 ? 'equipos' : 'equipo_1') + (nJug ? ' · ' + nJug + ' ' + T(nJug > 1 ? 'jugadores' : 'jugador_1') : ''));
