@@ -4,9 +4,9 @@ const ROOT = path.join(__dirname, '..'), BLOB = path.join(__dirname, '.blob');
 fs.mkdirSync(BLOB, { recursive: true });
 const PORT = +process.env.PORT || 5055;
 const fake = {
-  put: async (p, data, o) => { const f = path.join(BLOB, p); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, data); return { url: 'http://localhost:' + PORT + '/_blob/' + p, pathname: p }; },
+  put: async (p, data, o) => { const f = path.join(BLOB, p); if (o && o.allowOverwrite === false && fs.existsSync(f)) throw new Error('existe'); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, data); return { url: 'http://localhost:' + PORT + '/_blob/' + p, pathname: p }; },
   get: async (p) => { const f = path.join(BLOB, p); if (!fs.existsSync(f)) return null; const { Readable } = require('stream'); return { stream: Readable.toWeb(fs.createReadStream(f)) }; },
-  list: async ({ prefix }) => { const d = path.join(BLOB, prefix); const out = []; if (fs.existsSync(d)) for (const n of fs.readdirSync(d)) { const st = fs.statSync(path.join(d, n)); out.push({ pathname: prefix + n, url: 'http://localhost:' + PORT + '/_blob/' + prefix + n, uploadedAt: st.mtime }); } return { blobs: out, hasMore: false }; },
+  list: async ({ prefix }) => { const full = path.join(BLOB, prefix), d = prefix.endsWith('/') ? full : path.dirname(full), base = prefix.endsWith('/') ? '' : path.basename(full), rel = path.relative(BLOB, d); const out = []; if (fs.existsSync(d)) for (const n of fs.readdirSync(d)) { if (!n.startsWith(base)) continue; const st = fs.statSync(path.join(d, n)); if (st.isDirectory()) continue; const pn = (rel ? rel + '/' : '') + n; out.push({ pathname: pn, url: 'http://localhost:' + PORT + '/_blob/' + pn, uploadedAt: st.mtime }); } return { blobs: out, hasMore: false }; },
   del: async () => {}
 };
 require.cache[require.resolve('/tmp/claude-0/blobtest/node_modules/@vercel/blob')] = { exports: fake, loaded: true, id: 'x' };

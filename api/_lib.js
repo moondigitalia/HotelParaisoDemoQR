@@ -20,6 +20,36 @@ async function writeJSON(pathname, obj) {
   });
 }
 
+// crear sin pisar: si ya existe, falla (así dos clientes al mismo segundo nunca se quedan con el mismo folio)
+async function crearJSON(pathname, obj) {
+  return put(pathname, JSON.stringify(obj), {
+    access: ACCESS, addRandomSuffix: false, allowOverwrite: false,
+    contentType: 'application/json', cacheControlMaxAge: 60
+  });
+}
+
+// respaldo antes de guardar: se guarda lo que había, con fecha; se quedan los 30 más nuevos de cada tipo
+async function respaldar(tipo) {
+  const actual = await readJSON('data/' + tipo + '.json', null);
+  if (actual === null) return;
+  await writeJSON('data/respaldos/' + tipo + '-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json', actual);
+  try {
+    const r = await list({ prefix: 'data/respaldos/' + tipo + '-', limit: 1000 });
+    const viejos = r.blobs.sort((a, b) => (a.pathname < b.pathname ? 1 : -1)).slice(30).map((b) => b.url);
+    if (viejos.length) await del(viejos);
+  } catch (e) { /* el respaldo nunca frena al dueño */ }
+}
+
+// código del panel: el maestro (guardado en Vercel, para recuperar) o el que el dueño puso desde su panel
+const crypto = require('crypto');
+function hashCodigo(pin) { return crypto.createHash('sha256').update('msport|' + String(pin || '')).digest('hex'); }
+async function codigoValido(pin) {
+  if (pinOk(pin)) return true;
+  if (!pin) return false;
+  const a = await readJSON('data/acceso.json', null);
+  return !!(a && a.hash && a.hash === hashCodigo(pin));
+}
+
 function body(req) {
   if (req.body && typeof req.body === 'object') return Promise.resolve(req.body);
   return new Promise((res) => {
@@ -48,6 +78,11 @@ const DEFAULT_CONFIG = {
   lema: 'La tienda de las estrellas',
   tallas: ['Niño 6', 'Niño 8', 'Niño 10', 'Niño 12', 'Niño 14', 'Ch', 'M', 'G', 'XG', 'XXG'],
   categorias: ['Liga MX', 'Europa', 'Países'],
+  maxEquipos: 10,
+  sonido: 'si',
+  sonidoUrl: '',
+  sonidoVolumen: 50,
+  textos: { hero_t: '', hero_p: '' },
   historia: '',
   calificacion: '4.3',
   opiniones: '150'
@@ -72,4 +107,4 @@ async function leerConfig() {
   return c;
 }
 
-module.exports = { leerConfig, put, list, del, readJSON, writeJSON, body, send, pinOk, DEFAULT_CONFIG, rid, ACCESS };
+module.exports = { leerConfig, put, list, del, readJSON, writeJSON, crearJSON, respaldar, codigoValido, hashCodigo, body, send, pinOk, DEFAULT_CONFIG, rid, ACCESS };

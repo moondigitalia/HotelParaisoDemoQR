@@ -1,5 +1,5 @@
 // Folios: el cliente guarda su diseño (POST) y cualquiera con el link lo abre (GET con clave).
-const { readJSON, writeJSON, list, body, send, rid } = require('./_lib');
+const { readJSON, crearJSON, list, body, send, rid } = require('./_lib');
 
 async function siguienteNumero() {
   let n = 0, cursor;
@@ -40,10 +40,13 @@ module.exports = async (req, res) => {
       nombre: String(j.nombre || '').slice(0, 30), numero: String(j.numero || '').slice(0, 3), talla: String(j.talla || '').slice(0, 12)
     }))
   }));
+  // el número se aparta al guardar: si otro cliente ya lo tomó en ese mismo instante, se usa el siguiente
   let num = await siguienteNumero();
-  const id = 'M-' + String(num).padStart(4, '0');
   const clave = rid(6);
-  const folio = { id, clave, creado: new Date().toISOString(), estado: 'nuevo', idioma: String(b.idioma || 'es').slice(0, 5), equipos: limpio };
-  await writeJSON('folios/' + id + '.json', folio);
-  send(res, 200, { id, clave });
+  for (let intento = 0; intento < 8; intento++, num++) {
+    const id = 'M-' + String(num).padStart(4, '0');
+    const folio = { id, clave, creado: new Date().toISOString(), estado: 'nuevo', idioma: String(b.idioma || 'es').slice(0, 5), equipos: limpio };
+    try { await crearJSON('folios/' + id + '.json', folio); return send(res, 200, { id, clave }); } catch (e) { /* ya existe: el siguiente */ }
+  }
+  send(res, 500, { error: 'ocupado' });
 };

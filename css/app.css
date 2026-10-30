@@ -866,3 +866,31 @@ input[type=range]{width:100%;accent-color:var(--oro)}
 .probador .paso-cuerpo[data-paso="diseno"] .mini.con-escudo .mini-foto.escudo{width:clamp(42px,8.6vh,76px);width:clamp(42px,8.6dvh,76px)}
 .probador .paso-cuerpo[data-paso="diseno"] .seccion .mini-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .probador .paso-cuerpo[data-paso="diseno"] .mini.con-escudo .mini-nom{white-space:nowrap;display:block}
+
+/* panel: cualquier color */
+.color-mas{position:relative;overflow:hidden;background:conic-gradient(#ff2a2a,#ffd400,#3ccf4e,#16b0b5,#1f4fd1,#7b3fe4,#f6588a,#ff2a2a);cursor:pointer}
+.color-mas input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+/* panel: secciones y equipos */
+.pn-sec{margin:18px 0 0}
+.pn-sec-cab{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.pn-sec-nom{flex:1;min-width:0;font:800 20px/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em;background:transparent;border-color:transparent;padding:6px 10px}
+.pn-sec-nom:focus{border-color:var(--oro);background:var(--cancha)}
+.pn-sec-sin{flex:1;font:800 18px/1.2 var(--display);text-transform:uppercase;color:var(--suave)}
+.pn-sec-sin small{display:block;font:500 12px/1.3 var(--body);text-transform:none}
+.pn-orden.fila{flex-direction:row}
+.pn-esc{width:52px;height:52px;flex:none;border-radius:50%;background:#f4f5f9;display:grid;place-items:center;box-shadow:inset 0 0 0 3px rgba(255,198,26,.55)}
+.pn-esc img{width:76%;height:76%;object-fit:contain}
+.pn-eq-nuevo[hidden]{display:none}
+/* la foto de espera mide exactamente la zona del 3D: Safari y Firefox no estiran una imagen con top y bottom
+   (le dejan su alto natural y salía "crecida"); por eso el alto va escrito con la misma cuenta */
+.lienzo-respaldo{bottom:auto;height:calc(100% - min(var(--aire-arriba,0px),45%) - min(var(--aire-abajo,0px),15%))}
+@media (max-width:980px){
+  .probador .paso-cuerpo.cabe{overflow:hidden}                           /* si cabe, no se puede jalar ni rebota */
+  .probador[data-paso="diseno"]:not(.grande) .escenario{min-height:110px}  /* al elegir equipo los escudos mandan */
+}
+.pn-son-op[hidden]{display:none}
+.pn-son-op{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.pn-vol{display:flex;align-items:center;gap:12px;font-weight:600}
+.pn-vol input{flex:1;accent-color:var(--oro)}
+.pn-vol b{min-width:44px;text-align:right}
+.pn .pn-sec-nom{font:800 20px/1.1 var(--display);text-transform:uppercase}

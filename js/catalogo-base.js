@@ -70,6 +70,11 @@ window.CONFIG_BASE = {
   lema: 'La tienda de las estrellas',
   tallas: ['Niño 6', 'Niño 8', 'Niño 10', 'Niño 12', 'Niño 14', 'Ch', 'M', 'G', 'XG', 'XXG'],
   categorias: ['Liga MX', 'Europa', 'Países'],
+  maxEquipos: 10,
+  sonido: 'si',
+  sonidoUrl: '',
+  sonidoVolumen: 50,
+  textos: { hero_t: '', hero_p: '' },
   historia: '',
   calificacion: '4.3',
   opiniones: '150'

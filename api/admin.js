@@ -1,31 +1,29 @@
 // Panel del dueño. Todo pasa por aquí con su código.
-const { leerConfig, readJSON, writeJSON, list, del, body, send, pinOk, DEFAULT_CONFIG } = require('./_lib');
+const { leerConfig, readJSON, writeJSON, list, del, body, send, codigoValido, hashCodigo, respaldar, DEFAULT_CONFIG } = require('./_lib');
 
 const DIA = 864e5;
 const fallos = new Map();
 
-async function todosLosFolios() {
-  const out = []; let cursor;
+// Los folios más nuevos primero, de 150 en 150 (con los años pueden ser miles: el panel abre rápido igual)
+const POR_PAGINA = 150;
+async function folios(antesDe) {
+  const nums = []; let cursor;
   do {
     const r = await list({ prefix: 'folios/', cursor, limit: 1000 });
-    r.blobs.forEach((b) => { if (/\.json$/.test(b.pathname)) out.push(b.pathname); });
+    r.blobs.forEach((b) => { const m = /folios\/M-(\d+)\.json$/.exec(b.pathname); if (m) nums.push(parseInt(m[1], 10)); });
     cursor = r.hasMore ? r.cursor : null;
   } while (cursor);
-  const folios = await Promise.all(out.map((p) => readJSON(p, null)));
-  return folios.filter(Boolean).sort((a, b) => (a.creado < b.creado ? 1 : -1));
+  const lista = nums.filter((n) => !antesDe || n < antesDe).sort((a, b) => b - a);
+  const pagina = lista.slice(0, POR_PAGINA);
+  const leidos = await Promise.all(pagina.map((n) => readJSON('folios/M-' + String(n).padStart(4, '0') + '.json', null)));
+  return { folios: leidos.filter(Boolean), mas: lista.length > POR_PAGINA };
 }
 
-// Limpieza automática: papelera > 30 días y fotos sueltas > 6 meses que nadie usa.
-async function limpiar(cat, folios) {
+// Limpieza automática: solo la papelera de más de 30 días. Las fotos de los clientes nunca se borran solas.
+async function limpiar(cat) {
   const ahora = Date.now();
   const vivos = cat.filter((u) => !(u.borrado && ahora - u.borrado > 30 * DIA));
   if (vivos.length !== cat.length) await writeJSON('data/catalogo.json', vivos);
-  try {
-    const usadas = new Set(JSON.stringify([vivos, folios]).match(/https:[^"]+/g) || []);
-    const r = await list({ prefix: 'subidas/', limit: 1000 });
-    const viejas = r.blobs.filter((b) => ahora - new Date(b.uploadedAt).getTime() > 180 * DIA && !usadas.has(b.url)).map((b) => b.url);
-    if (viejas.length) await del(viejas);
-  } catch (e) { /* la limpieza nunca frena al dueño */ }
   return vivos;
 }
 
@@ -35,16 +33,47 @@ module.exports = async (req, res) => {
   const f = (fallos.get(ip) || []).filter((t) => Date.now() - t < 900e3);
   if (f.length >= 8) return send(res, 429, { error: 'espera' });
   const b = await body(req);
-  if (!pinOk(b.pin)) { f.push(Date.now()); fallos.set(ip, f); return send(res, 401, { error: 'codigo' }); }
+  if (!(await codigoValido(b.pin))) { f.push(Date.now()); fallos.set(ip, f); return send(res, 401, { error: 'codigo' }); }
 
   const accion = b.accion;
   if (accion === 'todo') {
-    const folios = await todosLosFolios();
+    const fo = await folios(0);
     let cat = await readJSON('data/catalogo.json', null);
-    if (cat !== null) cat = await limpiar(cat, folios);
+    if (cat !== null) cat = await limpiar(cat);
     const config = await leerConfig();
-    folios.forEach((x) => { delete x.historial; });
-    return send(res, 200, { folios, catalogo: cat, config });
+    fo.folios.forEach((x) => { delete x.historial; });
+    return send(res, 200, { folios: fo.folios, masFolios: fo.mas, catalogo: cat, config });
+  }
+  if (accion === 'folios') {
+    const fo = await folios(parseInt(b.antesDe, 10) || 0);
+    fo.folios.forEach((x) => { delete x.historial; });
+    return send(res, 200, { folios: fo.folios, masFolios: fo.mas });
+  }
+  // cómo estaba antes: los últimos respaldos, y regresar a uno
+  if (accion === 'respaldos') {
+    const out = [];
+    for (const tipo of ['catalogo', 'config']) {
+      const r = await list({ prefix: 'data/respaldos/' + tipo + '-', limit: 1000 });
+      r.blobs.forEach((x) => out.push({ path: x.pathname, tipo, fecha: x.uploadedAt }));
+    }
+    out.sort((a, b) => (a.path.slice(-29) < b.path.slice(-29) ? 1 : -1));
+    return send(res, 200, { respaldos: out.slice(0, 40) });
+  }
+  if (accion === 'restaurar') {
+    const m = /^data\/respaldos\/(catalogo|config)-[0-9TZ-]+\.json$/.exec(String(b.path || ''));
+    if (!m) return send(res, 400, { error: 'respaldo' });
+    const viejo = await readJSON(b.path, null);
+    if (viejo === null) return send(res, 404, { error: 'no' });
+    await respaldar(m[1]);
+    await writeJSON('data/' + m[1] + '.json', viejo);
+    return send(res, 200, { ok: true });
+  }
+  // el dueño cambia su código; el maestro (en Vercel) sigue sirviendo para recuperar el acceso
+  if (accion === 'codigo') {
+    const nuevo = String(b.nuevo || '').trim();
+    if (nuevo.length < 4 || nuevo.length > 32) return send(res, 400, { error: 'corto' });
+    await writeJSON('data/acceso.json', { hash: hashCodigo(nuevo), cambiado: new Date().toISOString() });
+    return send(res, 200, { ok: true });
   }
   if (accion === 'estado') {
     const id = String(b.id || '');
@@ -61,6 +90,7 @@ module.exports = async (req, res) => {
   if (accion === 'catalogo') {
     if (!Array.isArray(b.catalogo)) return send(res, 400, { error: 'catalogo' });
     const cat = b.catalogo.slice(0, 400);
+    await respaldar('catalogo');
     await writeJSON('data/catalogo.json', cat);
     return send(res, 200, { ok: true });
   }
@@ -79,8 +109,14 @@ module.exports = async (req, res) => {
       calificacion: String(c.calificacion || '').replace(/[^0-9.]/g, '').slice(0, 3),
       opiniones: String(c.opiniones || '').replace(/\D/g, '').slice(0, 6),
       tallas: (Array.isArray(c.tallas) ? c.tallas : []).map((t) => String(t).slice(0, 12)).filter(Boolean).slice(0, 30),
-      categorias: (Array.isArray(c.categorias) ? c.categorias : []).map((t) => String(t).slice(0, 40)).filter(Boolean).slice(0, 20)
+      categorias: (Array.isArray(c.categorias) ? c.categorias : []).map((t) => String(t).slice(0, 40)).filter(Boolean).slice(0, 20),
+      maxEquipos: Math.min(30, Math.max(1, parseInt(c.maxEquipos, 10) || 10)),
+      sonido: c.sonido === 'no' ? 'no' : 'si',
+      sonidoUrl: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.sonidoUrl || '')) ? String(c.sonidoUrl) : '',
+      sonidoVolumen: Math.min(100, Math.max(0, isFinite(parseFloat(c.sonidoVolumen)) ? Math.round(parseFloat(c.sonidoVolumen)) : 50)),
+      textos: { hero_t: String((c.textos || {}).hero_t || '').slice(0, 80), hero_p: String((c.textos || {}).hero_p || '').slice(0, 240) }
     };
+    await respaldar('config');
     await writeJSON('data/config.json', limpio);
     return send(res, 200, { ok: true });
   }

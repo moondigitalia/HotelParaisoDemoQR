@@ -12,11 +12,13 @@ module.exports = async (req, res) => {
   h.push(now); hits.set(ip, h);
 
   const b = await body(req);
-  const m = /^data:(image\/(png|jpeg|webp));base64,(.+)$/.exec(b.data || '');
+  // imágenes, y sonidos para el panel (el sonido de la cotización)
+  const m = /^data:((image|audio)\/(png|jpeg|webp|mpeg|mp3|mp4|x-m4a|m4a|aac|wav|x-wav|wave|ogg|webm));base64,(.+)$/.exec(b.data || '');
   if (!m) return send(res, 400, { error: 'formato' });
-  const buf = Buffer.from(m[3], 'base64');
+  const buf = Buffer.from(m[4], 'base64');
   if (buf.length > 4.2e6) return send(res, 413, { error: 'grande' });
-  const ext = m[2] === 'jpeg' ? 'jpg' : m[2];
+  const EXT = { jpeg: 'jpg', mpeg: 'mp3', mp3: 'mp3', mp4: 'm4a', 'x-m4a': 'm4a', m4a: 'm4a', 'x-wav': 'wav', wave: 'wav' };
+  const ext = EXT[m[3]] || m[3];
   const carpeta = b.carpeta === 'catalogo' ? 'catalogo' : 'subidas';
   const blob = await put(carpeta + '/' + new Date().toISOString().slice(0, 10) + '-' + rid(10) + '.' + ext, buf, {
     access: 'public', contentType: m[1], addRandomSuffix: false, cacheControlMaxAge: 31536000

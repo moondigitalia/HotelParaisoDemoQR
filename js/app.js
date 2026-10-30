@@ -73,7 +73,7 @@
   function catalogoVisible() {
     var eqs = {}, n = 0;
     return (TIENDA.catalogo || []).filter(function (u) { return !u.oculto && !u.borrado && u.tipo === '3d'; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0); })
-      .filter(function (u) { var k = String((u.etiquetas && u.etiquetas.equipo) || u.id).trim().toLowerCase(); if (!eqs[k]) { if (n >= 10) return false; eqs[k] = 1; n++; } return true; });
+      .filter(function (u) { var k = String((u.etiquetas && u.etiquetas.equipo) || u.id).trim().toLowerCase(); if (!eqs[k]) { if (n >= (+TIENDA.config.maxEquipos || 10)) return false; eqs[k] = 1; n++; } return true; });
   }
   function uniformeActual() { var l = catalogoVisible(); return l.filter(function (u) { return u.id === S.baseId; })[0] || l[0] || null; }
   function usarBase(u) {
@@ -345,6 +345,19 @@
     if (!escenario || probador.classList.contains('grande')) return;
     escenario.style.height = '';
     if (motor) motor.redibujar();
+    encajar();
+  }
+  // Si en algún celular (Safari mide distinto) el paso aún no cabe con el uniforme ya en su mínimo, el paso se
+  // encoge parejo lo justo para caber: nunca hay que recorrer nada ni rebota la pantalla.
+  function encajar() {
+    var c = $('#paso-cuerpo'); if (!c || probador.hidden || probador.classList.contains('grande')) return;
+    var hijos = Array.prototype.slice.call(c.children);
+    hijos.forEach(function (h) { h.style.zoom = ''; });
+    requestAnimationFrame(function () {
+      var alto = c.clientHeight, todo = c.scrollHeight;
+      if (todo > alto + 1 && alto > 40) { var k = Math.max(0.7, (alto - 2) / todo); hijos.forEach(function (h) { h.style.zoom = k; }); }
+      requestAnimationFrame(function () { c.classList.toggle('cabe', c.scrollHeight <= c.clientHeight + 1); });
+    });
   }
   window.addEventListener('resize', function () { ajustarEscenario(); });
   function vigilarMas() {
@@ -532,7 +545,7 @@
       }).join('') + '</div>';
       h += '<div class="chips llenar' + (S.equipos.length ? '' : ' g0') + '"><button type="button" class="chip' + (!S.esEquipo ? ' on' : '') + '" data-eq="no">' + esc(T('equipo_no')) + '</button><button type="button" class="chip' + (S.esEquipo ? ' on' : '') + '" data-eq="si">' + esc(T('equipo_si')) + '</button></div>';
       var tallas = TIENDA.config.tallas || [];
-      if (!S.esEquipo) return h + '<div class="grupo"><label class="etq" for="f-talla1">' + esc(T('talla_uno')) + '</label><select class="campo" id="f-talla1"><option value="">' + esc(T('talla_luego')) + '</option>' + tallas.map(function (t) { return '<option' + (t === S.tallaUno ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div><p class="nota-corta">' + esc(T('p_equipo_s')) + '</p>';
+      if (!S.esEquipo) return h + '<div class="grupo"><label class="etq" for="f-talla1">' + esc(T('talla_uno')) + '</label><select class="campo" id="f-talla1"><option value="" disabled hidden' + (S.tallaUno ? '' : ' selected') + '>' + esc(T('talla_elige')) + '</option>' + tallas.map(function (t) { return '<option' + (t === S.tallaUno ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div><p class="nota-corta">' + esc(T('p_equipo_s')) + '</p>';
       h += '<div class="grupo"><label class="etq" for="f-equipo">' + esc(T('nombre_equipo')) + '</label><input class="campo" id="f-equipo" maxlength="40" value="' + esc(S.nombreEquipo) + '"></div>';
       h += '<div class="roster"><div class="r-fila r-head"><span>' + esc(T('jugador')) + '</span><span>' + esc(T('numero')) + '</span><span>' + esc(T('talla')) + '</span><span></span></div>' +
         S.jugadores.map(function (j, i) {
@@ -759,17 +772,50 @@
   }
   /* sonido del folio: patada → porra → brillo al final, en un solo archivo para que nada se encime.
      Se prepara en el mismo toque de "Cotizar" (los teléfonos solo dejan sonar si nace de un toque) y suena cuando sale el folio. */
-  var sonFolio = null, sonando = false;
-  function prepararSonido() {
+  /* Sonido al mandar la cotización. Va por el mezclador del navegador (no por <audio>): así el volumen y la entrada y
+     salida suaves funcionan también en iPhone, donde el volumen de <audio> no se puede cambiar.
+     El dueño escoge en su panel: con o sin sonido, su propio sonido y el volumen (de arranque, 50 %). */
+  var mezcla = null, sonBuf = null, sonDe = '', sonCargando = null, sonFuente = null, sonGan = null;
+  function sonidoConfig() {
+    var c = TIENDA.config || {}, v = parseFloat(c.sonidoVolumen);
+    return { url: c.sonido === 'no' ? '' : (c.sonidoUrl || '/assets/sonido/folio.mp3?v=' + (window.VERSION || '1')), vol: isFinite(v) && v >= 0 && v <= 100 ? v / 100 : 0.5 };
+  }
+  function cargarSonido(url) {
     try {
-      if (!sonFolio) { sonFolio = new Audio('/assets/sonido/folio.mp3?v=' + (window.VERSION || '1')); sonFolio.preload = 'auto'; }
-      sonando = false; sonFolio.muted = true;
-      var p = sonFolio.play(); if (p && p.then) p.then(function () { if (sonando) return; sonFolio.pause(); sonFolio.currentTime = 0; sonFolio.muted = false; }).catch(function () {});
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC || !url) return null;
+      if (!mezcla) mezcla = new AC();
+      if (mezcla.state === 'suspended') mezcla.resume();   // se despierta con el toque del cliente (regla del iPhone)
+      if (sonDe === url && sonCargando) return sonCargando;
+      sonDe = url; sonBuf = null;
+      sonCargando = fetch(url).then(function (r) { return r.arrayBuffer(); })
+        .then(function (a) { return new Promise(function (ok, no) { mezcla.decodeAudioData(a, ok, no); }); })
+        .then(function (b) { if (sonDe === url) sonBuf = b; return b; })
+        .catch(function () { if (sonDe === url) { sonDe = ''; sonCargando = null; } return null; });
+      return sonCargando;
+    } catch (e) { return null; }
+  }
+  function prepararSonido() { cargarSonido(sonidoConfig().url); }
+  function pararSonido() {
+    try {
+      if (sonGan && mezcla) { var t = mezcla.currentTime, f = sonFuente; sonGan.gain.cancelScheduledValues(t); sonGan.gain.setValueAtTime(sonGan.gain.value, t); sonGan.gain.linearRampToValueAtTime(0, t + 0.25); setTimeout(function () { try { f.stop(); } catch (e) {} }, 320); }
     } catch (e) {}
+    sonFuente = null; sonGan = null;
+  }
+  function tocar(buf, vol) {
+    if (!buf || !mezcla) return;
+    pararSonido();
+    var t = mezcla.currentTime + 0.02, d = buf.duration, ent = Math.min(0.3, d / 4), sal = Math.min(0.8, d / 3);
+    var g = mezcla.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + ent);   // entra suave
+    g.gain.setValueAtTime(vol, Math.max(t + ent, t + d - sal)); g.gain.linearRampToValueAtTime(0, t + d);        // y sale suave
+    var f = mezcla.createBufferSource(); f.buffer = buf; f.connect(g); g.connect(mezcla.destination); f.start(t);
+    sonFuente = f; sonGan = g;
   }
   function sonar() {
-    try { if (!sonFolio) return; sonando = true; sonFolio.muted = false; sonFolio.currentTime = 0; sonFolio.volume = 0.85; var p = sonFolio.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+    var c = sonidoConfig(); if (!c.url) return;
+    var p = cargarSonido(c.url); if (p) p.then(function (b) { tocar(b, c.vol); });
   }
+  // para el panel: escuchar un sonido con un volumen antes de guardarlo
+  function probarSonido(url, vol) { var p = cargarSonido(url); if (p) p.then(function (b) { tocar(b, vol); }); }
   function lluviaDePremios(cont, n) {
     var piezas = [COPA, COPA, MEDALLA, ESTRELLA, ESTRELLA, BALON], h = '';
     var W = window.innerWidth;
@@ -788,7 +834,7 @@
     sonar();
     setTimeout(function () { $('#fiesta-wa').focus(); }, 900);
   }
-  $('#fiesta-cerrar').addEventListener('click', function () { if (sonFolio) sonFolio.pause(); $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; FIJAR.off(); reiniciar(); });
+  $('#fiesta-cerrar').addEventListener('click', function () { pararSonido(); $('#fiesta').hidden = true; $('#fiesta-fx').innerHTML = ''; FIJAR.off(); reiniciar(); });
   /* ---------- catálogo de la página: las mismas carpetas y el mismo buscador que dentro del probador ---------- */
   function pintarCatalogo() {
     var cont = $('#cat-zona'); if (!cont) return;
@@ -814,6 +860,10 @@
   function pintarDatos() {
     var c = TIENDA.config;
     var hp = $('#historia-p'); if (hp) hp.textContent = c.historia || T('hist_p');
+    // los textos de portada que escribe el dueño (en español; en otros idiomas se queda la traducción de siempre)
+    var tx = c.textos || {}, ht = $('[data-t="hero_t"]'), hpp = $('[data-t="hero_p"]');
+    if (ht) ht.textContent = lang === 'es' && tx.hero_t ? tx.hero_t : T('hero_t');
+    if (hpp) hpp.textContent = lang === 'es' && tx.hero_p ? tx.hero_p : T('hero_p');
     var cal = $('#cifra-cal'); if (cal) cal.textContent = c.calificacion || '4.3';
     var op = $('#cifra-op'); if (op) op.textContent = (c.opiniones ? c.opiniones + ' ' : '') + T('hist_op');
     pintarEquiposCasa();
@@ -883,6 +933,7 @@
   var estudio = $('#estudio'), lugarEstudio = estudio.parentNode, probador = $('#probador'), hueco = document.createElement('div');
   var ancla = null;
   function abrirProbador(u, el) {
+    prepararSonido();   // se baja desde ahora: cuando llegue el folio ya está listo
     abrir3D();
     ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
     if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); S.paso = 1; }   // se abre directo en su uniforme (ahí están local / visitante)
@@ -1047,6 +1098,6 @@
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
 
-  window.APP = { T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
+  window.APP = { probarSonido: probarSonido, pararSonido: pararSonido, T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
   iniciar();
 })();

@@ -292,7 +292,7 @@ diffuseColor.rgb *= base;`);
     if (!d) return 0;
     const x0 = Math.max(0, Math.round(cx - ancho * 0.3)), x1 = Math.min(W - 1, Math.round(cx + ancho * 0.3));
     const fila = new Float32Array(H);
-    for (let y = 1; y < H; y++) { let e = 0; for (let x = x0; x <= x1; x += 2) { const i = (y * W + x) * 4, j = i - W * 4; e += Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]); } fila[y] = e; }
+    for (let y = 1; y < H; y++) { let e = 0; for (let x = x0; x <= x1; x += 2) { const i = (y * W + x) * 4, j = i - W * 4; if (d[i + 3] < 200 || d[j + 3] < 200) continue; e += Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]); } fila[y] = e; }   // solo tela: lo transparente cada navegador lo guarda distinto (Safari lo pone negro) y movía el número
     const banda = (a, b) => { let e = 0; for (let y = Math.max(1, Math.round(a * H)); y < Math.min(H, Math.round(b * H)); y++) e += fila[y]; return e / Math.max(1, (b - a) * H); };
     let mejor = 0, menor = 1e18;
     for (let dy = -0.02; dy <= 0.101; dy += 0.01) {
