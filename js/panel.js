@@ -790,6 +790,29 @@
   }
 
   /* ---------- datos ---------- */
+  // textos de la página: cada uno ya trae escrito el de siempre; el dueño lo cambia ahí mismo (si lo borra, regresa el de siempre)
+  var NOMBRE_TX = { intro_lema: 'Lema', hero_k: 'Texto chico de arriba', hero_t: 'Título', hero_p: 'Texto debajo del título', cat_t: 'Título', cat_p: 'Texto', hist_k: 'Texto chico de arriba', hist_t: 'Título', eq_k: 'Título', eq_p: 'Texto', como_t: 'Título', como_1: 'Paso 1', como_2: 'Paso 2', como_3: 'Paso 3', visita_t: 'Título', escribenos: 'Botón de WhatsApp', como_llegar: 'Botón del mapa' };
+  var LARGO_TX = { intro_lema: 60, hero_k: 60, hero_t: 80, hero_p: 240, cat_t: 40, cat_p: 120, hist_k: 40, hist_t: 60, cifra_a: 6, hist_prendas: 90, cifra_b: 6, hist_folio: 90, eq_k: 60, eq_p: 160, como_t: 40, como_1: 50, como_2: 50, como_3: 50, visita_t: 40, escribenos: 40, como_llegar: 30 };
+  function campoTexto(k, c, nombre) {
+    var v = (c.textos || {})[k] || (k === 'intro_lema' && c.lema) || window.I18N.es[k] || '', largo = LARGO_TX[k] > 100;
+    return '<div class="grupo"><label for="tx-' + k + '">' + esc(nombre || NOMBRE_TX[k] || k) + '</label>' + (largo ? '<textarea class="campo campo-largo" id="tx-' + k + '" data-tx="' + k + '" maxlength="' + LARGO_TX[k] + '">' + esc(v) + '</textarea>' : '<input class="campo" id="tx-' + k + '" data-tx="' + k + '" maxlength="' + LARGO_TX[k] + '" value="' + esc(v) + '">') + '</div>';
+  }
+  function grupoTextos(titulo, keys, c, extra) {
+    var abierto = (P.gruposAbiertos || {})[titulo];
+    return '<details class="pn-mas pn-seccion" data-grupo="' + esc(titulo) + '"' + (abierto ? ' open' : '') + '><summary>' + esc(titulo) + '</summary>' + keys.map(function (k) { return campoTexto(k, c); }).join('') + (extra || '') + '</details>';
+  }
+  // equipos que visten M Sport: foto del uniforme que les hiciste, nombre y hasta 3 redes
+  function clientesHTML(c) {
+    var l = c.clientes || [];
+    return '<div class="pn-clientes"><span class="etq">Los equipos <small>(si no agregas ninguno, se ven tus uniformes destacados)</small></span>' + l.map(function (x, i) {
+      return '<div class="pn-cliente" data-cli="' + i + '"><label class="pn-cli-foto">' + (x.foto ? '<img src="' + esc(x.foto) + '" alt="">' : '<b>+</b><small>Foto</small>') + '<input type="file" accept="image/*" data-cli-foto="' + i + '" hidden></label>' +
+        '<div class="pn-cli-datos"><input class="campo" data-cli-k="nombre" maxlength="40" placeholder="Nombre del equipo" value="' + esc(x.nombre || '') + '">' +
+        '<input class="campo" data-cli-k="ig" placeholder="Instagram (@usuario)" value="' + esc(x.ig || '') + '" autocapitalize="off">' +
+        '<input class="campo" data-cli-k="fb" placeholder="Facebook (link)" value="' + esc(x.fb || '') + '" autocapitalize="off">' +
+        '<input class="campo" data-cli-k="tt" placeholder="TikTok (@usuario)" value="' + esc(x.tt || '') + '" autocapitalize="off">' +
+        '<button type="button" class="chip pn-peligro" data-cli-quita="' + i + '">Quitar este equipo</button></div></div>';
+    }).join('') + (l.length < 12 ? '<button type="button" class="btn btn-linea" data-cli-mas>+ Agregar un equipo</button>' : '') + '</div>';
+  }
   function vistaDatos() {
     var c = P.config;
     function lista(id, arr) {
@@ -801,13 +824,18 @@
       '<div class="grupo"><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
       '<div class="grupo"><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
       '<div class="grupo"><span class="etq">Horario</span>' + horarioHTML(c.horario) + '</div>' +
-      '<h3 class="pn-h">Tu página</h3>' +
-      '<div class="grupo"><label for="dt-lema">Lema</label><input class="campo" id="dt-lema" value="' + esc(c.lema) + '"></div>' +
-      '<div class="grupo"><label for="dt-hist">Tu historia (la ve la gente en "Quiénes somos")</label><textarea class="campo campo-largo" id="dt-hist" maxlength="900" placeholder="Si lo dejas vacío, se muestra el texto de ejemplo.">' + esc(c.historia || '') + '</textarea></div>' +
-      '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
-      '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven en la página?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
-      '<div class="grupo"><label for="dt-tit">Título de la portada <small>(vacío = el de siempre)</small></label><input class="campo" id="dt-tit" maxlength="80" value="' + esc((c.textos || {}).hero_t || '') + '" placeholder="' + esc(window.I18N.es.hero_t) + '"></div>' +
-      '<div class="grupo"><label for="dt-sub">Texto debajo del título <small>(vacío = el de siempre)</small></label><textarea class="campo campo-largo" id="dt-sub" maxlength="240" placeholder="' + esc(window.I18N.es.hero_p) + '">' + esc((c.textos || {}).hero_p || '') + '</textarea></div>' +
+      '<h3 class="pn-h">Tu página</h3><p class="nota">Cada parte de la página, en el mismo orden en que la ve la gente. Toca una para cambiar sus textos.</p>' +
+      grupoTextos('Arriba de todo (lo amarillo)', ['intro_lema'], c) +
+      grupoTextos('Arma tu uniforme', ['hero_k', 'hero_t', 'hero_p'], c) +
+      grupoTextos('Catálogo', ['cat_t', 'cat_p'], c) +
+      grupoTextos('Quiénes somos', ['hist_k', 'hist_t'], c,
+        '<div class="grupo"><label for="dt-hist">Tu historia</label><textarea class="campo campo-largo" id="dt-hist" maxlength="900" placeholder="' + esc(window.I18N.es.hist_p) + '">' + esc(c.historia || window.I18N.es.hist_p) + '</textarea></div>' +
+        '<div class="fila2"><div class="grupo"><label for="dt-cal">Calificación en Google</label><input class="campo" id="dt-cal" inputmode="decimal" value="' + esc(c.calificacion || '') + '"></div><div class="grupo"><label for="dt-op">Número de opiniones</label><input class="campo" id="dt-op" inputmode="numeric" value="' + esc(c.opiniones || '') + '"></div></div>' +
+        campoTexto('cifra_a', c, 'Número del primer dato') + campoTexto('hist_prendas', c, 'Texto del primer dato') + campoTexto('cifra_b', c, 'Número del segundo dato') + campoTexto('hist_folio', c, 'Texto del segundo dato')) +
+      grupoTextos('Equipos que visten M Sport', ['eq_k', 'eq_p'], c, clientesHTML(c)) +
+      grupoTextos('Así de fácil', ['como_t', 'como_1', 'como_2', 'como_3'], c) +
+      grupoTextos('Visítanos', ['visita_t', 'escribenos', 'como_llegar'], c) +
+      '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
       '<h3 class="pn-h">Pedidos</h3>' +
       '<div class="grupo"><span class="etq">Tallas que manejas <small>(escribe una y toca +)</small></span>' + lista('tallas', c.tallas) + '</div>' +
       sonidoHTML(c) +
@@ -890,6 +918,20 @@
         var n = $('[data-tag-in="' + k + '"]', panel); if (n) n.focus();
       });
     });
+    $$('[data-grupo]', panel).forEach(function (d) { d.addEventListener('toggle', function () { P.gruposAbiertos = P.gruposAbiertos || {}; P.gruposAbiertos[d.getAttribute('data-grupo')] = d.open; }); });
+    var cliMas = $('[data-cli-mas]', panel);
+    if (cliMas) cliMas.addEventListener('click', function () { P.leerDatos(); c.clientes = (c.clientes || []).concat([{ id: Math.random().toString(36).slice(2, 10), nombre: '', foto: '' }]); pintar(); var r = $$('[data-cli]', panel).pop(); if (r) { r.scrollIntoView({ block: 'center', behavior: 'smooth' }); var n = $('[data-cli-k="nombre"]', r); if (n) n.focus(); } });
+    $$('[data-cli-quita]', panel).forEach(function (b) { dobleToque(b, '¿Seguro? Toca otra vez', function () { P.leerDatos(); c.clientes.splice(+b.getAttribute('data-cli-quita'), 1); pintar(); P.guardarDatos(); }); });
+    $$('[data-cli-foto]', panel).forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var f = inp.files && inp.files[0], i = +inp.getAttribute('data-cli-foto'); if (!f) return;
+        A.toast('Preparando la foto…', true);
+        A.cargarArchivo(f).then(function (im) { return A.cargarMotor().catch(function () {}).then(function () { return window.Motor3D ? window.Motor3D.recortarIA(A.aCanvas(im, 1200)) : A.aCanvas(im, 1200); }); })
+          .then(function (cut) { return A.subirConReintento(prepararCanvas(cut).data, 'catalogo'); })
+          .then(function (url) { P.leerDatos(); c.clientes[i].foto = url; A.toast('Foto lista'); pintar(); P.guardarDatos(); })
+          .catch(function () { A.toast('No se pudo subir la foto. Inténtalo otra vez.'); });
+      });
+    });
     enlazarSonido();
     $('[data-cambiar-codigo]', panel).addEventListener('click', function () {
       var a = $('#dt-cod1').value.trim(), b2 = $('#dt-cod2').value.trim();
@@ -904,9 +946,10 @@
     function leer() {
       $$('[data-tag-in]', panel).forEach(function (inp) { var v = inp.value.trim(); if (v) { var k = inp.getAttribute('data-tag-in'); c[k] = (c[k] || []).concat([v]); inp.value = ''; } });
       var mx = parseInt($('#dt-max').value, 10); c.maxEquipos = mx >= 1 && mx <= 30 ? mx : 10;
-      c.textos = { hero_t: $('#dt-tit').value.trim(), hero_p: $('#dt-sub').value.trim() };
+      var tx = {}; $$('[data-tx]', panel).forEach(function (el) { var k = el.getAttribute('data-tx'), v = el.value.trim(); if (v && v !== window.I18N.es[k]) tx[k] = v; }); c.textos = tx;
+      c.clientes = $$('[data-cli]', panel).map(function (row, i) { var x = Object.assign({}, (c.clientes || [])[i] || {}); $$('[data-cli-k]', row).forEach(function (el) { x[el.getAttribute('data-cli-k')] = el.value.trim(); }); return x; });
       Object.assign(c, P.sonido);
-      c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.lema = $('#dt-lema').value; c.historia = $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
+      c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.historia = $('#dt-hist').value.trim() === window.I18N.es.hist_p ? '' : $('#dt-hist').value.trim(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
       var wa = $('#dt-wa').value.replace(/\D/g, ''); if (wa.length === 12 && wa.indexOf('52') === 0) wa = wa.slice(2);
       if (wa.length === 10) { c.whatsapp = '52' + wa; return true; }
       return !wa ? (c.whatsapp = '', true) : false;

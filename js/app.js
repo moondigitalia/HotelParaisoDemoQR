@@ -61,7 +61,8 @@
   // el idioma lo decide el celular o la computadora de cada persona
   var lang = ((navigator.languages && navigator.languages[0]) || navigator.language || 'es').slice(0, 2).toLowerCase();
   if (LANGS.indexOf(lang) < 0) lang = 'es';
-  function T(k) { return (window.I18N[lang] && window.I18N[lang][k]) || window.I18N.es[k] || k; }
+  var TXT = {};   // los textos que el dueño cambió en su panel (en español; en otros idiomas se queda la traducción de siempre)
+  function T(k) { return (lang === 'es' && TXT[k]) || (window.I18N[lang] && window.I18N[lang][k]) || window.I18N.es[k] || k; }
   function aplicarIdioma() {
     document.documentElement.lang = lang;
     $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
@@ -929,9 +930,9 @@
     var c = TIENDA.config;
     var hp = $('#historia-p'); if (hp) hp.textContent = c.historia || T('hist_p');
     // los textos de portada que escribe el dueño (en español; en otros idiomas se queda la traducción de siempre)
-    var tx = c.textos || {}, ht = $('[data-t="hero_t"]'), hpp = $('[data-t="hero_p"]');
-    if (ht) ht.textContent = lang === 'es' && tx.hero_t ? tx.hero_t : T('hero_t');
-    if (hpp) hpp.textContent = lang === 'es' && tx.hero_p ? tx.hero_p : T('hero_p');
+    TXT = Object.assign({}, c.textos || {});
+    if (!TXT.intro_lema && c.lema && c.lema !== 'La tienda de las estrellas') TXT.intro_lema = c.lema;   // el lema de antes
+    $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
     var cal = $('#cifra-cal'); if (cal) cal.textContent = c.calificacion || '4.3';
     var op = $('#cifra-op'); if (op) op.textContent = (c.opiniones ? c.opiniones + ' ' : '') + T('hist_op');
     pintarEquiposCasa();
@@ -982,12 +983,36 @@
     var ab = $('#abierto');
     if (ab) { ab.textContent = T(abierto ? 'abierto' : 'cerrado'); ab.className = 'abierto' + (abierto ? ' si' : ''); }
   }
+  // equipos que visten M Sport: los que el dueño sube en su panel (foto del uniforme que les hizo, nombre y sus redes).
+  // Si todavía no sube ninguno, se ven los uniformes destacados del catálogo.
+  var REDES = {
+    ig: ['Instagram', 'https://instagram.com/', '<path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>'],
+    fb: ['Facebook', 'https://facebook.com/', '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8Z"/>'],
+    tt: ['TikTok', 'https://www.tiktok.com/@', '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>']
+  };
+  function linkRed(tipo, v) {
+    if (!v) return ''; if (/^https?:\/\//i.test(v)) return v;
+    if (/^(www\.)?(instagram|facebook|tiktok)\.com/i.test(v)) return 'https://' + v;
+    return REDES[tipo][1] + v.replace(/^@/, '');
+  }
   function pintarEquiposCasa() {
     var cont = $('#eq-casa'); if (!cont) return;
+    var cl = (TIENDA.config.clientes || []).filter(function (x) { return x.foto || x.nombre; });
+    if (cl.length) {
+      cont.classList.add('clientes');
+      cont.innerHTML = cl.map(function (x) {
+        var redes = ['ig', 'fb', 'tt'].filter(function (t) { return x[t]; }).map(function (t) {
+          return '<a class="red" href="' + esc(linkRed(t, x[t])) + '" target="_blank" rel="noopener" aria-label="' + esc(REDES[t][0] + ' de ' + x.nombre) + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + REDES[t][2] + '</svg></a>';
+        }).join('');
+        return '<div class="eq-cliente">' + (x.foto ? '<img src="' + esc(x.foto) + '" alt="' + esc(x.nombre) + '" loading="lazy" decoding="async">' : '') + '<b>' + esc(x.nombre) + '</b>' + (redes ? '<span class="redes">' + redes + '</span>' : '') + '</div>';
+      }).join('');
+      return;
+    }
+    cont.classList.remove('clientes');
     var lista = catalogoVisible().filter(function (u) { return u.destacado; }).slice(0, 4);
     if (!lista.length) lista = catalogoVisible().slice(0, 2);
     cont.innerHTML = lista.map(function (u) {
-      return '<button type="button" class="eq-casa-item" data-casa="' + esc(u.id) + '"><span class="cv"><img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async"></span><b>' + esc(u.nombre) + '</b><small>' + esc(T('eq_ver')) + ' →</small></button>';
+      return '<button type="button" class="eq-casa-item" data-casa="' + esc(u.id) + '"><img src="' + esc(u.silueta || u.mini) + '" alt="" loading="lazy" decoding="async"><b>' + esc(u.nombre) + '</b><small>' + esc(T('eq_ver')) + ' →</small></button>';
     }).join('');
     $$('[data-casa]', cont).forEach(function (b) {
       b.addEventListener('click', function () {

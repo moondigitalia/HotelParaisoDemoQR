@@ -82,7 +82,8 @@ const DEFAULT_CONFIG = {
   sonido: 'si',
   sonidoUrl: '',
   sonidoVolumen: 50,
-  textos: { hero_t: '', hero_p: '' },
+  textos: {},
+  clientes: [],
   historia: '',
   calificacion: '4.3',
   opiniones: '150'
