@@ -173,12 +173,16 @@
   }
   var cola = Promise.resolve(), puesto = null;
   function config(u, d) { return { frente: u.fotos.frente, espalda: u.fotos.espalda, short: u.fotos.short, manga: d.manga, colorShort: u.colorShort, colorCalceta: u.colorCalceta, colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null, taco: d.taco, nombre: d.nombre, numero: d.numero, color: d.colorTexto || u.colorTexto || '#111111' }; }
+  // el uniforme cambia de un solo jalón: el 3D no se dibuja hasta que todo (fotos, tacos, nombre y número) está listo
+  function dosCuadros() { return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); }
   function aplicar(m, c) {
     return Promise.all([imagen(c.frente), imagen(c.espalda), imagen(c.short)]).then(function (im) {
+      if (m.congelar) m.congelar(true);
       var clave = c.frente + '|' + c.espalda + '|' + c.short + '|' + c.manga;
       var p = clave !== puesto ? m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: c.manga, colorShort: c.colorShort, colorCalceta: c.colorCalceta, colorFranja: c.colorFranja, numeroShort: c.numeroShort, torso: c.torso, ajuste: c.ajuste }) : (m.ajuste && m.ajuste(c.ajuste), Promise.resolve());
       puesto = clave;
-      return p.then(function () { return m.taco(c.taco); }).then(function () { m.dorsal({ nombre: c.nombre, numero: c.numero, color: c.color, sello: true }); });
+      return p.then(function () { return m.taco(c.taco); }).then(function () { m.dorsal({ nombre: c.nombre, numero: c.numero, color: c.color, sello: true }); return dosCuadros(); })
+        .then(function () { if (m.congelar) m.congelar(false); }, function (e) { if (m.congelar) m.congelar(false); throw e; });
     });
   }
   function dibujar() {
@@ -968,7 +972,8 @@
     function lista() {
       var vis = filtrar(catalogoVisible()), qs = equiposDe(vis), r = $('#t-resultados', catTodo);
       if (!qs.length) { r.innerHTML = '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>'; return; }
-      r.innerHTML = '<div class="cat-todo-grid"></div>'; var g = $('.cat-todo-grid', r);
+      // la cuadrícula se queda: solo se cambian los escudos si cambió lo que se ve (no se vuelven a crear al abrir otra vez)
+      var g = $('.cat-todo-grid', r); if (!g) { r.innerHTML = '<div class="cat-todo-grid"></div>'; g = $('.cat-todo-grid', r); }
       var pinta = function () { if (pintarRenglones(g, qs.map(escudoCat), window.innerWidth >= 900 ? 140 : 100, 14)) enlazarCat(r); };
       pinta(); r._pinta = pinta;
     }

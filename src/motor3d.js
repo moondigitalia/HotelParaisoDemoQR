@@ -173,7 +173,7 @@ export async function crear(canvas, opt = {}) {
   // estado
   const E = {
     manga: 'corta', taco: 'negro', vista: 0, zoom: 0, // vista: 0 frente, PI espalda; zoom: 0 completo, 1 tacos de cerca
-    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '',
+    fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', ajNum: [1, 1, 0],
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
   let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null;
@@ -419,8 +419,12 @@ diffuseColor.rgb *= base;`);
     const cd = document.createElement('canvas'); cd.width = c.width; cd.height = c.height; const gd = cd.getContext('2d');
     if (window.Kit && (d.nombre || d.numero)) {
       const H = c.height, dy = huecoDorsal(src, c, cx, ancho);
-      window.Kit.drawName(gd, d.nombre, cx, H * (0.2 + dy), H * 0.075, d.color, ancho * 0.72);
-      window.Kit.drawNumber(gd, d.numero, cx, H * (0.245 + dy), H * 0.31, d.color, d.sello !== false, ancho * 0.72);
+      // lo que el dueño acomodó para este uniforme: tamaño, ancho y altura del nombre y el número (juntos, para que no se encimen)
+      const [ts, ta, ty] = E.ajNum, top = 0.2 + dy - ty;
+      gd.save(); gd.translate(cx, 0); gd.scale(ta, 1); gd.translate(-cx, 0);
+      window.Kit.drawName(gd, d.nombre, cx, H * top, H * 0.075 * ts, d.color, ancho * 0.72 * ts);
+      window.Kit.drawNumber(gd, d.numero, cx, H * (top + 0.045 * ts), H * 0.31 * ts, d.color, d.sello !== false, ancho * 0.72 * ts);
+      gd.restore();
     }
     poner(uni.uEspalda, textura(c)); poner(uni.uDorsal, textura(cd));
     const [ex0, ew] = [bx0, bw]; uni.uTorsoB.value.set(ex0, ew); texRenglones(renCanvas, 2, ...renglonesFoto(c, [ex0, ew]), 0, 1); renListo.b = true; subirRen();
@@ -462,8 +466,12 @@ diffuseColor.rgb *= base;`);
     animZoom = requestAnimationFrame(paso);
   }
   let pendiente = false, animando = null;
+  // mientras se cambia de uniforme no se dibuja nada: la pantalla se queda con el anterior y luego cambia de un jalón al nuevo
+  // (sin ver los pasos a medias: playera nueva con short viejo, luego el nombre, luego los tacos…)
+  let congelado = false, debeDibujo = false;
   function dibujar() {
     pendiente = false;
+    if (congelado) { debeDibujo = true; return; }
     const w = canvas.clientWidth || canvas.width, h = canvas.clientHeight || canvas.height;
     if (canvas.width !== Math.round(w * r.getPixelRatio()) || canvas.height !== Math.round(h * r.getPixelRatio())) r.setSize(w, h, false);
     encuadre(w, h, aire());
@@ -555,8 +563,11 @@ diffuseColor.rgb *= base;`);
       canvas.addEventListener('click', (e) => { if (tragar) { tragar = false; e.stopPropagation(); e.preventDefault(); } }, true);
     },
     // acomodo de cada foto: [tamaño, mover a los lados, mover arriba/abajo]; instantáneo (solo se repinta)
+    congelar(si) { congelado = !!si; if (!si && debeDibujo) { debeDibujo = false; pedir(); } },
     ajuste(aj) {
       aj = aj || {};
+      const n = Array.isArray(aj.numero) ? [+aj.numero[0] || 1, +aj.numero[1] || 1, +aj.numero[2] || 0] : [1, 1, 0];
+      if (n.join() !== E.ajNum.join()) { E.ajNum = n; if (E.fotos.frente) pintarEspalda(); }
       [['frente', uni.uAjF], ['espalda', uni.uAjB], ['short', uni.uAjS]].forEach(([k, u]) => { const v = Array.isArray(aj[k]) ? aj[k] : [1, 0, 0]; u.value.set(+v[0] || 1, +v[1] || 0, +v[2] || 0); });
       pedir();
     },

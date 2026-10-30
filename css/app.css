@@ -1,5 +1,5 @@
-/* una imagen se ve solo cuando ya cargó (el iPhone pinta un rectangulito con contorno mientras tanto) */
-img:not(.ok){visibility:hidden}
+/* una imagen que no se pudo abrir no enseña el cuadrito roto del navegador */
+img.mal{visibility:hidden}
 /* Concepto: estadio de noche. Azul marino profundo de M Sport, amarillo de su fachada como único acento fuerte,
    el uniforme siempre al centro de la vista. Formas redondas, 2D con intensidad. */
 :root{
@@ -1266,3 +1266,5 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .cat-todo-top,.cat-todo #t-resultados{padding-left:max(16px,env(safe-area-inset-left,0px),calc((100% - 1100px) / 2));padding-right:max(16px,env(safe-area-inset-right,0px),calc((100% - 1100px) / 2))}
 .pn-secciones>details.pn-seccion{margin-top:0}
 .pn-datos>.pn-auto{max-width:none}
+.pn-acomodo-l.tres{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pn-acomodo-b button[data-aj="x-"],.pn-acomodo-b button[data-aj="x+"]{letter-spacing:-.12em}

@@ -472,7 +472,7 @@
       (angosto ? prev : '') +
       '<div id="ed-aviso"></div>' +
       ((f.frente || f.espalda) ? '<div class="pn-borrar">' + ['frente', 'espalda'].filter(function (l) { return f[l]; }).map(function (l) { return '<button type="button" class="chip" data-borrar="' + l + '">✎ Quitar algo ' + (l === 'frente' ? 'del frente' : 'de la espalda') + '</button>'; }).join('') + '<small>Etiqueta, gancho o mancha: píntalo con el dedo y desaparece.</small></div>' : '') +
-      (f.frente ? '<div class="pn-borrar">' + ['frente', 'espalda', 'short'].filter(function (l) { return f[l] || l === 'espalda'; }).map(function (l) { return '<button type="button" class="chip" data-acomodar="' + l + '">⤢ Acomodar ' + ({ frente: 'frente', espalda: 'espalda', short: 'short' })[l] + '</button>'; }).join('') + '<small>Si la foto queda chueca, movida o muy justa, muévela y cámbiale el tamaño viendo el 3D.</small></div>' : '') +
+      (f.frente ? '<div class="pn-borrar">' + ['frente', 'espalda', 'short', 'numero'].filter(function (l) { return f[l] || l === 'espalda' || l === 'numero'; }).map(function (l) { return '<button type="button" class="chip" data-acomodar="' + l + '">⤢ Acomodar ' + ({ frente: 'frente', espalda: 'espalda', short: 'short', numero: 'nombre y número' })[l] + '</button>'; }).join('') + '<small>Si una foto queda chueca o muy justa, o el nombre y número quedan muy grandes, chicos o fuera de lugar, acomódalos viendo el 3D.</small></div>' : '') +
       '<details class="pn-guia"' + (f.frente ? '' : ' open') + '><summary>Cómo tomar las fotos</summary><ul><li>Playera extendida en el piso, sobre un fondo de un solo color</li><li>De frente, desde arriba, con buena luz y sin flash</li><li>El short también va con foto (lleva logo). Si viene en la misma foto que la playera, lo separamos solo</li><li>Si trae etiqueta o gancho, después lo quitas con el dedo</li></ul></details>' +
       '<p class="pn-paso"><b>2</b> ¿De qué equipo es?</p>' +
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -538,17 +538,25 @@
   // acomodar: la foto se mueve y cambia de tamaño sobre el uniforme en 3D, con botones grandes (dejarlos apretados repite)
   function acomodar(u, lado) {
     if (!mEditor || !mEditor.m) { A.toast('Espera a que se vea el 3D.'); return; }
-    var m = mEditor.m; u.ajuste = u.ajuste || {}; var v = (u.ajuste[lado] || [1, 0, 0]).slice(), antes = v.slice();
-    pvVista = lado === 'espalda' ? 'espalda' : 'frente'; m.vista(pvVista); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === pvVista); });
+    var m = mEditor.m, num = lado === 'numero', base = num ? [1, 1, 0] : [1, 0, 0]; u.ajuste = u.ajuste || {}; var v = (u.ajuste[lado] || base).slice(), antes = v.slice();
+    pvVista = lado === 'espalda' || num ? 'espalda' : 'frente'; m.vista(pvVista); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === pvVista); });
     var pv = $('.pn-prev3d', panel); if (pv) pv.scrollIntoView({ behavior: 'smooth', block: 'start' });
     var hoja = document.createElement('div'); hoja.className = 'pn-acomodo';
-    hoja.innerHTML = '<p><b>Acomoda ' + ({ frente: 'el frente', espalda: 'la espalda', short: 'el short' })[lado] + '</b> · míralo en el 3D</p>' +
-      '<div class="pn-acomodo-l"><span>Tamaño</span><span>Mover</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chica">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
-      '<button type="button" data-aj="x-">←</button><button type="button" data-aj="y+">↑</button><button type="button" data-aj="y-">↓</button><button type="button" data-aj="x+">→</button></div>' +
+    hoja.innerHTML = '<p><b>Acomoda ' + ({ frente: 'el frente', espalda: 'la espalda', short: 'el short', numero: 'el nombre y el número' })[lado] + '</b> · míralo en el 3D</p>' +
+      (num ? '<div class="pn-acomodo-l tres"><span>Tamaño</span><span>Ancho</span><span>Altura</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chico">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
+        '<button type="button" data-aj="x-" aria-label="Más angosto">→←</button><button type="button" data-aj="x+" aria-label="Más ancho">←→</button><button type="button" data-aj="y+" aria-label="Más arriba">↑</button><button type="button" data-aj="y-" aria-label="Más abajo">↓</button></div>'
+      : '<div class="pn-acomodo-l"><span>Tamaño</span><span>Mover</span></div><div class="pn-acomodo-b"><button type="button" data-aj="z-" aria-label="Más chica">−</button><button type="button" data-aj="z+" aria-label="Más grande">+</button>' +
+      '<button type="button" data-aj="x-">←</button><button type="button" data-aj="y+">↑</button><button type="button" data-aj="y-">↓</button><button type="button" data-aj="x+">→</button></div>') +
       '<div class="pn-acomodo-f"><button type="button" class="btn btn-linea" data-aj="0">Como estaba</button><button type="button" class="btn btn-oro" data-aj="ok">Listo</button></div>';
     panel.appendChild(hoja);
     function poner() { u.ajuste[lado] = v.map(function (n) { return Math.round(n * 1000) / 1000; }); m.ajuste(u.ajuste); }
     function paso(k) {
+      if (num) {   // nombre y número: tamaño, ancho y altura, con límites para que nunca se salgan de la playera
+        if (k === 'z-') v[0] = Math.max(0.6, v[0] - 0.03); if (k === 'z+') v[0] = Math.min(1.35, v[0] + 0.03);
+        if (k === 'x-') v[1] = Math.max(0.65, v[1] - 0.03); if (k === 'x+') v[1] = Math.min(1.4, v[1] + 0.03);
+        if (k === 'y+') v[2] = Math.min(0.12, v[2] + 0.01); if (k === 'y-') v[2] = Math.max(-0.15, v[2] - 0.01);
+        return poner();
+      }
       if (k === 'z-') v[0] = Math.max(0.6, v[0] - 0.03); if (k === 'z+') v[0] = Math.min(1.7, v[0] + 0.03);
       if (k === 'x-') v[1] = Math.max(-0.3, v[1] - 0.01); if (k === 'x+') v[1] = Math.min(0.3, v[1] + 0.01);
       if (k === 'y+') v[2] = Math.min(0.3, v[2] + 0.01); if (k === 'y-') v[2] = Math.max(-0.3, v[2] - 0.01);
@@ -558,7 +566,7 @@
     $$('[data-aj]', hoja).forEach(function (b) {
       var k = b.getAttribute('data-aj');
       if (k === 'ok') return b.addEventListener('click', function () { hoja.remove(); var pub = $('[data-publicar]', panel); A.toast(pub && !pub.disabled ? 'Listo. Toca ' + pub.textContent.trim() + ' para que se vea en la página.' : 'Listo.'); });
-      if (k === '0') return b.addEventListener('click', function () { v = [1, 0, 0]; poner(); });
+      if (k === '0') return b.addEventListener('click', function () { v = base.slice(); poner(); });
       b.addEventListener('pointerdown', function (e) { e.preventDefault(); paso(k); clearInterval(rep); var t0 = setTimeout(function () { rep = setInterval(function () { paso(k); }, 70); }, 350); b._t = t0; });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(b._t); clearInterval(rep); }); });
     });
@@ -616,8 +624,9 @@
       return mEditor.p.then(function (m) {
         mEditor.m = m;
         return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+          if (m.congelar) m.congelar(true);   // cambia de un solo jalón, sin pasos a medias
           return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
-        }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); });
+        }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); }).then(function () { if (m.congelar) m.congelar(false); }, function () { if (m.congelar) m.congelar(false); });
       });
     });
   }
