@@ -568,7 +568,8 @@
     var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
     var grupos = secs.map(function (c) { return [c, lista.filter(function (u) { return u.categoria === c; })]; });
     if (sin.length) grupos.push(['', sin]);
-    return '<div class="secciones">' + grupos.map(function (g) {
+    var flecha = grupos.some(function (g) { return equiposDe(g[1]).length > 3; });   // si una sección lleva flecha, todas le guardan su lugar: las columnas cuadran
+    return '<div class="secciones' + (flecha ? ' con-flecha' : '') + '">' + grupos.map(function (g) {
       var eqs = equiposDe(g[1]);
       return '<div class="seccion' + (eqs.length > 3 ? ' paginada' : '') + '"><span class="etq">' + esc(g[0]) + '</span>' + filaSeccion(eqs) + '</div>';
     }).join('') + '</div>';
