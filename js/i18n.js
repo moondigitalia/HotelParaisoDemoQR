@@ -1,7 +1,7 @@
 /* Todos los textos visibles viven aquí, por idioma. */
 window.I18N = {
   es: {
-    inicio_t2: 'Arma tu uniforme', inicio_p2: 'Escoge uno de nuestros uniformes y velo en 3D con tus tacos.', inicio_a_p2: 'Busca por liga, color, país o equipo.', p_diseno2: 'Elige tu uniforme', p_tacos: 'Manga y tacos', manga: 'Manga', tus_tacos: 'Tus tacos', taco_negro: 'Negros', taco_rosa: 'Rosas', taco_turquesa: 'Turquesa', tacos_s: 'Elige el color de tus tacos para ver si combinan con el uniforme.', buscar_ph: 'Busca: rojo, México, Chivas…', sin_resultados: 'No encontramos uniformes con eso. Prueba otro color, país o equipo.',
+    inicio_t2: 'Arma tu uniforme', inicio_p2: 'Escoge uno de nuestros uniformes y velo en 3D con tus tacos.', inicio_a_p2: 'Busca por liga, color, país o equipo.', p_diseno2: 'Elige tu equipo', p_tacos: 'Tu uniforme', manga: 'Manga', tus_tacos: 'Tus tacos', taco_negro: 'Negros', taco_rosa: 'Rosas', taco_turquesa: 'Turquesa', tacos_s: 'Elige el color de tus tacos para ver si combinan con el uniforme.', buscar_ph: 'Busca: rojo, México, Chivas…', sin_resultados: 'No encontramos uniformes con eso. Prueba otro color, país o equipo.',
     cotizar_corto: 'Cotizar por WhatsApp', mas_jugador: 'Jugador', mas_equipo: 'Otro equipo', jugador_1: 'jugador',
     p_detalles: 'Cuello y costados', ver_mas: 'Desliza para ver más', tela_mueve_corto: 'Toca o arrastra la foto para elegir la parte.', cambiar: 'Cambiar', donde_va: '¿Dónde va?', subir_orden: 'Subir un lugar', equipos: 'equipos', equipo_1: 'equipo',
     seguir_armando: 'Seguir armando mi uniforme', seguir_armando_p: 'Retoma donde te quedaste.',
@@ -64,7 +64,7 @@ window.I18N = {
     sin_nombre: 'Mi equipo', cargando: 'Cargando…'
   },
   en: {
-    inicio_t2: 'Build your kit', inicio_p2: 'Pick one of our kits and see it in 3D with your cleats.', inicio_a_p2: 'Search by league, color, country or team.', p_diseno2: 'Pick your kit', p_tacos: 'Sleeves and cleats', manga: 'Sleeves', tus_tacos: 'Your cleats', taco_negro: 'Black', taco_rosa: 'Pink', taco_turquesa: 'Teal', tacos_s: 'Pick your cleat color to see if it matches the kit.', buscar_ph: 'Search: red, Mexico, Chivas…', sin_resultados: 'No kits match that. Try another color, country or team.',
+    inicio_t2: 'Build your kit', inicio_p2: 'Pick one of our kits and see it in 3D with your cleats.', inicio_a_p2: 'Search by league, color, country or team.', p_diseno2: 'Pick your team', p_tacos: 'Your kit', manga: 'Sleeves', tus_tacos: 'Your cleats', taco_negro: 'Black', taco_rosa: 'Pink', taco_turquesa: 'Teal', tacos_s: 'Pick your cleat color to see if it matches the kit.', buscar_ph: 'Search: red, Mexico, Chivas…', sin_resultados: 'No kits match that. Try another color, country or team.',
     cotizar_corto: 'Quote on WhatsApp', mas_jugador: 'Player', mas_equipo: 'Another team', jugador_1: 'player',
     p_detalles: 'Collar and sides', ver_mas: 'Scroll for more', tela_mueve_corto: 'Tap or drag the photo to pick the part.', cambiar: 'Change', donde_va: 'Where does it go?', subir_orden: 'Move up', equipos: 'teams', equipo_1: 'team',
     seguir_armando: 'Keep building my kit', seguir_armando_p: 'Pick up where you left off.',
@@ -127,7 +127,7 @@ window.I18N = {
     sin_nombre: 'My team', cargando: 'Loading…'
   },
   fr: {
-    inicio_t2: 'Crée ton maillot', inicio_p2: 'Choisis un de nos maillots et vois-le en 3D avec tes crampons.', inicio_a_p2: 'Cherche par ligue, couleur, pays ou équipe.', p_diseno2: 'Choisis ton maillot', p_tacos: 'Manches et crampons', manga: 'Manches', tus_tacos: 'Tes crampons', taco_negro: 'Noirs', taco_rosa: 'Roses', taco_turquesa: 'Turquoise', tacos_s: 'Choisis la couleur de tes crampons pour voir s’ils vont avec le maillot.', buscar_ph: 'Cherche : rouge, Mexique, Chivas…', sin_resultados: 'Aucun maillot ne correspond. Essaie une autre couleur, un autre pays ou une autre équipe.',
+    inicio_t2: 'Crée ton maillot', inicio_p2: 'Choisis un de nos maillots et vois-le en 3D avec tes crampons.', inicio_a_p2: 'Cherche par ligue, couleur, pays ou équipe.', p_diseno2: 'Choisis ton équipe', p_tacos: 'Ton maillot', manga: 'Manches', tus_tacos: 'Tes crampons', taco_negro: 'Noirs', taco_rosa: 'Roses', taco_turquesa: 'Turquoise', tacos_s: 'Choisis la couleur de tes crampons pour voir s’ils vont avec le maillot.', buscar_ph: 'Cherche : rouge, Mexique, Chivas…', sin_resultados: 'Aucun maillot ne correspond. Essaie une autre couleur, un autre pays ou une autre équipe.',
     cotizar_corto: 'Devis sur WhatsApp', mas_jugador: 'Joueur', mas_equipo: 'Autre équipe', jugador_1: 'joueur',
     p_detalles: 'Col et côtés', ver_mas: 'Fais défiler pour voir plus', tela_mueve_corto: 'Touche ou glisse la photo pour choisir.', cambiar: 'Changer', donde_va: 'Où va-t-il ?', subir_orden: 'Monter', equipos: 'équipes', equipo_1: 'équipe',
     seguir_armando: 'Continuer mon maillot', seguir_armando_p: 'Reprends là où tu t’es arrêté.',
@@ -190,7 +190,7 @@ window.I18N = {
     sin_nombre: 'Mon équipe', cargando: 'Chargement…'
   },
   pt: {
-    inicio_t2: 'Monte seu uniforme', inicio_p2: 'Escolha um dos nossos uniformes e veja em 3D com sua chuteira.', inicio_a_p2: 'Busque por liga, cor, país ou time.', p_diseno2: 'Escolha seu uniforme', p_tacos: 'Manga e chuteiras', manga: 'Manga', tus_tacos: 'Suas chuteiras', taco_negro: 'Pretas', taco_rosa: 'Rosa', taco_turquesa: 'Turquesa', tacos_s: 'Escolha a cor da sua chuteira para ver se combina com o uniforme.', buscar_ph: 'Busque: vermelho, México, Chivas…', sin_resultados: 'Nenhum uniforme encontrado. Tente outra cor, país ou time.',
+    inicio_t2: 'Monte seu uniforme', inicio_p2: 'Escolha um dos nossos uniformes e veja em 3D com sua chuteira.', inicio_a_p2: 'Busque por liga, cor, país ou time.', p_diseno2: 'Escolha seu time', p_tacos: 'Seu uniforme', manga: 'Manga', tus_tacos: 'Suas chuteiras', taco_negro: 'Pretas', taco_rosa: 'Rosa', taco_turquesa: 'Turquesa', tacos_s: 'Escolha a cor da sua chuteira para ver se combina com o uniforme.', buscar_ph: 'Busque: vermelho, México, Chivas…', sin_resultados: 'Nenhum uniforme encontrado. Tente outra cor, país ou time.',
     cotizar_corto: 'Orçar no WhatsApp', mas_jugador: 'Jogador', mas_equipo: 'Outro time', jugador_1: 'jogador',
     p_detalles: 'Gola e laterais', ver_mas: 'Deslize para ver mais', tela_mueve_corto: 'Toque ou arraste a foto para escolher.', cambiar: 'Trocar', donde_va: 'Onde vai?', subir_orden: 'Subir', equipos: 'times', equipo_1: 'time',
     seguir_armando: 'Continuar meu uniforme', seguir_armando_p: 'Continue de onde parou.',

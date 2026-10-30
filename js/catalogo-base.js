@@ -62,3 +62,14 @@ window.CONFIG_BASE = {
   calificacion: '4.3',
   opiniones: '150'
 };
+
+/* Las fotos del catálogo llevan la versión de la página: cuando se cambia una foto, los teléfonos bajan la nueva
+   y no se quedan con la vieja guardada. */
+(function () {
+  var v = window.VERSION ? '?v=' + window.VERSION : '';
+  function ver(u) { return u && u.charAt(0) === '/' && u.indexOf('?') < 0 ? u + v : u; }
+  window.CATALOGO_BASE.forEach(function (u) {
+    u.mini = ver(u.mini); u.escudo = ver(u.escudo);
+    Object.keys(u.fotos).forEach(function (k) { u.fotos[k] = ver(u.fotos[k]); });
+  });
+})();

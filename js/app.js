@@ -393,10 +393,7 @@
   function tarjetasUniformes(lista) {
     if (!lista.length) return '<p class="nota-corta vacio">' + esc(T('sin_resultados')) + '</p>';
     var actual = equipoDeId(S.baseId), qs = equiposDe(lista);
-    var vers = actual && actual.items.length > 1 ? '<div class="grupo g0 versiones"><span class="etq">' + esc(actual.nombre) + '</span><div class="chips llenar">' + actual.items.map(function (u) {
-      return '<button type="button" class="chip chip-version' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '">' + esc(versionDe(u)) + '</button>';
-    }).join('') + '</div></div>' : '';
-    return vers + '<div class="mini-grid" id="mini-grid">' + qs.map(function (q) {
+    return '<div class="mini-grid" id="mini-grid">' + qs.map(function (q) {
       var on = actual && actual.clave === q.clave;
       return '<button type="button" class="mini' + (q.escudo ? ' con-escudo' : '') + (on ? ' on' : '') + '" data-equipo="' + esc(q.clave) + '">' + caraEquipo(q) + '<span>' + esc(q.nombre) + '</span>' + (q.items.length > 1 ? '<small class="mini-n">' + esc(nUniformes(q.items.length)) + '</small>' : '') + '</button>';
     }).join('') + '</div>';
@@ -412,12 +409,15 @@
       return filtrosHTML('p') + '<div id="p-resultados">' + tarjetasUniformes(filtrar(catalogoVisible())) + '</div>';
     },
     tacos: function () {
-      return '<div class="grupo g0"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
+      var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(q.nombre) + '</span><div class="chips llenar">' + q.items.map(function (u) {
+        return '<button type="button" class="chip' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '">' + esc(versionDe(u)) + '</button>';
+      }).join('') + '</div></div>' : '';
+      return vers + '<div class="grupo' + (vers ? '' : ' g0') + '"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
         '<button type="button" class="chip' + (S.d.manga === 'larga' ? ' on' : '') + '" data-manga="larga">' + esc(T('manga_larga')) + '</button></div></div>' +
         '<div class="grupo"><span class="etq">' + esc(T('tus_tacos')) + '</span><div class="chips llenar tacos">' + ['negro', 'rosa', 'turquesa'].map(function (t) {
           var c = TACO_COLOR[t];
           return '<button type="button" class="chip chip-taco' + (S.d.taco === t ? ' on' : '') + '" data-taco="' + t + '"><i style="background:linear-gradient(135deg,' + c[0] + ' 55%,' + c[1] + ' 55%)"></i>' + esc(T('taco_' + t)) + '</button>';
-        }).join('') + '</div></div><p class="nota-corta">' + esc(T('tacos_s')) + '</p>';
+        }).join('') + '</div></div>' + (vers ? '' : '<p class="nota-corta">' + esc(T('tacos_s')) + '</p>');   // con local/visitante no cabe la nota en un celular chico
     },
     dorsal: function () {
       return '<div class="fila2 g0"><div><label class="etq" for="f-nombre">' + esc(T('nombre_espalda')) + '</label><input class="campo" id="f-nombre" maxlength="16" autocomplete="off" placeholder="' + esc(T('ej_nombre')) + '" value="' + esc(S.d.nombre || '') + '"></div>' +
@@ -482,10 +482,9 @@
   }
   var ENLACES = {
     diseno: function () {
-      function elegir(u, b, repinta) {
-        var mismo = u.id === S.baseId;
-        if (!mismo) { usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador(); }
-        if (repinta) repintar();
+      function elegir(u) {
+        if (u.id !== S.baseId && claveEquipo(u) !== (equipoDeId(S.baseId) || {}).clave) { usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador(); }
+        irA(1);   // al tocar el escudo se abre su uniforme (local / visitante, manga y tacos)
       }
       function repintar() {
         var r = $('#p-resultados'); if (!r) return;
@@ -496,6 +495,14 @@
       enlazarTarjetas(tablero, elegir);
     },
     tacos: function () {
+      $$('[data-version]', tablero).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-version'); })[0]; if (!u || u.id === S.baseId) return;
+          usarBase(u); cambiarVista('frente'); dibujar(); guardarBorrador();
+          $$('[data-version]', tablero).forEach(function (x) { x.classList.toggle('on', x === b); });
+          $$('[data-manga]', tablero).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-manga') === S.d.manga); });
+        });
+      });
       $$('[data-manga]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
           S.d.manga = b.getAttribute('data-manga');
@@ -783,7 +790,7 @@
   var ancla = null;
   function abrirProbador(u, el) {
     ancla = el ? { el: el, top: el.getBoundingClientRect().top } : null;
-    if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); var q = equipoDeId(u.id); S.paso = q && q.items.length > 1 ? 0 : 1; }   // con varias versiones se abre donde se elige cuál
+    if (u) { S.modo = 'catalogo'; S.equipos = []; S.esEquipo = false; S.jugadores = []; S.nombreEquipo = ''; usarBase(u); S.paso = 1; }   // se abre directo en su uniforme (ahí están local / visitante)
     if (probador.hidden) {
       hueco.style.height = estudio.offsetHeight + 'px'; lugarEstudio.insertBefore(hueco, estudio);
       $('#probador-cuerpo').appendChild(estudio);
