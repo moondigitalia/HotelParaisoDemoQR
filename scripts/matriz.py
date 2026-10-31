@@ -11,13 +11,14 @@ import sys, json
 from playwright.sync_api import sync_playwright
 
 BASE = 'http://localhost:5055'
-TAMANOS = [(320, 480), (360, 640), (375, 548), (390, 664), (393, 660), (412, 780), (768, 1024), (1280, 800)]
+TAMANOS = [(320, 480), (360, 640), (360, 690), (375, 548), (390, 664), (393, 660), (412, 780), (768, 1024), (1280, 800)]
 SALIDA = '/tmp/claude-0/-home-claude/968c9ed2-d953-59c7-b80e-40add6d1b54f/scratchpad/m_'
 
 REVISAR = r"""(panel) => {
   const fallas = [], W = innerWidth, H = innerHeight;
   const raiz = panel ? document.querySelector('#panel') : document.body;
-  const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+  // lo escondido a propósito (cajas de 1px para subir archivos) no cuenta
+  const vis = e => { const r = e.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden')) return false; for (let p = e; p && p !== document.body; p = p.parentElement) { const c = getComputedStyle(p); if (c.clipPath !== 'none' || (p.getBoundingClientRect().width <= 1)) return false; } return true; };
   const nombre = e => (e.id ? '#' + e.id : '') + '.' + String(e.className || e.tagName).split(' ')[0];
   const dentroDeLado = e => { for (let p = e.parentElement; p && p !== raiz; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
   raiz.querySelectorAll('*').forEach(e => {
@@ -29,6 +30,15 @@ REVISAR = r"""(panel) => {
     if (panel && (sy > 16 || sx > 16) && !e.hasAttribute('data-vig')) fallas.push('se corta sin desvanecer ' + nombre(e));
     if ((r.right > W + 1 || r.left < -1) && !dentroDeLado(e) && e.tagName !== 'HTML' && e.tagName !== 'BODY') fallas.push('se sale de la pantalla ' + nombre(e));
     if ((e.tagName === 'BUTTON' || e.tagName === 'A') && e.scrollWidth > e.clientWidth + 2 && !/(auto|scroll)/.test(cs.overflowX) && cs.textOverflow !== 'ellipsis') fallas.push('texto cortado en botón ' + nombre(e) + ' "' + e.textContent.trim().slice(0, 20) + '"');
+  });
+  // cualquier texto cortado (que no termine en "…" a propósito)
+  raiz.querySelectorAll('*').forEach(e => {
+    if (!vis(e) || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return;
+    const cs = getComputedStyle(e);
+    if (cs.textOverflow === 'ellipsis' || /(auto|scroll)/.test(cs.overflowX)) return;
+    if (e.scrollWidth > e.clientWidth + 2 && cs.overflowX !== 'visible') fallas.push('texto cortado ' + nombre(e) + ' "' + e.textContent.trim().slice(0, 20) + '"');
+    const r = e.getBoundingClientRect();
+    for (let p = e.parentElement; p && p !== raiz; p = p.parentElement) { const pc = getComputedStyle(p); if (pc.overflowX !== 'visible' || pc.overflowY !== 'visible') { const q = p.getBoundingClientRect(); if (r.right > q.right + 2 && !/(auto|scroll)/.test(pc.overflowX)) fallas.push('texto tapado ' + nombre(e) + ' "' + e.textContent.trim().slice(0, 20) + '"'); break; } }
   });
   const t = document.querySelector('.pn-top > b'); if (panel && t && vis(t) && t.scrollWidth > t.clientWidth + 1) fallas.push('título cortado "' + t.textContent + '"');
   return [...new Set(fallas)];
@@ -49,6 +59,19 @@ def correr(rapido):
             # página del cliente: arriba y abajo
             pg.goto(BASE + '/?sinintro'); pg.wait_for_timeout(2500)
             ver('cliente', False)
+            # el armador del cliente: cada paso, y "Ver todos"
+            pg.locator('#cat-zona .cat-esc').first.click(); pg.wait_for_timeout(1500); ver('armador-1', False)
+            for k in range(2, 6):
+                sig = pg.locator('#barra-sig')
+                if not sig.is_visible(): break
+                txt = sig.inner_text()
+                if 'WhatsApp' in txt or 'Cotiza' in txt: break
+                sig.click(); pg.wait_for_timeout(1300); ver('armador-%d' % k, False)
+            pg.click('#probador-x'); pg.wait_for_timeout(500)
+            for _ in range(6):
+                if pg.locator('#probador').is_hidden(): break
+                pg.click('#probador-x'); pg.wait_for_timeout(400)
+            ver('cliente-regreso', False)
             # panel
             pg.goto(BASE + '/?sinintro#panel'); pg.wait_for_timeout(1200)
             pg.fill('#pn-codigo', '0'); pg.click('#pn-pin button'); pg.wait_for_timeout(1500)
@@ -58,6 +81,7 @@ def correr(rapido):
             if not rapido:
                 pg.locator('[data-edit]').first.click(); pg.wait_for_timeout(5000); ver('estudio')
                 pg.click('[data-hoja-ir="datos"]'); ver('estudio-hoja')
+                pg.evaluate("document.querySelector('[data-hoja=datos] .pn-hoja-cuerpo').scrollTop=1e5"); ver('estudio-hoja-abajo')
                 pg.click('[data-hoja-cerrar]')
                 bb = pg.locator('#ed-3d').bounding_box(); pg.mouse.click(bb['x'] + bb['width'] * .5, bb['y'] + bb['height'] * .35); pg.wait_for_timeout(900); ver('estudio-pieza')
                 pg.click('[data-ctl="listo"]'); pg.wait_for_timeout(300)

@@ -1026,9 +1026,9 @@ details.pn-mas[open] summary{margin-bottom:6px}
 .probador .paso-cuerpo[data-paso="diseno"] .mini.con-escudo .mini-nom.largo,.inicio-equipos .mini.con-escudo .mini-nom.largo{font-size:9.5px;letter-spacing:-.01em}
 
 /* colores del panel: una barra para deslizar, con su muestra al lado */
-.pn-barra{display:flex;align-items:center;gap:12px;padding:6px 0}
+.pn-colbar{display:flex;align-items:center;gap:12px;padding:6px 0}
 .pn-barra-muestra{flex:none;width:38px;height:38px;border-radius:50%;background:repeating-conic-gradient(#3a3f55 0 25%,#2a2e40 0 50%) 0 0/12px 12px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
-.pn-barra .barra-color{height:30px}
+.pn-colbar .barra-color{height:30px}
 .pn-franja{display:flex;flex-direction:column;gap:6px}
 .pn-franja .chip{align-self:flex-start}
 
@@ -1764,3 +1764,22 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn.tienda .pn-vv-h{font-size:clamp(13px,2.4vh,14.5px)}
 .pn.tienda .pn-vv-k{margin:0}
 .pn-orden-eq b{white-space:nowrap}.pn-eq-lugar .etq{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.pn-orden-eq{gap:clamp(6px,2.5vw,14px)}
+/* estudio: la franja de abajo reparte su espacio (sin un hueco grande entre el uniforme y lo de abajo) */
+.pn.estudio .pn-est-franja .pn-ctl{justify-content:space-evenly}
+.pn.estudio .pn-est-lados{margin:0}
+/* avisos: si el texto es largo, se vuelve una tarjeta redonda, nunca una bola gigante */
+.toast{width:max-content;max-width:min(340px,calc(100% - 32px));border-radius:22px;font-size:14.5px;line-height:1.3;padding:11px 18px}
+.pn.estudio .pn-est-franja .pn-ctl{flex:1}
+/* filas que se deslizan de lado: el tamaño de cada pieza sale del ancho, así nunca sobran unos pixeles; o cabe todo o se nota que hay más */
+.pn-esc-b{flex:0 0 clamp(68px,calc((100vw - 74px) / 3.5),96px)}
+.pn-esc-c{width:100%;height:auto;aspect-ratio:1/1}
+@supports not (aspect-ratio:1/1){.pn-esc-c{height:clamp(68px,calc((100vw - 74px) / 3.5),96px)}}
+.cat-todo .carpetas .chip{flex:1 0 auto;padding-inline:clamp(10px,3vw,16px)}
+.pn-pag-pista{white-space:normal;max-width:calc(100% - 24px);width:max-content;text-align:center;line-height:1.25}
+.cat-todo .carpetas .chip{font-size:clamp(12px,3.9vw,15px);padding-inline:clamp(8px,2.8vw,16px)}.cat-todo .carpetas{gap:clamp(5px,1.6vw,8px)}
+.chip .pn-bolita{margin-right:6px}
+/* Tienda: la tarjeta llena el alto que hay (sin aire abajo en pantallas altas) y reparte sus partes */
+.pn.tienda:not(.enfoque) .pn-cuerpo{display:flex;flex-direction:column}
+.pn.tienda:not(.enfoque) .pn-datos,.pn.tienda:not(.enfoque) [data-parte="datos"]:not([hidden]),.pn.tienda:not(.enfoque) [data-parte="datos"] > .pn-col{flex:1;display:flex;flex-direction:column;min-height:0}
+.pn.tienda:not(.enfoque) .pn-vv{flex:1;justify-content:space-evenly;margin-bottom:0}
+.pn-colbar{padding-right:14px}

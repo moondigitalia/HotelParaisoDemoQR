@@ -54,14 +54,10 @@
     el.classList.toggle('f-der', !y && x && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }
   function vigilarBordes() {
-    if (A.sinScrollChiquito) A.sinScrollChiquito(panel);
     var todos = panel.querySelectorAll('.pn *');
     for (var i = 0; i < todos.length; i++) {
       var el = todos[i], cs = getComputedStyle(el);
       if (!/(auto|scroll)/.test(cs.overflowY + cs.overflowX) || !el.offsetParent) continue;
-      // scroll chiquito que solo es margen de abajo: se quita el margen
-      var sobra = el.scrollHeight - el.clientHeight, pb = parseFloat(cs.paddingBottom) || 0;
-      if (sobra > 0 && sobra <= pb && /(auto|scroll)/.test(cs.overflowY)) el.style.paddingBottom = Math.max(0, pb - sobra) + 'px';
       bordes(el);
     }
   }
@@ -542,7 +538,7 @@
   }
   function bolitas(campo, valor) {
     var hay = /^#[0-9a-f]{6}$/i.test(valor || ''), k = lugarDe(valor);
-    return '<div class="pn-barra" data-barra-campo="' + campo + '"><span class="pn-barra-muestra"' + (hay ? ' style="background:' + valor + '"' : '') + '></span>' +
+    return '<div class="pn-colbar" data-barra-campo="' + campo + '"><span class="pn-barra-muestra"' + (hay ? ' style="background:' + valor + '"' : '') + '></span>' +
       '<div class="barra-color" role="slider" tabindex="0" aria-label="Color" style="background:linear-gradient(90deg,' + PN_BARRA.map(function (c, i) { return c + ' ' + (i * 100 / (PN_BARRA.length - 1)) + '%'; }).join(',') + ')">' +
       '<i class="barra-pulgar" style="left:' + (k * 100) + '%;' + (hay ? 'background:' + valor : 'opacity:.55') + '"></i></div></div>';
   }
@@ -621,12 +617,12 @@
   // la franja de abajo cuando no hay pieza escogida: qué falta (con su botón) o la ayuda, y "Equipo y versión"
   function franjaInicio(u, faltaLado, NOMF) {
     var f = u.fotos || {};
+    var lados = '<div class="pn-est-lados" role="tablist"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div>';
     var nombre = esc(nombreAuto(u) || u.nombre || 'Sin equipo todavía');
     var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo y versión</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
     if (!f.frente) return cab;
-    if (faltaLado) return '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto de ' + NOMF[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + cab;
+    if (faltaLado) return lados + '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto ' + ({ frente: 'del frente', espalda: 'de la espalda', short: 'del short' })[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + cab;
     // Frente / Espalda vive aquí abajo, nunca encima del uniforme
-    var lados = '<div class="pn-est-lados" role="tablist"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div>';
     return lados + '<p class="pn-ctl-ayuda">☝ Toca una pieza del uniforme para acomodarla o cambiar su foto.</p>' + cab;
   }
   var mEditor = null, pvVista = 'frente';
@@ -1301,7 +1297,8 @@
         var o = $('[data-pg-orig]', cp); if (o) o.disabled = !txDe(k, l);
         if (P.guardarDatos) P.guardarDatos();
       });
-      tx.addEventListener('focus', function () { modoEscribir(true); });
+      // al abrirse el teclado (tarda un poco y cambia de tamaño mientras sube), lo que cambias se vuelve a poner a la vista varias veces
+      tx.addEventListener('focus', function () { modoEscribir(true); [120, 350, 700, 1100].forEach(function (t) { setTimeout(function () { ajustarTeclado(); }, t); }); });
       tx.addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== tx) modoEscribir(false); }, 120); });
     }
   }
