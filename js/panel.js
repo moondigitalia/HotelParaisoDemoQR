@@ -647,7 +647,7 @@
       '<div class="pn-estudio"><div class="pn-est-3d">' + prev + vacio + '</div>' +
       '<div id="ed-aviso"></div>' +
       '<div class="pn-est-franja"><div class="pn-ctl" id="pn-ctl">' + franjaInicio(u, faltaLado, NOMF) + '</div></div>' +
-      '<div class="pn-est-oculto" aria-hidden="true"><div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div></div>' +
+      '<div class="pn-est-oculto" aria-hidden="true"><div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + boton('mangaI', 'Manga izquierda', true) + boton('mangaD', 'Manga derecha', true) + '</div></div>' +
       '<div class="pn-hoja" data-hoja="datos" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Equipo y diseño</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form">' +
       
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -728,7 +728,7 @@
   /* ---------- tocar el uniforme para editarlo ----------
      El 3D es el control: se toca una pieza (playera de frente o de espalda, short, nombre o número), esa pieza brilla y lo demás
      se apaga, y abajo salen sus controles: mover, tamaño (y ancho en nombre y número), cambiar su foto o quitarle algo. */
-  var pnSel = '', NOM_PIEZA = { frente: 'Playera · frente', espalda: 'Playera · espalda', short: 'Short', nombre: 'Nombre', numero: 'Número', calcetas: 'Calcetas' };
+  var pnSel = '', NOM_PIEZA = { frente: 'Playera · frente', espalda: 'Playera · espalda', short: 'Short', nombre: 'Nombre', numero: 'Número', calcetas: 'Calcetas', mangaI: 'Manga izquierda', mangaD: 'Manga derecha' };
   function tocarPieza(e) {
     if (!mEditor || !mEditor.m || !mEditor.m.piezaEn) return;
     var p = mEditor.m.piezaEn(e.clientX, e.clientY);
@@ -751,7 +751,8 @@
   function elegirPieza(p) {
     var m = mEditor && mEditor.m; if (!m) return;
     pnSel = p; m.seleccionar(p === 'fondo' ? '' : p);
-    var lado = p === 'espalda' || p === 'nombre' || p === 'numero' ? 'espalda' : p && p !== 'fondo' ? 'frente' : null;
+    // la manga: el 3D gira hacia su lado (izquierda o derecha); las demás piezas, de frente o de espalda
+    var lado = p === 'mangaI' || p === 'mangaD' ? p : p === 'espalda' || p === 'nombre' || p === 'numero' ? 'espalda' : p && p !== 'fondo' ? 'frente' : null;
     if (lado && lado !== pvVista) { pvVista = lado; m.vista(lado); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === lado); }); }
     pintarCtl();
   }
@@ -789,6 +790,15 @@
       return;
     }
     if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
+    var esManga = pnSel === 'mangaI' || pnSel === 'mangaD';
+    if (esManga && !(u.fotos || {})[pnSel]) {
+      // la manga todavía sin su foto: sale de las fotos del frente y la espalda; aquí se le pone la suya
+      ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>' + NOM_PIEZA[pnSel] + '</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>' +
+        '<button type="button" class="pn-est-falta" data-ctl="foto"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Sube la foto de esta manga</b><small>De lado, con el hombro arriba y el puño abajo</small></span></button>';
+      $('[data-ctl="listo"]', ctl).addEventListener('click', function () { elegirPieza(''); });
+      $('[data-ctl="foto"]', ctl).addEventListener('click', function () { var inp = $('[data-foto="' + pnSel + '"]', panel); if (inp) inp.click(); });
+      return;
+    }
     var txt = pnSel === 'nombre' || pnSel === 'numero', foto = !txt;
     var fl = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
     // un control redondo para mover (como el de un control de videojuego) y a su lado píldoras para el tamaño y el ancho
@@ -801,7 +811,7 @@
       '<button type="button" class="ab" data-ctl="y-" aria-label="Más abajo">' + fl('M6 9l6 6 6-6') + '</button></div><small>Mover</small></div>' +
       '<div class="pn-tams"><div class="pn-mov"><div class="pn-par"><button type="button" data-ctl="z-" aria-label="Más chico">' + fl('M6 12h12') + '</button><button type="button" data-ctl="z+" aria-label="Más grande">' + fl('M12 6v12M6 12h12') + '</button></div><small>Tamaño</small></div>' +
       (txt ? '<div class="pn-mov"><div class="pn-par"><button type="button" data-ctl="a-" aria-label="Más angosto">' + fl('M3 12h6M21 12h-6M6 9l3 3-3 3M18 9l-3 3 3 3') + '</button><button type="button" data-ctl="a+" aria-label="Más ancho">' + fl('M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4') + '</button></div><small>Ancho</small></div>' : '') + '</div>' +
-      '</div><div class="pn-ctl-extra">' + (foto ? '<button type="button" class="chip" data-ctl="foto">Cambiar foto</button>' : '') + (pnSel === 'frente' || pnSel === 'espalda' ? '<button type="button" class="chip" data-ctl="quitar">Quitar algo</button>' : '') +
+      '</div><div class="pn-ctl-extra">' + (foto ? '<button type="button" class="chip" data-ctl="foto">Cambiar foto</button>' : '') + (pnSel === 'frente' || pnSel === 'espalda' ? '<button type="button" class="chip" data-ctl="quitar">Quitar algo</button>' : '') + (esManga ? '<button type="button" class="chip" data-ctl="girar">Girar</button><button type="button" class="chip" data-ctl="sinfoto">Quitar foto</button>' : '') +
       '<button type="button" class="chip" data-ctl="0">Como estaba</button></div>';
     var rep = null;
     $$('[data-ctl]', ctl).forEach(function (b) {
@@ -809,6 +819,9 @@
       if (k === 'listo') return b.addEventListener('click', function () { elegirPieza(''); });
       if (k === 'foto') return b.addEventListener('click', function () { var inp = $('[data-foto="' + pnSel + '"]', panel); if (inp) inp.click(); });
       if (k === 'quitar') return b.addEventListener('click', function () { borrador(u, pnSel); });
+      // girar la foto de la manga de cuarto en cuarto (si llegó acostada o de cabeza)
+      if (k === 'girar') return b.addEventListener('click', function () { u.ajuste = u.ajuste || {}; var v = (u.ajuste[pnSel] || [1, 0, 0]).slice(0, 3); var vu = mEditor.m.vueltasManga ? mEditor.m.vueltasManga(pnSel) : 0; v[3] = (vu + 1) % 4; u.ajuste[pnSel] = v; mEditor.m.ajuste(u.ajuste); });
+      if (k === 'sinfoto') return b.addEventListener('click', function () { delete u.fotos[pnSel]; if (u.ajuste) delete u.ajuste[pnSel]; previsualizar().then(function () { pintarCtl(); }); });
       if (k === '0') return b.addEventListener('click', function () { if (u.ajuste) delete u.ajuste[pnSel]; mEditor.m.ajuste(u.ajuste || {}); });
       b.addEventListener('pointerdown', function (e) { e.preventDefault(); pasoPieza(u, k); clearInterval(rep); b._t = setTimeout(function () { rep = setInterval(function () { pasoPieza(u, k); }, 70); }, 350); });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { clearTimeout(b._t); clearInterval(rep); }); });
@@ -880,9 +893,9 @@
     A.cargarMotor().then(function () { return window.Motor3D.crear(c); }).then(function (m) {
       return falta.reduce(function (cadena, u) {
         return cadena.then(function () {
-          return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+          return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
             if (!im[0]) return;
-            return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null })
+            return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null })
               .then(function () { return m.taco('negro'); })
               .then(function () { m.dorsal({ nombre: '', numero: '' }); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); })
               .then(function () { return A.subirConReintento(m.foto(480, 720, 'frente', true), 'catalogo'); })
@@ -912,9 +925,9 @@
       }
       return mEditor.p.then(function (m) {
         mEditor.m = m;
-        return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+        return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
           if (m.congelar) m.congelar(true);   // cambia de un solo jalón, sin pasos a medias
-          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
         }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); }).then(function () { if (m.congelar) m.congelar(false); }, function () { if (m.congelar) m.congelar(false); });
       });
     });
@@ -968,6 +981,12 @@
         // en la casilla del short: si la foto trae también la playera, se toma solo el short
         if (lado === 'short') { var sp = pz.short ? null : M.separarConjunto(pz.playera); pz = { playera: pz.short || (sp && sp.short) || pz.playera }; }
         var cut = pz.playera;
+        // la manga: el recorte automático a veces se queda solo con lo que más resalta (el parche). Se compara con el recorte
+        // por color y se usa el que conserva la manga completa (nunca se inventa nada: es la misma foto, con o sin su fondo)
+        if (/^manga/.test(lado)) {
+          var area = function (c) { var t = A.aCanvas(c, 140), dd = t.getContext('2d').getImageData(0, 0, t.width, t.height).data, n = 0; for (var i = 3; i < dd.length; i += 4) if (dd[i] > 128) n++; return n / (dd.length / 4) * c.width * c.height; };
+          var porColor = M.recortar(base); if (porColor && area(cut) < 0.55 * area(porColor)) cut = porColor;
+        }
         // sin fondo = casi toda la foto quedó como prenda (no basta con que la prenda llene el cuadro: sus orillas sí se quitaron)
         r.fondo = colorFondo(base);
         r.sinFondo = (function () { var t = A.aCanvas(cut, 120), d = t.getContext('2d').getImageData(0, 0, t.width, t.height).data, n = 0; for (var i = 3; i < d.length; i += 4) if (d[i] > 128) n++; return n / (d.length / 4) * (cut.width * cut.height) / (base.width * base.height) > 0.9; })();
@@ -977,15 +996,16 @@
           var q = M.quitarPersona(cut, colorFondo(base)); r.persona = !!q;
           if (q) { cut = q; pz.short = null; if (q.calceta && !pz.calceta) pz.calceta = q.calceta; }   // con alguien puesto, las piezas sueltas son piernas, no un short
         }
-        var sep = lado !== 'short' && !pz.short ? M.separarConjunto(cut, r.persona) : null;
+        var esManga = /^manga/.test(lado);   // la foto de una manga se usa tal cual: ni se separa ni se completa con espejo
+        var sep = lado !== 'short' && !esManga && !pz.short ? M.separarConjunto(cut, r.persona) : null;
         if (sep) { cut = sep.playera; pz.short = sep.short; }
         // fondo blanco y playera con blanco: la IA se come mangas o costados. La playera es simétrica: se completa con su espejo
         var fz = colorFondo(base);
-        if (!r.persona && lado !== 'short' && M.simetrizar && fz && fz[0] + fz[1] + fz[2] > 600) { var sm = M.simetrizar(cut); if (sm) { cut = sm; r.reparada = true; } }
+        if (!r.persona && lado !== 'short' && !esManga && M.simetrizar && fz && fz[0] + fz[1] + fz[2] > 600) { var sm = M.simetrizar(cut); if (sm) { cut = sm; r.reparada = true; } }
         r.cut = cut; r.short = pz.short || null; r.calceta = (pz.short || r.persona) ? pz.calceta || null : null;   // calcetas solo en una foto del uniforme completo (en una playera sola, una pieza suelta no son calcetas)
         // la mejor foto: de frente y derecha, grande, sin persona
-        r.frente = lado === 'short' ? 1 : M.deFrente(cut);
-        r.nota = lado === 'short' ? cut.width * cut.height : r.frente - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
+        r.frente = lado === 'short' || esManga ? 1 : M.deFrente(cut);
+        r.nota = lado === 'short' || esManga ? cut.width * cut.height : r.frente - (r.persona ? 0.04 : 0) - (r.chica ? 0.03 : 0) - (r.sinFondo ? 0.5 : 0) + 0.08 * Math.min(1, cut.width * cut.height / 640000) - (pz.parecidas ? 0.06 : 0);   // a igual de derecha, gana la foto más grande y nítida
         return r;
       });
     });
@@ -1018,18 +1038,18 @@
       }
       tareas.push(ponerFoto(u, lado, cut));
       // short y calcetas: de cualquier foto que los traiga (el short de su propia foto manda)
-      if (lado !== 'short' && !u.shortPropio) {
+      if (lado !== 'short' && !/^manga/.test(lado) && !u.shortPropio) {   // de la foto de una manga no se saca short
         var conShort = lista.filter(function (x) { return x.short; }).sort(function (x, y) { return y.short.width * y.short.height - x.short.width * x.short.height; })[0];
         if (conShort && (lado === 'frente' || !u.fotos.short)) { tareas.push(ponerFoto(u, 'short', conShort.short)); av.unshift('Venía el short en la foto: lo separamos solo.'); }
       }
       if (lado === 'short') u.shortPropio = true;
-      var conCalceta = lista.filter(function (x) { return x.calceta; })[0];
+      var conCalceta = /^manga/.test(lado) ? null : lista.filter(function (x) { return x.calceta; })[0];
       if (conCalceta) { u.colorCalceta = hexDe(conCalceta.calceta); u.calcetaFoto = true; av.unshift('También venían las calcetas: tomamos su color.'); }
       // nombre y número: el color de acento de la playera si se lee bien (amarillo en el Barça), si no blanco o negro
       if (lado === 'frente' && !u.colorTextoElegido) u.colorTexto = colorLetras(cut);
       P.avisos = av;
       // el 3D muestra solo el lado de la foto que acaba de subir (la espalda gira el uniforme; frente o short lo ponen de frente)
-      pvVista = lado === 'espalda' ? 'espalda' : 'frente'; if (mEditor && mEditor.m) mEditor.m.vista(pvVista);
+      pvVista = lado === 'espalda' || /^manga/.test(lado) ? lado : 'frente'; if (mEditor && mEditor.m) mEditor.m.vista(pvVista);
       pintar(); $('#ed-aviso').innerHTML = av.length ? '<div class="aviso">' + av.map(function (a) { return '<p>' + esc(a) + '</p>'; }).join('') + '</div>' : '';
       // (el estudio no se baja: el 3D siempre está a la vista)
       return Promise.all(tareas).then(function () {
@@ -1044,15 +1064,15 @@
     var u = P.editando; if (!u || !u.fotos.frente) return;
     A.toast('Haciendo la versión de otro color…', true);
     var rgb = [1, 3, 5].map(function (i) { return parseInt(T.slice(i, i + 2), 16); });
-    Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+    Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
       var M = window.Motor3D, cf = A.aCanvas(im[0], 1000), base = M.coloresBase(cf);
       var nuevo = A.clone(u); nuevo.id = 'u' + Date.now().toString(36); nuevo.nuevo = true; delete nuevo.destacado; delete nuevo.oculto;
       nuevo.nombre = ''; nuevo.mini = ''; nuevo.version = '';
       var mapa = function (hex) { var c = document.createElement('canvas'); c.width = c.height = 1; var g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 1, 1); return hexDe(Array.from(M.recolorear(c, base, rgb).getContext('2d').getImageData(0, 0, 1, 1).data).slice(0, 3)); };
       ['colorShort', 'colorCalceta', 'colorFranja', 'colorTexto'].forEach(function (k) { if (nuevo[k]) nuevo[k] = mapa(nuevo[k]); });
-      var lados = ['frente', 'espalda', 'short'];
+      var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
       return Promise.all(lados.map(function (l, i) {
-        if (!im[i]) { nuevo.fotos[l] = ''; return null; }
+        if (!im[i]) { if (i < 3) nuevo.fotos[l] = ''; else delete nuevo.fotos[l]; return null; }
         var r = prepararCanvas(M.recolorear(A.aCanvas(im[i], 1000), base, rgb));
         return A.subirConReintento(r.data, 'catalogo').then(function (url) { nuevo.fotos[l] = url; });
       })).then(function () {

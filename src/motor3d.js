@@ -273,7 +273,11 @@ export async function crear(canvas, opt = {}) {
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
     uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
     uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 },
-    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }, uDentro: { value: new THREE.Color(0.9, 0.9, 0.9) }, uHem: { value: null }, uHayHem: { value: 0 }
+    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }, uDentro: { value: new THREE.Color(0.9, 0.9, 0.9) }, uHem: { value: null }, uHayHem: { value: 0 },
+    uMangaI: { value: null }, uMangaD: { value: null }, uHayMI: { value: 0 }, uHayMD: { value: 0 },
+    uCajaMI: { value: new THREE.Vector4(0, 0, 1, 1) }, uCajaMD: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uMSI: { value: new THREE.Vector3() }, uMAI: { value: new THREE.Vector3(0, -1, 0) }, uMOI: { value: new THREE.Vector3(-1, 0, 0) }, uMFI: { value: new THREE.Vector3(0, 0, 1) },
+    uOtroLargo: { value: 0 }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -284,6 +288,8 @@ export async function crear(canvas, opt = {}) {
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
 uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro; uniform sampler2D uHem; uniform float uHayHem;
+uniform sampler2D uMangaI; uniform sampler2D uMangaD; uniform float uHayMI; uniform float uHayMD; uniform vec4 uCajaMI; uniform vec4 uCajaMD; uniform vec3 uAjMI; uniform vec3 uAjMD;
+uniform float uOtroLargo; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;
 // de dónde de la foto sale cada punto de la playera, renglón por renglón: el torso del modelo con el torso de la foto y lo que
@@ -331,7 +337,7 @@ vec3 caraPlayera(bool atras, out vec2 uvSalida) {
       .replace('#include <map_fragment>', `
 if (vMundo.y < uCorte) discard;
 float t = (vMundo.y - uZonas.x) / uZonas.y;
-vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
+vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0; float mangaLado = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
 // el uniforme no se mueve (gira la cámara): lo que mira hacia atrás usa la foto de la espalda
 bool atras = vNormMundo.z < 0.0;
 if (t > uZonas.z - 0.01) {
@@ -343,6 +349,39 @@ if (t > uZonas.z - 0.01) {
   else if (nz < -franja) base = caraPlayera(true, uvB);
   else { vec3 cf = caraPlayera(false, uvF), cb = caraPlayera(true, uvB); base = mix(cb, cf, smoothstep(-franja, franja, nz)); }
   uvSel = atras ? uvB : uvF; zona = 1.0;
+  // la manga con su propia foto (tomada de lado): se pone en la cara de afuera de la manga, de un lado al otro, sin cortes;
+  // hacia el frente y la espalda se mezcla suave con esas fotos. Sin foto de manga, todo queda como antes.
+  if (uHayRen > 0.5) {
+    float uxM = (vMundo.x - uCaja.x) / uCaja.z, vrM = clamp((vMundo.y - uCaja.y) / uCaja.w, 0.002, 0.998);
+    float m0M = leer2(0.5 / 6.0, vrM) * 4.0 - 1.5, m1M = leer2(1.5 / 6.0, vrM) * 4.0 - 1.5;
+    if (uxM < 0.0 && m0M < -0.12) mangaLado = 1.0; else if (uxM > 1.0 && m1M > 1.12) mangaLado = 2.0;
+    // fotos de manga corta en manga larga: arriba la manga sale de la foto; el resto del brazo (que la foto no muestra) es la
+    // tela de la misma playera, así su puño no aparece como brazalete a media manga
+    if (uOtroLargo > 0.5 && mangaLado > 0.5) {
+      vec3 S1 = mangaLado == 1.0 ? uMSI : uMSD, A1 = mangaLado == 1.0 ? uMAI : uMAD;
+      float tB = dot(vMundo - S1, A1) / max(dot(A1, A1), 1e-6);
+      base = mix(base, texture2D(uManga, vMundo.xy * 3.2).rgb, smoothstep(0.2, 0.32, tB));
+    }
+    if ((mangaLado == 1.0 && uHayMI > 0.5) || (mangaLado == 2.0 && uHayMD > 0.5)) {
+      // la manga es un tubo: a lo largo va del hombro (arriba de la foto) al puño (abajo); alrededor, la foto cubre la mitad
+      // de afuera (de la costura del frente a la de atrás), con su centro en la cara de afuera, donde van los parches
+      bool izq = mangaLado == 1.0;
+      vec3 S0 = izq ? uMSI : uMSD, AX = izq ? uMAI : uMAD, O = izq ? uMOI : uMOD, F = izq ? uMFI : uMFD; vec3 ajm = izq ? uAjMI : uAjMD;
+      vec3 q = vMundo - S0; float L2 = max(dot(AX, AX), 1e-6), tA = dot(q, AX) / L2;
+      vec3 rr = q - AX * tA; float fi = atan(dot(rr, F), dot(rr, O));   // 0 = cara de afuera; + hacia el frente
+      float su = izq ? 0.5 + fi / 3.14159265 : 0.5 - fi / 3.14159265;   // izquierda: el frente a la derecha de su foto; derecha: a la izquierda
+      // la foto se estira al largo de la manga solo si es de ese mismo largo; si es de la otra (foto de manga corta con
+      // manga larga), va desde el hombro con sus proporciones reales y el resto del brazo sale de las fotos de frente y espalda
+      vec3 MR = izq ? uMRI : uMRD;   // x: 1 estirar, 0 proporción real; y: radio de la manga; z: alto/ancho de la foto
+      float tF = MR.x > 0.5 ? tA : tA * sqrt(L2) / max(MR.z * 3.14159265 * MR.y, 0.01);
+      vec2 um = (vec2(su, 1.0 - tF) - 0.5) / ajm.x + 0.5 - ajm.yz;
+      vec4 g = izq ? texture2D(uMangaI, um) : texture2D(uMangaD, um);
+      if (um.x < 0.0 || um.x > 1.0 || um.y < 0.0 || um.y > 1.0) g.a = 0.0;
+      float w = (1.0 - smoothstep(1.25, 1.57, abs(fi))) * smoothstep(0.35, 0.9, g.a) * smoothstep(-0.04, 0.06, tA) * smoothstep(0.03, 0.09, izq ? -uxM : uxM - 1.0);
+      if (MR.x < 0.5) w *= 1.0 - smoothstep(0.76, 0.84, tF);   // foto de otro largo: su puño no se pone a media manga
+      base = mix(base, g.rgb / max(g.a, 0.004), w);
+    }
+  }
 } else if (t > uShortBot) {
   base = uShort; zona = 2.0;
   if (uHayShort > 0.5) {
@@ -367,7 +406,7 @@ if (t > uZonas.z - 0.01) {
 if (!gl_FrontFacing) base = (zona == 1.0 ? uDentro : (zona == 2.0 ? uShort : uSock)) * 0.8;
 // panel: la pieza escogida se ve normal y todo lo demás en blanco y negro, apagado
 if (uSel > 0.5) {
-  bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0) || (uSel > 5.5 && zona == 3.0);
+  bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0) || (uSel > 5.5 && uSel < 6.5 && zona == 3.0) || (uSel > 6.5 && uSel < 7.5 && mangaLado == 1.0) || (uSel > 7.5 && mangaLado == 2.0);
   float halo = 0.0;
   if (uSel > 3.5 && zona == 1.0 && atras && uvSel.x > uSelCaja.x && uvSel.x < uSelCaja.z && uvSel.y > uSelCaja.y && uvSel.y < uSelCaja.w) {
     // nombre o número: solo las letras quedan encendidas, con un contorno dorado alrededor (nada de cuadros)
@@ -424,6 +463,39 @@ diffuseColor.rgb *= base;`);
     uni.uCaja.value.set(tx0, shirtBot - 0.01 * zonas.YH, tx1 - tx0, zonas.top - shirtBot + 0.01 * zonas.YH);
     uni.uShortCaja.value.set(sx0, shortBot, sx1 - sx0, shortTop - shortBot);
     // la orilla de abajo del short del modelo, columna por columna (0 = abajo de la caja, 1 = arriba): ahí cae la orilla de la foto
+    // cada manga vista de su lado (de frente a espalda y de arriba a abajo): ahí cae su propia foto
+    const cm = [[1e9, 1e9, -1e9, -1e9], [1e9, 1e9, -1e9, -1e9]];
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld);
+      if (v.y < shirtBot) continue;
+      const fuera = 0.07 * (tx1 - tx0), k = v.x < tx0 - fuera ? 0 : v.x > tx1 + fuera ? 1 : -1; if (k < 0) continue;   // solo la manga (no el costado del pecho)
+      const b = cm[k]; b[0] = Math.min(b[0], v.z); b[1] = Math.min(b[1], v.y); b[2] = Math.max(b[2], v.z); b[3] = Math.max(b[3], v.y);
+    }
+    [[uni.uCajaMI, cm[0]], [uni.uCajaMD, cm[1]]].forEach(([u, b]) => { if (b[2] > b[0]) u.value.set(b[0], b[1], b[2] - b[0], b[3] - b[1]); });
+    // el tubo de cada manga. Se toma solo la mitad de afuera de la manga (ahí no hay pecho ni short): su parte más baja es el
+    // puño y la más alta el hombro. Así sale igual en manga corta y en larga (las dos cuelgan y terminan arriba del dobladillo)
+    [[-1, uni.uMSI, uni.uMAI, uni.uMOI, uni.uMFI], [1, uni.uMSD, uni.uMAD, uni.uMOD, uni.uMFD]].forEach(([lado, uS, uA, uO, uF]) => {
+      const fuera = 0.07 * (tx1 - tx0), lim = lado < 0 ? tx0 - fuera : tx1 + fuera, arriba = [];
+      let ext = lim;
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld);
+        if (v.y < shirtBot + 0.017 * zonas.YH) continue;
+        arriba.push(v.clone()); if (lado < 0 ? v.x < ext : v.x > ext) ext = v.x;
+      }
+      const lim2 = lim + (ext - lim) * 0.45, manga = arriba.filter((p) => (lado < 0 ? p.x < lim2 : p.x > lim2));
+      if (manga.length < 30) return;
+      const ys = manga.map((p) => p.y).sort((x, y) => x - y), lo = ys[Math.floor(ys.length * 0.06)], hi = ys[Math.floor(ys.length * 0.94)];
+      const media = (l) => { const c0 = new THREE.Vector3(); l.forEach((p) => c0.add(p)); return c0.multiplyScalar(1 / Math.max(1, l.length)); };
+      const puno = media(manga.filter((p) => p.y <= lo)), hombro = media(manga.filter((p) => p.y >= hi)), ax = puno.clone().sub(hombro);
+      if (ax.length() < 0.03) return;
+      const n = ax.clone().normalize();
+      const U = new THREE.Vector3(lado, 1, 0).normalize(), o = U.sub(n.clone().multiplyScalar(U.dot(n))).normalize();
+      const Z = new THREE.Vector3(0, 0, 1), f = Z.sub(n.clone().multiplyScalar(Z.dot(n))).sub(o.clone().multiplyScalar(Z.dot(o))).normalize();
+      uS.value.copy(hombro); uA.value.copy(ax); uO.value.copy(o); uF.value.copy(f);
+      let rr = 0; manga.forEach((p) => { const q = p.clone().sub(hombro); rr += q.sub(n.clone().multiplyScalar(q.dot(n))).length(); });
+      (lado < 0 ? uni.uMRI : uni.uMRD).value.y = rr / manga.length;
+    });
+    pintarMangas();
     hemModelo = new Float32Array(HEMC).fill(-1);
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld);
@@ -504,6 +576,8 @@ diffuseColor.rgb *= base;`);
     }
     pintarEspalda();
     pintarShort();
+    pintarMangas();
+    uni.uOtroLargo.value = E.mangaFotos === 'corta' && E.manga === 'larga' ? 1 : 0;
     uni.uShort.value.set(E.colorShort); uni.uSock.value.set(E.colorCalceta);
     uni.uHayFranja.value = E.colorFranja ? 1 : 0; if (E.colorFranja) uni.uFranja.value.set(E.colorFranja);
     pedir();
@@ -564,6 +638,30 @@ diffuseColor.rgb *= base;`);
     const t = new THREE.DataTexture(dt, HEMC, 1, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
     poner(uni.uHem, t); uni.uHayHem.value = 1;
   }
+  // la foto de cada manga, derecha: el hombro arriba y el puño abajo. Si llega acostada (la playera extendida en el piso),
+  // se para sola (la izquierda con el puño a la izquierda, la derecha con el puño a la derecha); el dueño la puede girar
+  const giroManga = { mangaI: -1, mangaD: -1 }, mangaDe = { mangaI: null, mangaD: null };
+  function girada(c, vueltas) {
+    vueltas = ((vueltas % 4) + 4) % 4; if (!vueltas) return c;
+    const o = document.createElement('canvas'), par = vueltas % 2 === 1; o.width = par ? c.height : c.width; o.height = par ? c.width : c.height;
+    const g = o.getContext('2d'); g.translate(o.width / 2, o.height / 2); g.rotate(vueltas * Math.PI / 2); g.drawImage(c, -c.width / 2, -c.height / 2); return o;
+  }
+  function vueltasManga(lado) {
+    const c = E.fotos[lado]; if (!c) return 0;
+    const aj = E.ajMangas && E.ajMangas[lado]; if (aj && aj[3] != null) return +aj[3] || 0;
+    if (c.width <= c.height * 1.15) return 0;
+    return lado === 'mangaI' ? 3 : 1;   // acostada: el puño queda abajo
+  }
+  function pintarMangas() {
+    [['mangaI', uni.uMangaI, uni.uHayMI], ['mangaD', uni.uMangaD, uni.uHayMD]].forEach(([lado, tx, hay]) => {
+      const c = E.fotos[lado]; if (!c) { hay.value = 0; mangaDe[lado] = null; return; }
+      const vu = vueltasManga(lado);
+      if (mangaDe[lado] !== c || giroManga[lado] !== vu) { poner(tx, textura(girada(c, vu))); mangaDe[lado] = c; giroManga[lado] = vu; }
+      hay.value = 1;
+      const MR = (lado === 'mangaI' ? uni.uMRI : uni.uMRD).value;
+      MR.z = (vu % 2 ? c.width : c.height) / Math.max(1, vu % 2 ? c.height : c.width); MR.x = !E.mangaFotos || E.mangaFotos === E.manga ? 1 : 0;
+    });
+  }
   // la espalda lleva el nombre y el número del cliente encima de la foto
   function pintarEspalda() {
     let src = E.fotos.espalda || E.fotos.frente; if (!src) return;
@@ -609,7 +707,7 @@ diffuseColor.rgb *= base;`);
     }
     poner(uni.uDorsal, textura(cd)); marcarSel();
   }
-  const SEL = { frente: 1, espalda: 2, short: 3, nombre: 4, numero: 5, calcetas: 6 };
+  const SEL = { frente: 1, espalda: 2, short: 3, nombre: 4, numero: 5, calcetas: 6, mangaI: 7, mangaD: 8 };
   function marcarSel() {
     uni.uSel.value = SEL[E.sel] || 0;
     const k = cajas[E.sel]; if (k) uni.uSelCaja.value.set(k[0], k[1], k[2], k[3]); else uni.uSelCaja.value.set(0, 0, 0, 0);
@@ -660,6 +758,7 @@ diffuseColor.rgb *= base;`);
       if (p === 'calcetas') { const y = Z.Y0 + (shortY - Z.Y0) * 0.55; dest = { k: 0.5, m: y, a: y + 0.08 }; }
       else if (p === 'short') dest = { k: 0.5, m: (hemY + shortY) / 2, a: (hemY + shortY) / 2 + 0.05 };
       else if (p === 'nombre' || p === 'numero') { const y = hemY + (Z.top - hemY) * 0.62; dest = { k: 0.42, m: y, a: y + 0.04 }; }
+      else if (p === 'mangaI' || p === 'mangaD') { const y = (p === 'mangaI' ? uni.uMSI : uni.uMSD).value.y + (p === 'mangaI' ? uni.uMAI : uni.uMAD).value.y * 0.5; dest = { k: 0.62, m: y, a: y + 0.05 }; }
       else { const y = (hemY + Z.top) / 2; dest = { k: 0.62, m: y, a: y + 0.05 }; }
     }
     if (animFoco) cancelAnimationFrame(animFoco);
@@ -711,13 +810,15 @@ diffuseColor.rgb *= base;`);
   function poner(u, t) { if (u.value && u.value !== t && u.value.dispose) u.value.dispose(); u.value = t; }
   const api = {
     async uniforme(o) {
-      E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short);
+      E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short); E.fotos.mangaI = canvasDe(o.mangaI); E.fotos.mangaD = canvasDe(o.mangaD); E.mangaFotos = o.mangaFotos || '';
       if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || ''; E.numeroShort = !!o.numeroShort; E.torso = Array.isArray(o.torso) ? o.torso : null;
       api.ajuste(o.ajuste);
       const m = o.manga || E.manga;
       if (!kit || m !== E.manga) { E.manga = m; await ponerModelo(); } else aplicarFotos();
     },
     async manga(m) { if (m === E.manga && kit) return; E.manga = m; await ponerModelo(); },
+    // cuántos cuartos de vuelta lleva la foto de una manga (para el botón Girar del panel)
+    vueltasManga(lado) { return vueltasManga(lado); },
     // cambiar el color de los tacos ya puestos es solo pintarlos (instantáneo, sirve para la barra de colores)
     async taco(t) { if (t === E.taco) return; E.taco = t; if (tacos.length && tacoCol) { tacoCol.value = coloresTaco(t); pedir(); return; } tacos.forEach((g) => raiz.remove(g)); tacos = []; await ponerTacos(); pedir(); },
     dorsal(d) {
@@ -728,7 +829,7 @@ diffuseColor.rgb *= base;`);
     // con "reducir movimiento" también gira igual (estándar de Moon: se ve y se siente igual)
     enfoque(que) { zoomA(que === 'tacos' ? 1 : 0); },
     // frente o espalda: gira por el lado más corto (después de deslizar el dedo el ángulo puede ir en 2π, 3π…)
-    vista(v, animar) { const b = v === 'espalda' ? Math.PI : 0, dest = b + Math.round((E.vista - b) / (2 * Math.PI)) * 2 * Math.PI; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
+    vista(v, animar) { const b = v === 'espalda' ? Math.PI : v === 'mangaI' ? -Math.PI / 2 : v === 'mangaD' ? Math.PI / 2 : 0, dest = b + Math.round((E.vista - b) / (2 * Math.PI)) * 2 * Math.PI; if (animar === false) { E.vista = dest; pedir(); } else girarA(dest); },
     // deslizar el dedo a los lados: el uniforme gira pegado al dedo y al soltar se acomoda de frente o de espalda
     // (con la velocidad del dedo: un deslizón rápido y corto también lo voltea). Arriba-abajo no se toca: sigue siendo de la página.
     deslizable(alCambiar) {
@@ -773,17 +874,22 @@ diffuseColor.rgb *= base;`);
     seleccionar(p) { E.sel = p || ''; marcarSel(); enfocar(E.sel); },
     // panel: qué pieza hay bajo el dedo (o null si tocó fuera del uniforme)
     piezaEn(px, py) {
-      // el rayo del dedo se cruza con el plano del cuerpo (el uniforme está quieto en el centro); con la silueta del modelo,
-      // renglón por renglón, se sabe si cayó en la playera, el short o fuera
-      if (!zonas || !modeloRen) return null;
+      // el rayo del dedo toca el uniforme de verdad (el punto exacto y hacia dónde mira la tela): así funciona de frente, de
+      // espalda y de lado. Con la silueta del modelo, renglón por renglón, se sabe si es la playera, una manga, el short o fuera
+      if (!zonas || !modeloRen || !kitMesh) return null;
       const rc = canvas.getBoundingClientRect(), v = new THREE.Vector2(((px - rc.left) / rc.width) * 2 - 1, -((py - rc.top) / rc.height) * 2 + 1);
       cam.updateMatrixWorld(); const ray = new THREE.Raycaster(); ray.setFromCamera(v, cam);
-      const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p)) return null;
-      const atras = Math.cos(E.vista) < 0, t = (p.y - zonas.Y0) / zonas.YH, C = uni.uCaja.value;
+      const hit = ray.intersectObject(kitMesh, false)[0];
+      let p = new THREE.Vector3(), atras = Math.cos(E.vista) < 0;
+      if (hit) { p.copy(hit.point); if (hit.face) atras = hit.face.normal.clone().transformDirection(kitMesh.matrixWorld).z < 0; }
+      else if (!ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), p)) return null;
+      const t = (p.y - zonas.Y0) / zonas.YH, C = uni.uCaja.value;
       if (t > zonas.hem - 0.01) {
         const vv = (p.y - C.y) / C.w; if (vv > 1.02) return null;
         const r = Math.max(0, Math.min(RENG - 1, Math.floor((1 - vv) * RENG))), u = (p.x - C.x) / C.z;
-        if (u < modeloRen.L[r] - 0.04 || u > modeloRen.R[r] + 0.04) return null;
+        if (!hit && (u < modeloRen.L[r] - 0.04 || u > modeloRen.R[r] + 0.04)) return null;
+        if (u < 0 && modeloRen.L[r] < -0.12) return 'mangaI';
+        if (u > 1 && modeloRen.R[r] > 1.12) return 'mangaD';
         if (!atras) return 'frente';
         const tor = uni.uTorsoB.value, x = tor.x + (1 - u) * tor.y, dentro = (k) => k && x > k[0] && x < k[2] && vv > k[1] && vv < k[3];
         if (dentro(cajas.numero)) return 'numero';
@@ -804,7 +910,10 @@ diffuseColor.rgb *= base;`);
       const leer = (v) => Array.isArray(v) && v.length === 4 ? [+v[0] || 1, +v[1] || 0, +v[2] || 0, +v[3] || 1] : [1, 0, 0, 1];
       const nn = leer(aj.nombre), mm = leer(aj.numero);
       if (nn.join() !== E.ajNom.join() || mm.join() !== E.ajNum.join()) { E.ajNom = nn; E.ajNum = mm; pintarDorsal(); }
-      [['frente', uni.uAjF], ['espalda', uni.uAjB], ['short', uni.uAjS]].forEach(([k, u]) => { const v = Array.isArray(aj[k]) ? aj[k] : [1, 0, 0]; u.value.set(+v[0] || 1, +v[1] || 0, +v[2] || 0); });
+      [['frente', uni.uAjF], ['espalda', uni.uAjB], ['short', uni.uAjS], ['mangaI', uni.uAjMI], ['mangaD', uni.uAjMD]].forEach(([k, u]) => { const v = Array.isArray(aj[k]) ? aj[k] : [1, 0, 0]; u.value.set(+v[0] || 1, +v[1] || 0, +v[2] || 0); });
+      // mangas: [tamaño, mover, mover, vueltas]; si cambian las vueltas, la foto se vuelve a parar
+      E.ajMangas = { mangaI: Array.isArray(aj.mangaI) ? aj.mangaI : null, mangaD: Array.isArray(aj.mangaD) ? aj.mangaD : null };
+      if (kit) pintarMangas();
       pedir();
     },
     redibujar: pedir,
