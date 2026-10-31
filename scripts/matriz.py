@@ -99,6 +99,14 @@ def correr(rapido):
                 pg.click('[data-atras]'); pg.wait_for_timeout(500)
             pg.click('[data-atras]'); pg.wait_for_timeout(500)
             pg.click('[data-tab="pagina"]'); pg.wait_for_timeout(3500); ver('pagina')
+            # candado: dejar picado el logo dentro de la vista de la página nunca abre otro panel adentro
+            vf = [f for f in pg.frames if 'editar=1' in f.url]
+            if vf:
+                mb = vf[0].locator('.portada-in').bounding_box()
+                if mb:
+                    pg.mouse.move(mb['x'] + mb['width'] / 2, mb['y'] + mb['height'] / 2); pg.mouse.down(); pg.wait_for_timeout(2600); pg.mouse.up(); pg.wait_for_timeout(400)
+                    if vf[0].evaluate("(()=>{const p=document.getElementById('panel');return !!p && !p.hidden})()"): res['panel-en-panel'] = ['el logo abrió un panel dentro del panel']
+                    if pg.locator('[data-pg-listo]').is_visible(): pg.click('[data-pg-listo]'); pg.wait_for_timeout(400)
             fr = pg.frame_locator('.pn-pag-capa iframe')
             fr.locator('[data-t="hero_t"]').click(force=True); ver('pagina-texto')
             pg.click('[data-pg-listo]')

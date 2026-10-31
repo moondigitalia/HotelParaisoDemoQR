@@ -129,6 +129,65 @@ function textura(c, repetir) {
   if (repetir) t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
   return t;
 }
+// ---- el fondo nunca choca con el uniforme ----
+// cada fondo guardado en 4x6 cuadros de color (lo que queda detrás del uniforme); se compara con el color principal de la playera
+const FONDOS_COLOR = {
+  'dia': 'acc5e1cddbe8c4d3e2b4c7dd4b57574b58574a57564b58574c5958515d5c54605d525e5da0b558a4b9618ea63890a83f94a94395aa4a8ba2368da43c7e933680963e768d2f788f31',
+  'atardecer': 'd8bcc0ebcfccdbaea8cba19fecb8a6f9d7c8fddac5f7c8b0b3896ac7976fd6a57ac09673756131907243a98041896b39484e1750541c45490743480b2c360a313b0e262f06252f06',
+  'noche': '18213919233e1a26431c274445506a2e3c602c3a5f45516e808a9c535f7b4c57727d8799535a616b737a69717750585e587d3875995861873c5f833f2d4d15385c1d24450c22410b',
+  'nublado': '575f638f969bb5bcc1b2babf13191a282727746e6e54595d231d193f2f28544d4a4145472e31203138282830212f392b223c21274226274226233d220d240e0f270f1028100e250e',
+  'azulnoche': '010d1801060c01060c010d192e5573142a3b1228372c53712643571d36451c34422844573b57523c58533c58513a57515f91326b9c47598c265e8f324775244b7a2c39651435610e',
+  'naranja': '53414f574455483c503530417d553a724d35684431613f317a50346e472c6c452b774e33877531937e3a8e7b348e7a384e6716566e1b3d5707465f112c430b2e450c203507203507',
+  'lluvia': '24323c30404c32414f26333e35414876858d7c8c95404e5720282c3b45493b454a232c3036483c3d51433f5347394b3f3f5844324e3637533a4b63521b2a1e142617152819203125',
+  'techado': 'bebfb9c2c1bac1c1babdbeb7c4c4c0cbccc9cbcccac1c2bf90948faeb0acaeaea990928d6e7471898d8a898d8a6e757265833b7d965c7491466c87494e7220547729436b06456c0e',
+  'blanco': '7ba7d97ea4cf7ca2cf79a3d9535546494a39484a395354443c4b523e4e5541505645535894a1559da9658a984999a76096a64597a9457084196f841b8695338c9c38798a277d8f2d',
+  'dorado': '211405170e02140c02190f048459296541185134136444227252284a32143b2710634523594411695115755b1f584411564705534505735d0f715b0f2e28052e2806463b09443809',
+  'g-azul': '1d2e8a1f32941f32951d2e8a21359c253cae253cae21359d2237a1273fb72740b72237a11f32942237a22237a21f32951a297e1c2d871c2d871a297e14206516226b16226b142065',
+  'g-negro': '2b2e3a30323f30333f2b2e3a3436433b3e4c3b3e4c3436433538453e42513e425136384530323f36384636394630333f2629342a2d382a2d392629341c1d271e202a1f202a1c1d27',
+  'g-blanco': 'e7e8eeeaecf1ebecf1e7e8ededeff3f4f6f7f4f6f8eeeff3eff1f4f8f9faf8f9faeff1f4ebecf0eff1f4f0f1f4ebecf1e2e4eae6e7ede6e7ede2e4ead8dbe4dbdde6dbdde6d8dbe4',
+  'g-dorado': 'eeb72ff1bd35f1bd34eeb72ff3c039f8c942f8c942f3c039f4c33bface47face47f4c33bf1bc34f4c33cf4c33cf1bd34ebb229edb62dedb62debb229e4a51be6a81ee6a91ee4a51b',
+  'g-rojo': 'b8272bc12b2ec12b2eb8272bc82d30d63335d63335c82d30cc2f31de3637de3637cc2f31c12b2ecc2f31cc2f31c12b2eaf2328b6262bb6262baf23289a1b219f1d239f1d239a1b21'
+};
+function hexA(h) { return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function cuadros(h) { const r = []; for (let i = 0; i < h.length; i += 6) r.push(hexA(h.slice(i, i + 6))); return r; }
+// distancia de color como la ve el ojo (CIELAB)
+function lab(c) {
+  const f = (v) => { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; };
+  const r = f(c[0]), g = f(c[1]), b = f(c[2]);
+  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, y = r * 0.2126 + g * 0.7152 + b * 0.0722, z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const k = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116); x = k(x); y = k(y); z = k(z);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+function dE(a, b) { const A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); }
+// qué tanto del fondo se parece al uniforme (0 nada, 1 todo)
+// dos colores chocan si casi son el mismo, o si son de la misma familia (azul con azul aunque uno sea claro y otro oscuro)
+function parecidos(a, b) {
+  if (dE(a, b) < 24) return true;
+  const A = lab(a), B = lab(b), ca = Math.hypot(A[1], A[2]), cb = Math.hypot(B[1], B[2]);
+  if (ca < 25 || cb < 25) return false;
+  let dh = Math.abs(Math.atan2(A[2], A[1]) - Math.atan2(B[2], B[1])) * 180 / Math.PI; if (dh > 180) dh = 360 - dh;
+  return dh < 18;
+}
+function choque(cs, col) { let n = 0; cs.forEach((c) => { if (parecidos(c, col)) n++; }); return n / cs.length; }
+// los cuadros de color de una imagen ya cargada (la foto propia del dueño o el estadio de siempre)
+function cuadrosDe(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 6; const g = c.getContext('2d');
+    const w = img.width, h = img.height; g.drawImage(img, w * 0.15, h * 0.1, w * 0.7, h * 0.8, 0, 0, 4, 6);
+    const d = g.getImageData(0, 0, 4, 6).data, r = []; for (let i = 0; i < d.length; i += 4) r.push([d[i], d[i + 1], d[i + 2]]); return r;
+  } catch (e) { return null; }
+}
+// el color principal de la tela: el grupo de colores que más se repite en la foto (sin lo transparente)
+function colorTela(c) {
+  const W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, cub = new Map(), paso = Math.max(1, Math.floor(Math.sqrt(W * H / 9000)));
+  for (let y = 0; y < H; y += paso) for (let x = 0; x < W; x += paso) {
+    const i = (y * W + x) * 4; if (d[i + 3] < 230) continue;
+    const k = (d[i] >> 4) * 256 + (d[i + 1] >> 4) * 16 + (d[i + 2] >> 4), v = cub.get(k) || [0, 0, 0, 0];
+    v[0] += d[i]; v[1] += d[i + 1]; v[2] += d[i + 2]; v[3]++; cub.set(k, v);
+  }
+  let m = null; cub.forEach((v) => { if (!m || v[3] > m[3]) m = v; });
+  return m ? [m[0] / m[3], m[1] / m[3], m[2] / m[3]] : null;
+}
 function fondoEstudio() {
   const c = document.createElement('canvas'); c.width = 512; c.height = 768; const g = c.getContext('2d');
   const gr = g.createRadialGradient(256, 300, 20, 256, 340, 520); gr.addColorStop(0, '#3b3c43'); gr.addColorStop(.5, '#17181c'); gr.addColorStop(1, '#050506');
@@ -147,11 +206,33 @@ export async function crear(canvas, opt = {}) {
   // fondo de cancha: pasto, luces y tribuna desenfocada; se acomoda como "cover" según el tamaño del visor
   let campo = null;
   // el fondo puede ser el estadio de siempre o la foto que puso el dueño en su panel
+  // el fondo que eligió el dueño se respeta; solo si choca con el uniforme que se ve, se cambia (para ese uniforme) por el que más contrasta
+  let fondoPedido = '', fondoPuesto = '', colorUni = null; const cuadrosPedido = {};
+  function fondoParaUniforme() {
+    if (!colorUni || !fondoPedido) return fondoPedido;
+    const cp = cuadrosPedido[fondoPedido]; if (!cp) return fondoPedido;
+    if (choque(cp, colorUni) < 0.34) return fondoPedido;
+    let mejor = fondoPedido, menor = choque(cp, colorUni), lejos = 0;
+    Object.keys(FONDOS_COLOR).forEach((k) => {
+      const cs = cuadros(FONDOS_COLOR[k]), ch = choque(cs, colorUni), dm = cs.reduce((a, c) => a + dE(c, colorUni), 0) / cs.length;
+      if (ch < menor - 0.001 || (Math.abs(ch - menor) < 0.001 && dm > lejos)) { mejor = '/assets/fondos/' + k + '.webp'; menor = ch; lejos = dm; }
+    });
+    return mejor;
+  }
+  function ponerFondo(url) {
+    fondoPedido = url; const k = (url.match(/fondos\/([\w-]+)\.webp/) || [])[1];
+    if (k && FONDOS_COLOR[k]) cuadrosPedido[url] = cuadros(FONDOS_COLOR[k]);
+    revisarFondo();
+  }
+  function revisarFondo() { const u = fondoParaUniforme(); if (u !== fondoPuesto) ponerCampo(u); }
   function ponerCampo(url) {
-    new THREE.TextureLoader().load(url, (t) => { t.colorSpace = THREE.SRGBColorSpace; if (campo && campo !== t) campo.dispose(); campo = t; scene.background = t; if (ultimoAspecto) encuadrarFondo(ultimoAspecto); pedir(); }, undefined, () => { if (url !== base + 'campo.webp') ponerCampo(base + 'campo.webp'); });
+    fondoPuesto = url;
+    new THREE.TextureLoader().load(url, (t) => {
+      if (url !== fondoPuesto) { t.dispose(); return; }
+      if (url === fondoPedido && !cuadrosPedido[url]) { const cs = cuadrosDe(t.image); if (cs) { cuadrosPedido[url] = cs; const u = fondoParaUniforme(); if (u !== url) { t.dispose(); ponerCampo(u); return; } } } t.colorSpace = THREE.SRGBColorSpace; if (campo && campo !== t) campo.dispose(); campo = t; scene.background = t; if (ultimoAspecto) encuadrarFondo(ultimoAspecto); pedir(); }, undefined, () => { if (url !== base + 'campo.webp') ponerCampo(base + 'campo.webp'); });
   }
   let ultimoAspecto = 0;
-  ponerCampo(opt.campo || base + 'campo.webp');
+  ponerFondo(opt.campo || base + 'campo.webp');
   function encuadrarFondo(aspecto) {
     if (!campo || !campo.image) return;
     const ai = campo.image.width / campo.image.height;
@@ -192,7 +273,7 @@ export async function crear(canvas, opt = {}) {
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
     uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
     uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 },
-    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }
+    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }, uDentro: { value: new THREE.Color(0.9, 0.9, 0.9) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -202,7 +283,7 @@ export async function crear(canvas, opt = {}) {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
-uniform float uSel; uniform vec4 uSelCaja;
+uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;
 // de dónde de la foto sale cada punto de la playera, renglón por renglón: el torso del modelo con el torso de la foto y lo que
@@ -255,6 +336,8 @@ if (t > uZonas.z - 0.01) {
   base = uSock; zona = 3.0;
   if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
 }
+// por dentro (lo que se asoma por las mangas, el cuello y abajo): el color de la tela, sin el dibujo de afuera, un poco más oscuro
+if (!gl_FrontFacing) base = (zona == 1.0 ? uDentro : (zona == 2.0 ? uShort : uSock)) * 0.8;
 // panel: la pieza escogida se ve normal y todo lo demás en blanco y negro, apagado
 if (uSel > 0.5) {
   bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0) || (uSel > 5.5 && zona == 3.0);
@@ -378,7 +461,10 @@ diffuseColor.rgb *= base;`);
     if (f) {
       poner(uni.uFoto, textura(f));
       const [fx0, fw] = E.torso || torsoFoto(f, 0.30); uni.uTorsoF.value.set(fx0, fw); texRenglones(renCanvas, 1, ...renglonesFoto(f, [fx0, fw]), 0, 1); renListo.f = true; subirRen();
-      poner(uni.uManga, textura(telaManga(f, fx0), true));
+      const tm = telaManga(f, fx0); poner(uni.uManga, textura(tm, true));
+      // por dentro de la playera: el color de su tela, un poco más oscuro (como se ve una playera real por dentro)
+      const cp = colorTela(tm) || colorTela(f); if (cp) uni.uDentro.value.setRGB(cp[0] / 255, cp[1] / 255, cp[2] / 255, THREE.SRGBColorSpace);
+      colorUni = colorTela(f) || cp; revisarFondo();
     }
     pintarEspalda();
     pintarShort();
@@ -652,7 +738,7 @@ diffuseColor.rgb *= base;`);
       if (t > zonas.shortBot) return p.x > S.x - 0.03 && p.x < S.x + S.z + 0.03 ? 'short' : null;
       return t > 0 && p.x > S.x && p.x < S.x + S.z ? 'calcetas' : null;
     },
-    fondo(url) { ponerCampo(url || base + 'campo.webp'); },
+    fondo(url) { ponerFondo(url || base + 'campo.webp'); },
     congelar(si) { congelado = !!si; if (!si && debeDibujo) { debeDibujo = false; pedir(); } },
     ajuste(aj) {
       aj = aj || {};
