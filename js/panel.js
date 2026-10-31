@@ -108,6 +108,7 @@
       ses.set(P.pin);
       P.folios = j.folios || []; P.masFolios = !!j.masFolios; P.catalogo = (Array.isArray(j.catalogo) && j.catalogo.some(function (u) { return u.tipo === '3d'; })) ? (A.completarCatalogo ? A.completarCatalogo(j.catalogo) : j.catalogo) : A.clone(window.CATALOGO_BASE); P.config = j.config || {};
       pintar();
+      setTimeout(migrarCirculos, 5000);
     }).catch(function (e) {
       ses.set(''); var pin = P.pin; P.pin = null;
       pantallaPin(e.code === 401 && pin ? 'Ese código no es correcto. Inténtalo otra vez.' : e.code === 429 ? 'Demasiados intentos. Espera unos minutos.' : 'No hay conexión en este momento. Inténtalo otra vez.');
@@ -808,6 +809,35 @@
       });
     });
   }
+  // los uniformes de manga larga publicados antes no tienen su círculo en manga corta: se hacen solos, una vez, en segundo plano
+  // (en un 3D escondido, sin tocar lo que el dueño esté haciendo) y se guardan; después ya no se vuelve a hacer
+  var migrando = false;
+  function migrarCirculos() {
+    if (migrando || !P.pin) return;
+    var falta = (P.catalogo || []).filter(function (u) { return u.tipo === '3d' && !u.borrado && u.manga === 'larga' && !u.circulo && u.fotos && u.fotos.frente && !/^data:/.test(u.fotos.frente); });
+    if (!falta.length) return; migrando = true;
+    var c = document.createElement('canvas'); c.width = 480; c.height = 720; c.setAttribute('aria-hidden', 'true');
+    c.style.cssText = 'position:fixed;left:-10000px;top:0;width:240px;height:360px;pointer-events:none;opacity:0';
+    document.body.appendChild(c);
+    var hechos = 0;
+    A.cargarMotor().then(function () { return window.Motor3D.crear(c); }).then(function (m) {
+      return falta.reduce(function (cadena, u) {
+        return cadena.then(function () {
+          return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short)]).then(function (im) {
+            if (!im[0]) return;
+            return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null })
+              .then(function () { return m.taco('negro'); })
+              .then(function () { m.dorsal({ nombre: '', numero: '' }); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); })
+              .then(function () { return A.subirConReintento(m.foto(480, 720, 'frente', true), 'catalogo'); })
+              .then(function (url) { if (url) { u.circulo = url; hechos++; } });
+          }).catch(function () { /* este se intenta la próxima vez */ });
+        });
+      }, Promise.resolve()).then(function () { m.destruir(); });
+    }).catch(function () {}).then(function () {
+      c.remove();
+      if (hechos) return api('catalogo', { catalogo: P.catalogo }).then(function () { return A.cargarTienda(); }).catch(function () {});
+    });
+  }
   function imagenP(src) { return new Promise(function (ok) { if (!src) return ok(null); var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { ok(i); }; i.onerror = function () { ok(null); }; i.src = src; }); }
   function previsualizar() {
     var u = P.editando, c = $('#ed-3d'); if (!c || !u.fotos.frente) return Promise.resolve();
@@ -1126,12 +1156,17 @@
       conTiempo(previsualizar(), 15000).then(function () {
         if (!mEditor || !mEditor.m) return null;
         mEditor.m.dorsal({ nombre: '', numero: '' });
-        var d = mEditor.m.foto(480, 720, 'frente');
-        var sil = mEditor.m.foto(480, 720, 'frente', true);   // la que se ve mientras carga el 3D en la página
-        mEditor.m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto });
-        return Promise.all([A.subirConReintento(d, 'catalogo'), A.subirConReintento(sil, 'catalogo').catch(function () { return ''; })]);
+        var m = mEditor.m, d = m.foto(480, 720, 'frente');
+        var sil = m.foto(480, 720, 'frente', true);   // la que se ve mientras carga el 3D en la página
+        // el círculo de los diseños: siempre en manga corta (aunque este venga en larga), para que todos se vean parejos
+        var circP = u.manga === 'larga' && m.manga ? m.manga('corta').then(function () { var c = m.foto(480, 720, 'frente', true); return m.manga('larga').then(function () { return c; }); }).catch(function () { return null; }) : Promise.resolve(null);
+        return circP.then(function (circ) {
+          m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto });
+          return Promise.all([A.subirConReintento(d, 'catalogo'), A.subirConReintento(sil, 'catalogo').catch(function () { return ''; }), circ ? A.subirConReintento(circ, 'catalogo').catch(function () { return ''; }) : '']);
+        });
       }).then(function (r) {
         var mini = r && r[0]; if (mini) u.mini = mini; if (r && r[1]) u.silueta = r[1];
+        if (r && r[2]) u.circulo = r[2]; else if (r && u.manga !== 'larga') delete u.circulo;   // en manga corta la silueta ya sirve
         var i = -1; P.catalogo.forEach(function (x, k) { if (x.id === u.id) i = k; });
         var limpio = A.clone(u); delete limpio.nuevo; delete limpio.colorTextoElegido; delete limpio.shortPropio; delete limpio.calcetaFoto; delete limpio.equipoNuevo;
         if (i >= 0) P.catalogo[i] = limpio; else { limpio.orden = 1e6; P.catalogo.push(limpio); }   // lo nuevo va al final de su equipo

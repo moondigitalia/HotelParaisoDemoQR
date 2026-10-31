@@ -1835,3 +1835,8 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* catálogo: el escudo que queda a medias en la orilla se desvanece (nunca un corte seco) */
 .cat-fila{--fi:0px;--fd:0px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi),#000 calc(100% - var(--fd)),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi),#000 calc(100% - var(--fd)),transparent 100%)}
 .cat-fila.f-izq{--fi:36px}.cat-fila.f-der{--fd:36px}
+/* el torso de la silueta 3D (480×720, misma cámara en todos): la playera cae siempre en el mismo cuadro y se recorta igual */
+.vers{padding:0;overflow:hidden}
+.vers-img{display:block;width:100%;height:100%;border-radius:50%;background-repeat:no-repeat;background-size:170% auto;background-position:50% 12%}
+/* una luz suave de estudio detrás de cada playera (igual en todos): una playera azul marino o negra resalta sobre el azul de la página */
+.vers{background:radial-gradient(circle at 50% 40%,rgba(226,233,255,.42) 0,rgba(226,233,255,.16) 52%,rgba(226,233,255,.06) 100%)}

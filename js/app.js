@@ -634,9 +634,10 @@
       return '<div id="p-resultados">' + (S.filtro.q.trim() ? tarjetasUniformes(filtrar(catalogoVisible())) : tarjetasPorSeccion(catalogoVisible())) + '</div>';
     },
     tacos: function () {
-      // los diseños del equipo: un círculo con la foto de cada uniforme (no el nombre ni el escudo repetido); si son muchos se deslizan
+      // los diseños del equipo: un círculo con el torso del uniforme sacado del mismo 3D (todos con la misma cámara: se ven parejos,
+      // no como cada foto que subió el dueño); no el nombre ni el escudo repetido. Si son muchos se deslizan
       var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(T('version')) + '</span><div class="vers-fila">' + q.items.map(function (u) {
-        return '<button type="button" class="vers' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '" aria-label="' + esc(versionDe(u)) + '"><img src="' + esc((u.fotos && u.fotos.frente) || u.mini) + '" alt="" loading="lazy" decoding="async"></button>';
+        return '<button type="button" class="vers' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '" aria-label="' + esc(versionDe(u)) + '">' + ((u.circulo || u.silueta) ? '<span class="vers-img" style="background-image:url(\'' + esc(u.circulo || u.silueta) + '\')"></span>' : '<img src="' + esc(u.mini) + '" alt="" loading="lazy" decoding="async">') + '</button>';
       }).join('') + '</div></div>' : '';
       return vers + '<div class="grupo' + (vers ? '' : ' g0') + '"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
         '<button type="button" class="chip' + (S.d.manga === 'larga' ? ' on' : '') + '" data-manga="larga">' + esc(T('manga_larga')) + '</button></div></div>' +
