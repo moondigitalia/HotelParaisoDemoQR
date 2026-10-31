@@ -1296,11 +1296,38 @@
     cargarTienda().then(function () {
       if (!S.modo || !uniformeActual() || uniformeActual().id !== S.baseId) { if (!S.modo) vitrina(); else { var u = uniformeActual(); if (u) usarBase(u); } }
       pintarCatalogo(); pintarDatos(); pintarTablero(); dibujar();
+      setTimeout(function () { sinScrollChiquito(document.body); }, 300);
       if (avisarPanel) avisarPanel({ tipo: 'listo' });
     });
     var q = new URLSearchParams(location.search);
     if (q.get('folio')) abrirFolio(q.get('folio'), q.get('k') || '');
   }
+
+  /* ---------- regla única: nunca un "scroll chiquito" ----------
+     Si algo que se desliza solo sobra por unos pixeles (1 a 16), no es contenido escondido: es margen o espacio entre
+     piezas. Se le quita justo eso (el margen de abajo o el espacio entre piezas) y todo cabe exacto, en cualquier tamaño. */
+  function sinScrollChiquito(raiz) {
+    var l = (raiz || document).querySelectorAll('*');
+    for (var i = 0; i < l.length; i++) {
+      var el = l[i], cs = getComputedStyle(el); if (!el.offsetParent) continue;
+      var y = /(auto|scroll)/.test(cs.overflowY), x = /(auto|scroll)/.test(cs.overflowX);
+      if (!x && !y) continue;
+      var sy = y ? el.scrollHeight - el.clientHeight : 0, sx = x ? el.scrollWidth - el.clientWidth : 0;
+      if (sy > 0 && sy <= 16) { var pb = parseFloat(cs.paddingBottom) || 0, pt = parseFloat(cs.paddingTop) || 0; if (pb >= sy) el.style.paddingBottom = (pb - sy) + 'px'; else if (pb + pt >= sy) { el.style.paddingBottom = '0px'; el.style.paddingTop = (pt - (sy - pb)) + 'px'; } }
+      if (sx > 0 && sx <= 16) {
+        var n = el.children.length, g = parseFloat(cs.columnGap) || 0, pr = parseFloat(cs.paddingRight) || 0;
+        if (n > 1 && g * (n - 1) > sx) el.style.columnGap = Math.max(0, g - Math.ceil(sx / (n - 1))) + 'px';
+        else if (pr >= sx) el.style.paddingRight = (pr - sx) + 'px';
+      }
+    }
+  }
+  // cada vez que algo de la página se vuelve a pintar (catálogo, pasos, datos), se revisa otra vez
+  var relSC2 = null;
+  if (window.MutationObserver) document.addEventListener('DOMContentLoaded', function () {}), new MutationObserver(function () { var pnl = document.getElementById('panel'); if (pnl && !pnl.hidden) return; clearTimeout(relSC2); relSC2 = setTimeout(function () { sinScrollChiquito(document.body); }, 80); }).observe(document.body, { childList: true, subtree: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { setTimeout(function () { sinScrollChiquito(document.body); }, 50); });
+  window.addEventListener('load', function () { setTimeout(function () { sinScrollChiquito(document.body); }, 100); });
+  var relSC = null;
+  window.addEventListener('resize', function () { clearTimeout(relSC); relSC = setTimeout(function () { sinScrollChiquito(document.body); }, 120); });
 
   /* ---------- la página dentro del panel: tocar un texto lo escoge para cambiarlo ---------- */
   function modoEditar() {
@@ -1385,6 +1412,6 @@
   }
   var avisarPanel = modoEditar();
 
-  window.APP = { probarSonido: probarSonido, pararSonido: pararSonido, T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
+  window.APP = { sinScrollChiquito: sinScrollChiquito, probarSonido: probarSonido, pararSonido: pararSonido, T: T, esc: esc, clone: clone, completarCatalogo: completarCatalogo, logoSVG: logoSVG, folioHTML: folioHTML, TIENDA: TIENDA, cargarTienda: cargarTienda, pintarCatalogo: pintarCatalogo, pintarDatos: pintarDatos, pintarTablero: pintarTablero, subirConReintento: subirConReintento, cargarArchivo: cargarArchivo, aCanvas: aCanvas, nitidez: nitidez, toast: toast, lluvia: lluviaDePremios, dibujar: dibujar, cargarMotor: cargarMotorYa, get motor() { return motor; }, S: S, get lang() { return lang; } };
   iniciar();
 })();

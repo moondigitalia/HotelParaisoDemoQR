@@ -1584,7 +1584,6 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn.folios .pn-cuerpo{padding-bottom:8px}
 .pn-folios-caja{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 .pn.folios .pn-lista-folios{flex:1;min-height:0;display:block;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:22px;background:#0E1645;box-shadow:inset 0 0 0 1px rgba(196,206,255,.12);padding:4px 6px 8px}
-.pn.folios .pn-lista-folios.hay-mas{-webkit-mask-image:linear-gradient(#000 calc(100% - 46px),transparent);mask-image:linear-gradient(#000 calc(100% - 46px),transparent)}
 .pn-dia-cab{position:sticky;top:-4px;z-index:1;margin:0 -6px;padding:10px 16px 6px;background:#0E1645;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--suave)}
 .pn.folios .pn-folio.pn-fol1{display:flex;align-items:center;gap:10px;min-height:0;height:54px;padding:0 10px;margin:0 0 4px;border:0;border-radius:16px;background:rgba(255,255,255,.04);transform:none}
 .pn.folios .pn-fol1:active{background:rgba(255,198,26,.14)}
@@ -1666,7 +1665,6 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-eq-cab{margin-bottom:6px}
 .pn-eq-lugar{margin-bottom:8px}
 /* donde sí hay más abajo, la orilla de abajo se desvanece: se nota que se puede bajar */
-.pn-cuerpo.hay-mas{-webkit-mask-image:linear-gradient(#000 calc(100% - 40px),transparent);mask-image:linear-gradient(#000 calc(100% - 40px),transparent)}
 .pn-eq-pie{margin-top:0}.pn-form [data-ver-nueva]{margin:0 0 8px}.pn-eq-cab{margin-top:0}
 
 /* Visítanos: el título y la dirección a la izquierda, las redes de la tienda a la derecha (el espacio que antes quedaba vacío) */
@@ -1710,9 +1708,59 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* nada se corta de golpe: el 3D con esquinas redondas también en Safari viejo, y las hojas se desvanecen abajo */
 .pn.estudio .pn-est-3d,.pn.estudio .pn-prev3d{border-radius:24px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);isolation:isolate}
 .pn.estudio #ed-3d{border-radius:24px}
-.pn-hoja-cuerpo{padding-bottom:30px;-webkit-mask-image:linear-gradient(#000 calc(100% - 30px),transparent);mask-image:linear-gradient(#000 calc(100% - 30px),transparent)}
+.pn-hoja-cuerpo{padding-bottom:30px}
 .pn-hoja-in{border-radius:28px 28px 0 0}
 .pn-form [data-ver-nueva]{width:100%;display:flex;align-items:center;justify-content:center}
 .pn-datos [data-tsel] > label.pn-red-campo{display:flex}
 .pn.tienda.enfoque .pn-pildora-top,.pn.tienda:not(.enfoque) .pn-pg-estado{display:none}
 .pn-form [data-ver-nueva]{margin-top:8px}
+/* la regla única de bordes (ver vigilarBordes en panel.js): desvanecido solo del lado donde hay algo escondido */
+[data-vig="y"]{-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 var(--fa,0px),#000 calc(100% - var(--fb,0px)),transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 var(--fa,0px),#000 calc(100% - var(--fb,0px)),transparent 100%)}
+[data-vig="x"]{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi,0px),#000 calc(100% - var(--fd,0px)),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi,0px),#000 calc(100% - var(--fd,0px)),transparent 100%)}
+.f-arr{--fa:28px}.f-aba{--fb:36px}.f-izq{--fi:24px}.f-der{--fd:32px}
+/* Página (v58): el recuadro mide lo que necesita, sin protagonismo; la página manda */
+.pn-pag-ed{height:auto;max-height:62%;gap:8px;padding:10px 12px 12px}
+.pn-pag-ed .pn-pag-tx.campo{height:78px;font-size:16px}
+.pn-pag-ed .pn-pag-cab{height:34px}
+.pn-pag-ed .pn-pag-listo{height:34px}
+.pn-pag-ed .pn-pag-pie{margin-top:0}
+.pn-pag-ed .pn-seg button{height:30px}
+.pn-pag-ed .pn-pag-orig{height:32px}
+/* fondos: una sola tira chica que se desliza de lado */
+.pn-fondos{display:flex;grid-template-columns:none;gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:3px 2px;margin:0 -2px}
+.pn-fondos::-webkit-scrollbar{display:none}
+.pn-fondo{flex:none;width:46px;height:46px;aspect-ratio:auto}
+.pn-fondo-tuyo{order:-1}
+/* escribir con el teclado: arriba solo la página (con lo que cambias), abajo el recuadro compacto; sin encabezado */
+.pn.pagina.escribiendo .pn-top{display:none}
+.pn.pagina.escribiendo .pn-cuerpo{padding-top:max(6px,env(safe-area-inset-top,0px))}
+.pn.pagina.escribiendo .pn-pag-ed{border-radius:22px 22px 0 0;padding-bottom:8px}
+.pn.pagina.escribiendo .pn-pag-ed .pn-pag-tx.campo{height:64px}
+
+/* Salir del panel: un botón con su nombre, siempre en el mismo lugar de cada cuarto principal */
+.pn-salir-b{flex:none;height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(196,206,255,.3);background:rgba(255,255,255,.06);color:var(--texto);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.pn-salir-b:active{background:rgba(255,255,255,.14)}
+/* Regresar y Salir del panel: botones con su nombre escrito */
+.pn-top .pn-txt-b{flex:none;width:auto;max-width:none;min-width:0;height:40px;padding:0 14px 0 10px;gap:6px;border-radius:999px;border:0;background:rgba(255,255,255,.08);color:var(--texto);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.pn-top .pn-txt-b svg{width:18px;height:18px;flex:none}
+.pn-top .pn-salir-b{border:1px solid rgba(196,206,255,.28);background:none}
+.pn-top .pn-txt-b:active{background:rgba(255,255,255,.16)}
+/* tamaños que salen del espacio que hay (no de un celular): títulos y etiquetas se acomodan solos */
+.pn-top b,.pn-top>b{font-size:clamp(18px,6.2vw,26px)}
+.pn-circulo span{font-size:clamp(9.5px,3.1vw,11.5px)}
+.pn-circulo b{width:clamp(48px,16vw,68px);height:clamp(48px,16vw,68px)}
+.pn.folios .pn-circulo b{width:clamp(48px,15vw,60px);height:clamp(48px,15vw,60px);font-size:clamp(22px,7vw,28px)}
+@media (max-width:359px){.pn-top{gap:8px}.pn-top .pn-txt-b{padding:0 12px 0 8px;font-size:13px}}
+.pn-ir-ajustes{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-top:12px;padding:12px 18px;border-radius:999px;border:1px solid rgba(196,206,255,.22);background:rgba(255,255,255,.04);color:var(--texto);text-align:left}
+.pn-ir-ajustes span{display:flex;flex-direction:column;gap:2px}
+.pn-ir-ajustes b{font-weight:800;font-size:15px}
+.pn-ir-ajustes small{color:var(--suave);font-size:12.5px}
+.pn-ir-ajustes svg{width:20px;height:20px;color:var(--suave);flex:none}
+.pn.enfoque .pn-ir-ajustes{display:none}
+/* Tienda: los espacios salen de la altura que hay (en una pantalla chica se juntan, en una grande respiran) */
+.pn.tienda .pn-vv{gap:clamp(4px,1.3vh,8px);padding:clamp(10px,2.2vh,18px) 16px}
+.pn.tienda .pn-vv h4{font-size:clamp(22px,4.6vh,30px)}
+.pn.tienda .pn-vv-t{padding:clamp(7px,1.6vh,12px) 14px}
+.pn.tienda .pn-vv-h{font-size:clamp(13px,2.4vh,14.5px)}
+.pn.tienda .pn-vv-k{margin:0}
+.pn-orden-eq b{white-space:nowrap}.pn-eq-lugar .etq{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.pn-orden-eq{gap:clamp(6px,2.5vw,14px)}

@@ -1,0 +1,91 @@
+# Prueba de todo el ecosistema en muchos tamaños a la vez (celular chico, iPhone 7, iPhone nuevo con Firefox,
+# Android, tableta, computadora). Revisa cada pantalla del panel y la página del cliente con las mismas reglas:
+#   1. nada de "scroll chiquito" (sobra entre 1 y 16 px)
+#   2. todo lo que se corta (se desliza) se desvanece: tiene data-vig (panel)
+#   3. nada se sale de la pantalla por los lados
+#   4. ningún botón con el texto cortado
+#   5. títulos de arriba completos
+# Uso: python3 scripts/matriz.py [rapido]   (rapido = sin el estudio 3D)
+# Si algo falla en cualquier tamaño, no se publica.
+import sys, json
+from playwright.sync_api import sync_playwright
+
+BASE = 'http://localhost:5055'
+TAMANOS = [(320, 480), (360, 640), (375, 548), (390, 664), (393, 660), (412, 780), (768, 1024), (1280, 800)]
+SALIDA = '/tmp/claude-0/-home-claude/968c9ed2-d953-59c7-b80e-40add6d1b54f/scratchpad/m_'
+
+REVISAR = r"""(panel) => {
+  const fallas = [], W = innerWidth, H = innerHeight;
+  const raiz = panel ? document.querySelector('#panel') : document.body;
+  const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+  const nombre = e => (e.id ? '#' + e.id : '') + '.' + String(e.className || e.tagName).split(' ')[0];
+  const dentroDeLado = e => { for (let p = e.parentElement; p && p !== raiz; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return true; } return false; };
+  raiz.querySelectorAll('*').forEach(e => {
+    if (!vis(e) || e.closest('iframe') ) return;
+    const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const sy = /(auto|scroll)/.test(cs.overflowY) ? e.scrollHeight - e.clientHeight : 0;
+    const sx = /(auto|scroll)/.test(cs.overflowX) ? e.scrollWidth - e.clientWidth : 0;
+    if ((sy > 1 && sy <= 16) || (sx > 1 && sx <= 16)) fallas.push('scroll chiquito ' + nombre(e) + ' (' + Math.max(sy, sx) + 'px)');
+    if (panel && (sy > 16 || sx > 16) && !e.hasAttribute('data-vig')) fallas.push('se corta sin desvanecer ' + nombre(e));
+    if ((r.right > W + 1 || r.left < -1) && !dentroDeLado(e) && e.tagName !== 'HTML' && e.tagName !== 'BODY') fallas.push('se sale de la pantalla ' + nombre(e));
+    if ((e.tagName === 'BUTTON' || e.tagName === 'A') && e.scrollWidth > e.clientWidth + 2 && !/(auto|scroll)/.test(cs.overflowX) && cs.textOverflow !== 'ellipsis') fallas.push('texto cortado en botón ' + nombre(e) + ' "' + e.textContent.trim().slice(0, 20) + '"');
+  });
+  const t = document.querySelector('.pn-top > b'); if (panel && t && vis(t) && t.scrollWidth > t.clientWidth + 1) fallas.push('título cortado "' + t.textContent + '"');
+  return [...new Set(fallas)];
+}"""
+
+def correr(rapido):
+    total = {}
+    with sync_playwright() as p:
+        b = p.chromium.launch(args=[] if rapido else ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
+        for (w, h) in TAMANOS:
+            pg = b.new_page(viewport={'width': w, 'height': h}, device_scale_factor=2, is_mobile=w < 700, has_touch=w < 700, locale='es-MX')
+            errores = []; pg.on('pageerror', lambda e: errores.append(str(e)[:120]))
+            res = {}
+            def ver(n, panel=True):
+                pg.wait_for_timeout(350)
+                res[n] = pg.evaluate(REVISAR, panel)
+                pg.screenshot(path=SALIDA + '%dx%d_%s.png' % (w, h, n))
+            # página del cliente: arriba y abajo
+            pg.goto(BASE + '/?sinintro'); pg.wait_for_timeout(2500)
+            ver('cliente', False)
+            # panel
+            pg.goto(BASE + '/?sinintro#panel'); pg.wait_for_timeout(1200)
+            pg.fill('#pn-codigo', '0'); pg.click('#pn-pin button'); pg.wait_for_timeout(1500)
+            ver('pedidos')
+            pg.click('[data-tab="uniformes"]'); ver('uniformes')
+            pg.locator('[data-eq]').nth(2).click(); ver('equipo')
+            if not rapido:
+                pg.locator('[data-edit]').first.click(); pg.wait_for_timeout(5000); ver('estudio')
+                pg.click('[data-hoja-ir="datos"]'); ver('estudio-hoja')
+                pg.click('[data-hoja-cerrar]')
+                bb = pg.locator('#ed-3d').bounding_box(); pg.mouse.click(bb['x'] + bb['width'] * .5, bb['y'] + bb['height'] * .35); pg.wait_for_timeout(900); ver('estudio-pieza')
+                pg.click('[data-ctl="listo"]'); pg.wait_for_timeout(300)
+                pg.click('[data-atras]'); pg.wait_for_timeout(500)
+            pg.click('[data-atras]'); pg.wait_for_timeout(500)
+            pg.click('[data-tab="pagina"]'); pg.wait_for_timeout(3500); ver('pagina')
+            fr = pg.frame_locator('.pn-pag-capa iframe')
+            fr.locator('[data-t="hero_t"]').click(force=True); ver('pagina-texto')
+            pg.click('[data-pg-listo]')
+            fr.locator('#lienzo-wrap').click(position={'x': 10, 'y': 40}, force=True); ver('pagina-fondo')
+            pg.click('[data-pg-listo]')
+            pg.click('[data-tab="datos"]'); ver('tienda')
+            pg.click('[data-tsel-ir="hor"]'); ver('tienda-horario')
+            pg.click('[data-tsel-listo]'); pg.click('[data-tsel-ir="redes"]'); ver('tienda-redes')
+            pg.click('[data-tsel-listo]'); pg.click('[data-ir="ajustes"]'); ver('ajustes')
+            res['errores js'] = errores
+            total['%dx%d' % (w, h)] = res
+            pg.close()
+    return total
+
+if __name__ == '__main__':
+    t = correr('rapido' in sys.argv)
+    malas = 0
+    for tam, res in t.items():
+        n = sum(len(v) for v in res.values())
+        malas += n
+        print(('OK   ' if not n else 'FALLA') + ' ' + tam + ('' if not n else ':'))
+        for pant, f in res.items():
+            for x in f: print('      ' + pant + ' → ' + x)
+    print('\nTOTAL', malas, 'fallas en', len(t), 'tamaños')
+    sys.exit(1 if malas else 0)

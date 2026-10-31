@@ -40,12 +40,43 @@
     Array.prototype.slice.call(panel.childNodes).forEach(function (n) { if (n !== cap) panel.removeChild(n); });
     panel.insertAdjacentHTML('afterbegin', h);
   }
+  /* ---------- una sola regla para todo el panel: nada se corta de golpe ----------
+     Cualquier parte que se desliza (de arriba abajo o de lado) se desvanece justo donde hay algo escondido, y deja de
+     desvanecerse al llegar al final. Si lo único que sobra es el margen de abajo (unos pixeles), se quita ese margen:
+     nunca queda un "scroll chiquito" que no lleva a nada. */
+  function bordes(el) {
+    var cs = getComputedStyle(el), y = /(auto|scroll)/.test(cs.overflowY) && el.scrollHeight - el.clientHeight > 1, x = /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth - el.clientWidth > 1;
+    if (!x && !y) { el.removeAttribute('data-vig'); el.classList.remove('f-arr', 'f-aba', 'f-izq', 'f-der'); return; }
+    el.setAttribute('data-vig', y ? 'y' : 'x');
+    el.classList.toggle('f-arr', y && el.scrollTop > 2);
+    el.classList.toggle('f-aba', y && el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+    el.classList.toggle('f-izq', !y && x && el.scrollLeft > 2);
+    el.classList.toggle('f-der', !y && x && el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }
+  function vigilarBordes() {
+    if (A.sinScrollChiquito) A.sinScrollChiquito(panel);
+    var todos = panel.querySelectorAll('.pn *');
+    for (var i = 0; i < todos.length; i++) {
+      var el = todos[i], cs = getComputedStyle(el);
+      if (!/(auto|scroll)/.test(cs.overflowY + cs.overflowX) || !el.offsetParent) continue;
+      // scroll chiquito que solo es margen de abajo: se quita el margen
+      var sobra = el.scrollHeight - el.clientHeight, pb = parseFloat(cs.paddingBottom) || 0;
+      if (sobra > 0 && sobra <= pb && /(auto|scroll)/.test(cs.overflowY)) el.style.paddingBottom = Math.max(0, pb - sobra) + 'px';
+      bordes(el);
+    }
+  }
+  panel.addEventListener('scroll', function (e) { var t = e.target; if (t && t.nodeType === 1 && t.hasAttribute('data-vig')) bordes(t); }, true);
+  window.addEventListener('resize', function () { setTimeout(vigilarBordes, 60); });
+  // cualquier cambio en el panel (se abre una hoja, se escoge una pieza, sale un recuadro) vuelve a revisar los bordes
+  var vigPend = false;
+  if (window.MutationObserver) new MutationObserver(function () { if (vigPend) return; vigPend = true; (window.requestAnimationFrame || setTimeout)(function () { vigPend = false; vigilarBordes(); }); }).observe(panel, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden', 'class'] });
   function marco(contenido, cfg) {
     cfg = cfg || {};
     return '<div class="pn' + (cfg.barra ? ' con-barra' : '') + (cfg.clase ? ' ' + cfg.clase : '') + '"><header class="pn-top">' +
-      (cfg.atras ? '<button type="button" class="pn-atras" data-atras aria-label="Volver">' + FLECHA + '</button>' : '<span class="pn-logo">' + A.logoSVG('#1F2E7A', '#FFFFFF') + '</span>') +
-      '<b>' + esc(cfg.titulo || 'Panel M Sport') + '</b><span class="pn-top-der">' + (cfg.der || '') + '</span>' +
-      (cfg.atras ? '' : '<button type="button" class="capa-x pn-x" data-pn-cerrar aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>') + '</header>' +
+      // dos botones que nunca se confunden: "Regresar" (vuelve un paso, adentro de algo) y "Salir del panel" (te saca del panel)
+      (cfg.atras ? '<button type="button" class="pn-atras pn-txt-b" data-atras>' + FLECHA + '<span>Regresar</span></button>' : '<button type="button" class="pn-salir-b pn-txt-b" data-pn-cerrar><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>Salir del panel</span></button>') +
+      '<b>' + esc(cfg.titulo == null ? 'Panel M Sport' : cfg.titulo) + '</b><span class="pn-top-der">' + (cfg.der || '') + '</span>' +
+      ''+ '</header>' +
       '<div class="pn-cuerpo">' + contenido + '</div>' + (cfg.barra || '') + '</div>';
   }
   var ICON = {
@@ -79,7 +110,9 @@
       pantallaPin(e.code === 401 && pin ? 'Ese código no es correcto. Inténtalo otra vez.' : e.code === 429 ? 'Demasiados intentos. Espera unos minutos.' : 'No hay conexión en este momento. Inténtalo otra vez.');
     });
   }
-  function enlazarMarco() { $$('[data-pn-cerrar]', panel).forEach(function (b) { b.addEventListener('click', cerrar); }); }
+  function enlazarMarco() {
+    $$('[data-pn-cerrar]', panel).forEach(function (b) { b.addEventListener('click', cerrar); });
+  }
 
   // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
   // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
@@ -94,8 +127,9 @@
     if (P.tab === 'uniformes') h += P.editando ? vistaEditor() : vistaUniformes();
     if (P.tab === 'datos' || P.tab === 'pagina' || P.tab === 'ajustes') h += vistaDatos();
     if (P.tab === 'papelera') h += vistaPapelera();
-    var titulo = P.tab === 'uniformes' && P.editando ? (P.editando.nuevo ? 'Uniforme nuevo' : (P.editando.nombre || 'Uniforme')) : P.tab === 'uniformes' && P.equipo ? ((equipoDe(arbol(), P.equipo) || {}).nombre || 'Equipo') : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
-    var der = P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-pildora-top" data-ir="ajustes">Ajustes</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
+    // en el estudio el nombre del uniforme ya se ve abajo ("Equipo y versión"): arriba solo Regresar y Guardar, sin texto cortado
+    var titulo = P.tab === 'uniformes' && P.editando ? '' : P.tab === 'uniformes' && P.equipo ? ((equipoDe(arbol(), P.equipo) || {}).nombre || 'Equipo') : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
+    var der = P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-ir="ajustes" aria-label="Más de tu tienda: tallas, sonido y código">' + icono('mas') + '</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
     var barra = dentro ? '' : '<nav class="pn-barra" aria-label="Panel">' + [['folios', 'Pedidos'], ['uniformes', 'Uniformes'], ['pagina', 'Página'], ['datos', 'Tienda']].map(function (t) {
       return '<button type="button" class="pn-barra-b' + (P.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '"><span class="pn-barra-i">' + icono(t[0]) + '</span><span>' + t[1] + '</span>' + (t[0] === 'folios' && nuevos ? '<i>' + nuevos + '</i>' : '') + '</button>';
     }).join('') + '</nav>';
@@ -103,7 +137,7 @@
     var pubE = $('.pn-cuerpo .pn-publicar', panel); if (pubE) $('.pn-top-der', panel).appendChild(pubE);   // en el estudio, Publicar/Guardar va arriba en la barra, nunca encima del uniforme
     var cu1 = $('.pn-cuerpo', panel); if (cu1) cu1.scrollTop = irA == null ? antes : irA;
     colocarCapa();
-    if (cu1) { var verMas = function () { cu1.classList.toggle('hay-mas', cu1.scrollHeight - cu1.clientHeight - cu1.scrollTop > 6); }; cu1.addEventListener('scroll', verMas, { passive: true }); verMas(); }
+    vigilarBordes();
     $$('[data-tab]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-tab'); P.editando = null; P.detalle = null; P.equipo = null; P.tSel = ''; pintar(0); }); });
     var lu = $('[data-lupa]', panel); if (lu) lu.addEventListener('click', function () { P.buscando = !P.buscando; pintar(0); var bf = $('#pn-bf', panel); if (bf) bf.focus(); });
     $$('[data-ir]', panel).forEach(function (b) { b.addEventListener('click', function () { P.tab = b.getAttribute('data-ir'); pintar(0); }); });
@@ -1203,7 +1237,7 @@
         var u = urlFondo(f[0]), on = !propio && act === u;
         return '<button type="button" class="pn-fondo' + (on ? ' on' : '') + '" data-pg-fondo="' + esc(u) + '" aria-label="' + esc(f[1]) + '"><img src="' + esc(u || '/assets/3d/campo.webp') + '" alt=""></button>';
       }).join('') + '<button type="button" class="pn-fondo pn-fondo-tuyo' + (propio ? ' on' : '') + '" data-pg-foto="fondo" aria-label="Poner mi foto">' + (propio ? '<img src="' + esc(act) + '" alt="">' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg>') + '</button></div>' +
-        '';
+        '<p class="pn-pag-nota">Desliza para ver más · la cámara pone tu foto</p>';
     }
     if (g.que === 'logo') return cabEd('Tu logo') + '<div class="pn-pag-fotobox">' + filaFoto('logo') + botonesFoto('logo') + '</div>';
     var q = QUE_TOQUE[g.que] || QUE_TOQUE.nada;
@@ -1284,6 +1318,7 @@
     if (pn.classList.contains('escribiendo') && vv) { pn.style.height = vv.height + 'px'; pn.style.transform = 'translateY(' + vv.offsetTop + 'px)'; }
     else { pn.style.height = ''; pn.style.transform = ''; }
     colocarCapa();
+    var ed = $('#pg-campo', panel); if (ed && !ed.hidden) decirPagina({ tipo: 'centrar', abajo: ed.offsetHeight + 8 });
   }
   if (window.visualViewport) { window.visualViewport.addEventListener('resize', ajustarTeclado); window.visualViewport.addEventListener('scroll', ajustarTeclado); }
   window.addEventListener('resize', function () { colocarCapa(); });
