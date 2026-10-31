@@ -128,6 +128,8 @@ module.exports = async (req, res) => {
       sonido: c.sonido === 'no' ? 'no' : 'si',
       sonidoUrl: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.sonidoUrl || '')) ? String(c.sonidoUrl) : '',
       // las fotos de la página que cambia el dueño: su logo, el fondo del uniforme y la foto para compartir (vacío = la de siempre)
+      // redes de la tienda (salen en Visítanos)
+      redes: { ig: red((c.redes || {}).ig), fb: red((c.redes || {}).fb), tt: red((c.redes || {}).tt) },
       logo: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.logo || '')) ? String(c.logo) : '',
       fondo: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.fondo || '')) ? String(c.fondo) : '',
       compartir: /^(https?:\/\/|\/)[^\s"'<>]{1,400}$/.test(String(c.compartir || '')) ? String(c.compartir) : '',

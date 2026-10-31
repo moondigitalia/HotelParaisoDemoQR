@@ -1025,6 +1025,8 @@
     if (!TXT.intro_lema && c.lema && c.lema !== 'La tienda de las estrellas') TXT.intro_lema = c.lema;   // el lema de antes
     $$('[data-t]').forEach(function (el) { el.textContent = T(el.getAttribute('data-t')); });
     ponerFotos(c);
+    var rt = $('#redes-tienda');
+    if (rt) { var rr = c.redes || {}; rt.innerHTML = ['ig', 'fb', 'tt'].filter(function (k) { return rr[k]; }).map(function (k) { return '<a class="red-t" href="' + esc(linkRed(k, rr[k])) + '" target="_blank" rel="noopener" aria-label="' + REDES[k][0] + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + REDES[k][2] + '</svg></a>'; }).join(''); }
     var cal = $('#cifra-cal'); if (cal) cal.textContent = c.calificacion || '4.3';
     var op = $('#cifra-op'); if (op) op.textContent = (c.opiniones ? c.opiniones + ' ' : '') + T('hist_op');
     pintarEquiposCasa();
@@ -1338,7 +1340,7 @@
       else if ((el = t.closest('[data-t]'))) k = el.getAttribute('data-t');
       else if (t.closest('#lienzo-wrap,#escenario')) que = 'fondo';
       else if ((el = t.closest('#historia-p'))) k = 'hist_p';
-      else if (t.closest('#dato-dir,.horario,.mapa,#wa-top')) que = 'tienda';
+      else if (t.closest('#dato-dir,.horario,.mapa,#wa-top,.redes-tienda')) que = 'tienda';
       else if (t.closest('#cifra-google')) que = 'cal';
       else if (t.closest('#eq-casa')) que = 'clientes';
       else { var x = porTexto(t, 5); if (x) { el = x.el; k = x.k; } else if (t.closest('#cat-zona,#estudio,.cat-todo')) que = 'uniformes'; }

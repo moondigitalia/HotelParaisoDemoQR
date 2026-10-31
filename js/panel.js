@@ -1173,7 +1173,7 @@
     compartir: ['Foto para compartir', 'La que sale cuando alguien manda tu link por WhatsApp o redes.']
   };
   // 10 fondos listos para escoger (el primero es el de siempre)
-  var FONDOS = [['', 'Estadio de siempre'], ['dia', 'Estadio de día'], ['atardecer', 'Atardecer'], ['noche', 'Noche con luces'], ['nublado', 'Estadio clásico'], ['anochecer', 'Anochecer'], ['caribe', 'Cancún'], ['lluvia', 'Lluvia de noche'], ['playa', 'Junto al mar'], ['futurista', 'Estadio blanco'], ['dorado', 'Noche dorada'],
+  var FONDOS = [['', 'Estadio de siempre'], ['dia', 'Estadio de día'], ['atardecer', 'Atardecer'], ['noche', 'Noche con luces'], ['nublado', 'Estadio clásico'], ['azulnoche', 'Noche azul'], ['naranja', 'Último sol'], ['lluvia', 'Lluvia de noche'], ['techado', 'Estadio techado'], ['blanco', 'Estadio de techo blanco'], ['dorado', 'Noche dorada'],
     ['g-azul', 'Azul'], ['g-negro', 'Negro'], ['g-blanco', 'Blanco'], ['g-dorado', 'Amarillo'], ['g-rojo', 'Rojo']];
   function urlFondo(k) { return k ? '/assets/fondos/' + k + '.webp' : ''; }
   function miniFoto(k) {
@@ -1247,8 +1247,13 @@
   // el recuadro de abajo: aparece al tocar algo en la página y se va con Listo. Siempre mide lo mismo.
   function pintarCampo() {
     var cp = $('#pg-campo', panel); if (!cp) return;
-    var abierto = !!(P.pg.k || P.pg.que);
+    var abierto = !!(P.pg.k || P.pg.que), estaba = !cp.hidden;
+    // mientras cambias algo, la barra de abajo se esconde y el recuadro ocupa su lugar: la página se ve más grande.
+    // Todo cambia en el mismo instante (barra, tamaño de la página y recuadro), así el recuadro sube una sola vez.
+    var pn = $('.pn', panel); if (pn) pn.classList.toggle('enfoque', abierto);
+    cp.classList.toggle('sube', abierto && !estaba);
     cp.hidden = !abierto; cp.innerHTML = abierto ? campoPagina() : '';
+    colocarCapa();
     var pista = $('.pn-pag-pista', panel); if (pista) pista.hidden = !!P.pg.usado;
     // lo escogido no queda tapado por el recuadro
     if (abierto) decirPagina({ tipo: 'centrar', abajo: cp.offsetHeight + 8 });
@@ -1341,6 +1346,7 @@
     return '<div class="pn-form pn-datos"><p class="pn-auto" id="dt-estado">Todo lo que cambies aquí se guarda solo.</p>' +
       '<div data-parte="datos"' + (P.tab === 'datos' ? '' : ' hidden') + '><div class="pn-col">' + vistaVisita(c) +
       '<div class="grupo" data-tsel="wa"' + (P.tSel === 'wa' ? '' : ' hidden') + '><label for="dt-wa">WhatsApp de la tienda (10 dígitos)</label><input class="campo" id="dt-wa" inputmode="tel" value="' + esc(String(c.whatsapp || '').replace(/^52/, '')) + '" placeholder="998 000 0000"></div>' +
+      '<div class="grupo pn-redes-campos" data-tsel="redes"' + (P.tSel === 'redes' ? '' : ' hidden') + '>' + [['ig', 'Instagram', '@deportesmsport'], ['fb', 'Facebook', 'Link o nombre de la página'], ['tt', 'TikTok', '@deportesmsport']].map(function (r) { return '<label class="pn-red-campo"><i>' + svgRed(r[0]) + '</i><input class="campo" id="dt-' + r[0] + '" data-red-in="' + r[0] + '" placeholder="' + r[2] + '" aria-label="' + r[1] + '" autocapitalize="off" autocomplete="off" value="' + esc((c.redes || {})[r[0]] || '') + '"></label>'; }).join('') + '<p class="nota">Si dejas uno vacío, ese no sale en tu página.</p></div>' +
       '<div class="grupo" data-tsel="dir"' + (P.tSel === 'dir' ? '' : ' hidden') + '><label for="dt-dir">Dirección</label><input class="campo" id="dt-dir" value="' + esc(c.direccion) + '"></div>' +
       '<div class="grupo" data-tsel="hor"' + (P.tSel === 'hor' ? '' : ' hidden') + '><span class="etq">Horario <small>(toca la hora y escoge con la ruedita)</small></span>' + horarioHTML(c.horario) + '</div>' +
       '</div></div><div data-parte="ajustes"' + (aj ? '' : ' hidden') + '><div class="pn-col"><h3 class="pn-h">Pedidos</h3>' +
@@ -1395,9 +1401,13 @@
       return '<span class="pn-vv-h"><span>' + esc(nom) + '</span><b>' + hh(r.abre) + ' – ' + hh(r.cierra) + '</b></span>';
     }).join('');
   }
+  // redes de la tienda: los mismos íconos que salen en la página, junto a "Visítanos"
+  var ICONO_RED_T = { ig: '<path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>', fb: '<path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8Z"/>', tt: '<path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.5 2.6 2.4 4.4 5 4.6"/>' };
+  function svgRed(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONO_RED_T[k] + '</svg>'; }
   function vistaVisita(c) {
-    var sel = function (k) { return P.tSel === k ? ' on' : ''; }, wa = String(c.whatsapp || '').replace(/^52/, '');
-    return '<div class="pn-vv' + (P.tSel ? ' foco' : '') + '"><p class="pn-vv-k">' + (P.tSel ? 'Así se ve en tu página' : '☝ Toca un dato para cambiarlo') + '</p><div class="pn-vv-cab"><h4>' + (({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp' })[P.tSel] || 'Visítanos') + '</h4><button type="button" class="pn-ctl-listo pn-vv-listo" data-tsel-listo>Listo</button></div>' +
+    var sel = function (k) { return P.tSel === k ? ' on' : ''; }, wa = String(c.whatsapp || '').replace(/^52/, ''), r = c.redes || {};
+    return '<div class="pn-vv' + (P.tSel ? ' foco' : '') + '"><p class="pn-vv-k">' + (P.tSel ? 'Así se ve en tu página' : '☝ Toca un dato para cambiarlo') + '</p><div class="pn-vv-cab"><h4>' + (({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp', redes: 'Tus redes' })[P.tSel] || 'Visítanos') + '</h4>' +
+      '<button type="button" class="pn-vv-redes' + sel('redes') + '" data-tsel-ir="redes" aria-label="Tus redes sociales">' + ['ig', 'fb', 'tt'].map(function (k) { return '<i class="pn-vv-red' + (r[k] ? ' on' : '') + '" data-red-k="' + k + '">' + svgRed(k) + '</i>'; }).join('') + '</button><button type="button" class="pn-ctl-listo pn-vv-listo" data-tsel-listo>Listo</button></div>' +
       '<button type="button" class="pn-vv-t' + sel('dir') + '" data-tsel-ir="dir"><span id="vv-dir">' + esc(c.direccion || 'Toca para poner tu dirección') + '</span></button>' +
       '<button type="button" class="pn-vv-t pn-vv-hor' + sel('hor') + '" data-tsel-ir="hor" id="vv-hor">' + textoHorario() + '</button>' +
       '<button type="button" class="pn-vv-t pn-vv-wa' + sel('wa') + '" data-tsel-ir="wa"><span>Escríbenos por WhatsApp</span><small id="vv-wa">' + esc(wa ? wa.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') : 'Toca para poner tu número') + '</small></button>' +
@@ -1434,13 +1444,14 @@
         $$('[data-tsel]', panel).forEach(function (g) { g.hidden = g.getAttribute('data-tsel') !== P.tSel; });
         var kk = $('.pn-vv-k', panel); if (kk) kk.textContent = P.tSel ? 'Así se ve en tu página' : '☝ Toca un dato para cambiarlo';
         var vv = $('.pn-vv', panel); if (vv) vv.classList.toggle('foco', !!P.tSel);
-        var h4 = $('.pn-vv h4', panel); if (h4) h4.textContent = ({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp' })[P.tSel] || 'Visítanos';
+        var h4 = $('.pn-vv h4', panel); if (h4) h4.textContent = ({ dir: 'Dirección', hor: 'Horario', wa: 'WhatsApp', redes: 'Tus redes' })[P.tSel] || 'Visítanos';
         var pn = $('.pn', panel); if (pn) pn.classList.toggle('enfoque', !!P.tSel);   // mientras cambias algo, se esconde la barra de abajo: todo cabe sin bajar   // con algo escogido, arriba solo queda eso: el campo cabe sin bajar
-        var inp = P.tSel === 'dir' ? $('#dt-dir', panel) : P.tSel === 'wa' ? $('#dt-wa', panel) : null; if (inp) inp.focus();
+        var inp = P.tSel === 'dir' ? $('#dt-dir', panel) : P.tSel === 'wa' ? $('#dt-wa', panel) : P.tSel === 'redes' ? $('#dt-ig', panel) : null; if (inp) inp.focus();
     }
     $$('[data-tsel-ir]', panel).forEach(function (b) { b.addEventListener('click', function () { var k = b.getAttribute('data-tsel-ir'); tsel(P.tSel === k ? '' : k); }); });
     var tl = $('[data-tsel-listo]', panel); if (tl) tl.addEventListener('click', function () { tsel(''); });
     var vd = $('#vv-dir', panel), vw = $('#vv-wa', panel), vh = $('#vv-hor', panel);
+    $$('[data-red-in]', panel).forEach(function (inp) { inp.addEventListener('input', function () { var i = $('.pn-vv-red[data-red-k="' + inp.getAttribute('data-red-in') + '"]', panel); if (i) i.classList.toggle('on', !!inp.value.trim()); }); });
     var dd = $('#dt-dir', panel); if (dd && vd) dd.addEventListener('input', function () { vd.textContent = dd.value || 'Toca para poner tu dirección'; });
     var ww = $('#dt-wa', panel); if (ww && vw) ww.addEventListener('input', function () { var n = ww.value.replace(/\D/g, '').replace(/^52(?=\d{10})/, ''); vw.textContent = n.length === 10 ? n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3') : (n || 'Toca para poner tu número'); });
     var hor = $('[data-tsel="hor"]', panel); if (hor && vh) { var rehor = function () { setTimeout(function () { vh.innerHTML = textoHorario(); }, 0); }; hor.addEventListener('input', rehor); hor.addEventListener('change', rehor); hor.addEventListener('click', rehor); }
@@ -1499,6 +1510,7 @@
       var mx = parseInt($('#dt-max').value, 10); c.maxEquipos = mx >= 1 && mx <= 30 ? mx : 10;
       c.clientes = $$('[data-cli]', panel).map(function (row, i) { var x = Object.assign({}, (c.clientes || [])[i] || {}); $$('[data-cli-k]', row).forEach(function (el) { x[el.getAttribute('data-cli-k')] = el.value.trim(); }); return x; });
       Object.assign(c, P.sonido);
+      c.redes = { ig: ($('#dt-ig') ? $('#dt-ig').value.trim() : ''), fb: ($('#dt-fb') ? $('#dt-fb').value.trim() : ''), tt: ($('#dt-tt') ? $('#dt-tt').value.trim() : '') };
       c.direccion = $('#dt-dir').value; c.horario = leerHorario(); c.calificacion = $('#dt-cal').value.trim(); c.opiniones = $('#dt-op').value.trim();
       var wa = $('#dt-wa').value.replace(/\D/g, ''); if (wa.length === 12 && wa.indexOf('52') === 0) wa = wa.slice(2);
       if (wa.length === 10) { c.whatsapp = '52' + wa; return true; }

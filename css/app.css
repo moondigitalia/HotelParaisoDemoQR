@@ -1668,3 +1668,51 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 /* donde sí hay más abajo, la orilla de abajo se desvanece: se nota que se puede bajar */
 .pn-cuerpo.hay-mas{-webkit-mask-image:linear-gradient(#000 calc(100% - 40px),transparent);mask-image:linear-gradient(#000 calc(100% - 40px),transparent)}
 .pn-eq-pie{margin-top:0}.pn-form [data-ver-nueva]{margin:0 0 8px}.pn-eq-cab{margin-top:0}
+
+/* Visítanos: el título y la dirección a la izquierda, las redes de la tienda a la derecha (el espacio que antes quedaba vacío) */
+.visita-cab{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.visita-cab-t{min-width:0}
+.visita-cab-t h2{margin-bottom:4px}
+.redes-tienda{display:flex;gap:8px;flex:none}
+.redes-tienda:empty{display:none}
+.red-t{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--oro);box-shadow:inset 0 0 0 2px rgba(255,198,26,.6);background:rgba(255,198,26,.08)}
+.red-t svg{width:22px;height:22px}
+.red-t:active{background:rgba(255,198,26,.25)}
+/* Tienda: las redes van a la derecha de "Visítanos", igual que en la página */
+.pn-vv-redes{display:flex;gap:6px;padding:0;border:0;background:none}
+.pn-vv-red{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--suave);box-shadow:inset 0 0 0 1.5px rgba(196,206,255,.3)}
+.pn-vv-red.on{color:var(--oro);box-shadow:inset 0 0 0 2px rgba(255,198,26,.6);background:rgba(255,198,26,.08)}
+.pn-vv-red svg{width:19px;height:19px}
+.pn-vv.foco .pn-vv-redes{display:none}
+.pn-red-campo{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.pn-red-campo i{flex:none;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--oro);background:rgba(255,198,26,.1)}
+.pn-red-campo i svg{width:22px;height:22px}
+.pn-red-campo .campo{flex:1;min-width:0;margin:0}
+/* página del cliente en celular: un solo ritmo entre secciones, sin renglones de aire */
+@media (max-width:699px){
+  .crear{padding-bottom:22px}
+  .catalogo,.historia,.visita{padding-block:30px}
+  .como{padding-block:26px}
+  .historia-in{gap:26px!important}
+  .visita-in{gap:18px}
+}
+@media (max-width:699px){
+  .crear{padding-bottom:14px}
+  .catalogo,.historia,.visita{padding-block:22px}
+  .como{padding-block:20px}
+}
+/* el recuadro de Página: sube una sola vez, suave, solo al abrir (al cambiar de texto ya no se mueve) */
+.pn-pag-ed{animation:none}
+.pn-pag-ed.sube{animation:pagSube .24s var(--curva) both}
+@keyframes pagSube{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.pn.pagina .pn-cuerpo{padding-bottom:8px}
+.pn.pagina.enfoque .pn-cuerpo{padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+/* nada se corta de golpe: el 3D con esquinas redondas también en Safari viejo, y las hojas se desvanecen abajo */
+.pn.estudio .pn-est-3d,.pn.estudio .pn-prev3d{border-radius:24px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);isolation:isolate}
+.pn.estudio #ed-3d{border-radius:24px}
+.pn-hoja-cuerpo{padding-bottom:30px;-webkit-mask-image:linear-gradient(#000 calc(100% - 30px),transparent);mask-image:linear-gradient(#000 calc(100% - 30px),transparent)}
+.pn-hoja-in{border-radius:28px 28px 0 0}
+.pn-form [data-ver-nueva]{width:100%;display:flex;align-items:center;justify-content:center}
+.pn-datos [data-tsel] > label.pn-red-campo{display:flex}
+.pn.tienda.enfoque .pn-pildora-top,.pn.tienda:not(.enfoque) .pn-pg-estado{display:none}
+.pn-form [data-ver-nueva]{margin-top:8px}

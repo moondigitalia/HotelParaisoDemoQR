@@ -85,6 +85,7 @@ const DEFAULT_CONFIG = {
   textos: {},
   textos_en: {},
   logo: '',
+  redes: { ig: '', fb: '', tt: '' },
   fondo: '',
   compartir: '',
   clientes: [],

@@ -18,7 +18,7 @@
 /* una imagen no se muestra hasta que ya cargó: así el iPhone no pinta el rectangulito con contorno mientras la carga */
 (function(){function ok(e){var t=e.target;if(t&&t.tagName==='IMG')t.classList.add('ok')}document.addEventListener('load',ok,true);try{new MutationObserver(function(l){l.forEach(function(m){var t=m.target;if(m.type==='attributes'){if(t.tagName==='IMG'&&!t.complete)t.classList.remove('ok');return}m.addedNodes.forEach(function(n){if(n.nodeType!==1)return;var L=n.tagName==='IMG'?[n]:n.querySelectorAll('img');for(var i=0;i<L.length;i++)if(L[i].complete&&L[i].naturalWidth)L[i].classList.add('ok')})})}).observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['src']})}catch(_){};document.addEventListener('error',function(e){var t=e.target;if(t&&t.tagName==='IMG')t.classList.add('mal')},true)})()</script>
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/app.css?v=56">
+<link rel="stylesheet" href="/css/app.css?v=57">
 </head>
 <body>
 
@@ -143,8 +143,8 @@
         <iframe id="mapa-frame" title="Mapa de Deportes M Sport" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=Deportes%20M%20Sport%2C%20C.%2019%2038%2C%2077513%20Canc%C3%BAn&z=16&output=embed"></iframe>
       </div>
       <div class="visita-datos">
-        <h2 data-t="visita_t">Visítanos</h2>
-        <p class="dir" id="dato-dir"></p>
+        <div class="visita-cab"><div class="visita-cab-t"><h2 data-t="visita_t">Visítanos</h2>
+        <p class="dir" id="dato-dir"></p></div><div class="redes-tienda" id="redes-tienda"></div></div>
         <div class="horario">
           <div class="hor-top"><span class="etq" data-t="horario">Horario</span><span class="abierto" id="abierto"></span></div>
           <ul class="hor-lista" id="dato-hor"></ul>
@@ -202,11 +202,11 @@
 <!-- Panel del dueño -->
 <div class="panel" id="panel" hidden></div>
 
-<script src="/js/i18n.js?v=56"></script>
-<script>window.VERSION="56"</script>
-<script src="/js/kit.js?v=56"></script>
-<script src="/js/catalogo-base.js?v=56"></script>
-<script src="/js/app.js?v=56"></script>
-<script src="/js/panel.js?v=56" defer></script>
+<script src="/js/i18n.js?v=57"></script>
+<script>window.VERSION="57"</script>
+<script src="/js/kit.js?v=57"></script>
+<script src="/js/catalogo-base.js?v=57"></script>
+<script src="/js/app.js?v=57"></script>
+<script src="/js/panel.js?v=57" defer></script>
 </body>
 </html>
