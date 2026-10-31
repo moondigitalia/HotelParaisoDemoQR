@@ -146,6 +146,38 @@ export function coloresDe(c) {
   return Object.keys(cuenta).filter((k) => cuenta[k] / total >= 0.12).sort((a, b) => cuenta[b] - cuenta[a]).slice(0, 3);
 }
 
+// short fotografiado puesto: abajo salen las piernas y arriba las manos o la panza. Se borra la piel que toca las orillas
+// (solo la que está pegada al borde de la prenda, abajo o arriba): un escudo o una franja color arena en medio no se tocan.
+export function quitarPielOrillas(c) {
+  const W = c.width, H = c.height, o = lienzo(W, H), g = o.getContext('2d'); g.drawImage(c, 0, 0);
+  const img = g.getImageData(0, 0, W, H), d = img.data, piel = new Uint8Array(W * H);
+  let np = 0, op = 0;
+  for (let k = 0; k < W * H; k++) {
+    const i = k * 4; if (d[i + 3] < 100) continue; op++;
+    const r = d[i], gg = d[i + 1], b = d[i + 2], Y = 0.299 * r + 0.587 * gg + 0.114 * b;
+    const Cr = 128 + 0.5 * r - 0.419 * gg - 0.081 * b, Cb = 128 - 0.169 * r - 0.331 * gg + 0.5 * b;
+    if (Y > 18 && Cr > 132 && Cr < 178 && Cb > 77 && Cb < 128 && r > gg && r > b && gg > b - 6) { piel[k] = 1; np++; }
+  }
+  if (!op || np / op < 0.01 || np / op > 0.45) return c;   // sin piel, o un short color piel: no se toca
+  // se borra la piel conectada a las orillas: desde abajo (hasta 35% del alto) y desde arriba (hasta 18%)
+  const fuera = new Uint8Array(W * H), pila = [];
+  const sembrar = (k) => { if (piel[k] && !fuera[k]) { fuera[k] = 1; pila.push(k); } };
+  for (let x = 0; x < W; x++) {
+    for (let y = H - 1; y >= 0; y--) { const k = y * W + x; if (d[k * 4 + 3] >= 100) { sembrar(k); break; } }
+    for (let y = 0; y < H; y++) { const k = y * W + x; if (d[k * 4 + 3] >= 100) { sembrar(k); break; } }
+  }
+  for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { const k = y * W + x; if (d[k * 4 + 3] >= 100) { sembrar(k); break; } } for (let x = W - 1; x >= 0; x--) { const k = y * W + x; if (d[k * 4 + 3] >= 100) { sembrar(k); break; } } }
+  const yAbajo = H * 0.65, yArriba = H * 0.18;
+  while (pila.length) {
+    const k = pila.pop(), x = k % W, y = (k - x) / W;
+    if (y < yAbajo && y > yArriba) { fuera[k] = 0; continue; }
+    if (x > 0) sembrar(k - 1); if (x < W - 1) sembrar(k + 1); if (y > 0) sembrar(k - W); if (y < H - 1) sembrar(k + W);
+  }
+  let n = 0; for (let k = 0; k < W * H; k++) if (fuera[k]) { d[k * 4 + 3] = 0; n++; }
+  if (!n) return c;
+  g.putImageData(img, 0, 0); return o;
+}
+
 // el short en la foto se abre hacia abajo (trapecio); se endereza renglón por renglón para que las franjas
 // queden derechas sobre el modelo y no se vea fondo en las orillas
 export function enderezarShort(c) {
@@ -159,6 +191,12 @@ export function enderezarShort(c) {
   // orillas suaves: promedio de renglones vecinos (sin dejar que un renglón vacío las jale)
   const suave = (arr) => arr.map((_, y) => { let s = 0, n = 0; for (let k = -6; k <= 6; k++) { const v = arr[y + k]; if (v >= 0 && y + k >= 0 && y + k < H) { s += v; n++; } } return n ? s / n : -1; });
   const L = suave(izq), R = suave(der);
+  // de arriba hasta las esquinas de abajo el short se abre (eso se endereza); de ahí para abajo la orilla de cada pierna sube
+  // en diagonal: esos renglones NO se estiran (si no, la orilla de adentro se embarra hacia los lados). Se quedan con la medida
+  // de las esquinas y la orilla diagonal la acomoda el 3D, columna por columna.
+  let yEsq = -1, ancho = -1;
+  for (let y = Math.floor(H * 0.4); y < H; y++) if (L[y] >= 0 && R[y] - L[y] >= ancho - 1) { ancho = Math.max(ancho, R[y] - L[y]); yEsq = y; }
+  if (yEsq > 0) for (let y = yEsq + 1; y < H; y++) { L[y] = L[yEsq]; R[y] = R[yEsq]; }
   const o = document.createElement('canvas'); o.width = W; o.height = H; const og = o.getContext('2d');
   for (let y = 0; y < H; y++) if (L[y] >= 0 && R[y] > L[y]) og.drawImage(c, L[y] + 1, y, R[y] - L[y] - 2, 1, 0, y, W, 1);
   return o;

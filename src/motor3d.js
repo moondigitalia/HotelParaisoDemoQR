@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { enderezarShort, limpiarTela, coloresBase } from './foto.js';
+import { enderezarShort, limpiarTela, coloresBase, quitarPielOrillas } from './foto.js';
 
 // alturas de cada parte en cada modelo (0 = abajo, 1 = arriba), medidas sobre las imágenes con que se hicieron
 const MODELOS = {
@@ -262,7 +262,7 @@ export async function crear(canvas, opt = {}) {
     fotos: { frente: null, espalda: null, short: null }, colorShort: '#f2f2f4', colorCalceta: '#f2f2f4', colorFranja: '', foco: { k: 1, m: 0.92, a: 1 }, ajNom: [1, 0, 0, 1], ajNum: [1, 0, 0, 1], sel: '',
     dorsal: { nombre: '', numero: '', color: '#111111', sello: true }
   };
-  let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null;
+  let kit = null, kitMesh = null, tacos = [], zonas = null, uni = null, tacoCol = null, hemModelo = null, hemFoto = null; const HEMC = 96;
   const corte = { value: -1 };
 
   // uniformes del material del uniforme (se comparten entre recompilaciones)
@@ -273,7 +273,7 @@ export async function crear(canvas, opt = {}) {
     uShortCaja: { value: new THREE.Vector4() }, uZonas: { value: new THREE.Vector3() }, uShortBot: { value: 0 },
     uShort: { value: new THREE.Color() }, uSock: { value: new THREE.Color() }, uHayShort: { value: 0 }, uCorte: corte,
     uFranja: { value: new THREE.Color() }, uHayFranja: { value: 0 }, uSockTop: { value: 0 }, uFranjaAlto: { value: 0 },
-    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }, uDentro: { value: new THREE.Color(0.9, 0.9, 0.9) }
+    uSel: { value: 0 }, uSelCaja: { value: new THREE.Vector4(0, 0, 0, 0) }, uDentro: { value: new THREE.Color(0.9, 0.9, 0.9) }, uHem: { value: null }, uHayHem: { value: 0 }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -283,7 +283,7 @@ export async function crear(canvas, opt = {}) {
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
-uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro;
+uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro; uniform sampler2D uHem; uniform float uHayHem;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo;
 // de dónde de la foto sale cada punto de la playera, renglón por renglón: el torso del modelo con el torso de la foto y lo que
@@ -323,8 +323,10 @@ if (t > uZonas.z - 0.01) {
   if (uHayShort > 0.5) {
     // el short: la foto es solo del frente, así que va solo en lo que mira al frente.
     // Los lados y atrás van del color que más tiene el short: la foto no los muestra y estirarla los duplica en rayas.
-    float sx = clamp(((vMundo.x - uShortCaja.x) / uShortCaja.z - 0.06) / 0.88, 0.0, 1.0);
-    vec2 suv = (vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w) - 0.5) / uAjS.x + 0.5 - uAjS.yz;
+    float cx = (vMundo.x - uShortCaja.x) / uShortCaja.z, sx = clamp((cx - 0.06) / 0.88, 0.0, 1.0), sv = (vMundo.y - uShortCaja.y) / uShortCaja.w;
+    // la orilla de abajo: columna por columna, la orilla de la foto (a veces en diagonal) cae justo en la orilla del modelo
+    if (uHayHem > 0.5) { vec2 hm = texture2D(uHem, vec2(clamp(cx, 0.0, 1.0), 0.5)).rg; float o = hm.r - hm.g, w = max(0.45, abs(o) * 1.8); sv += o * (1.0 - clamp((sv - hm.g) / w, 0.0, 1.0)); }   // solo en la parte de abajo y sin doblar nunca la foto: lo de arriba no se mueve
+    vec2 suv = (vec2(sx, sv) - 0.5) / uAjS.x + 0.5 - uAjS.yz;
     vec4 s = texture2D(uShortTex, suv);
     if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) s.a = 0.0;
     float deFrente = normalize(vNormMundo).z;
@@ -396,6 +398,15 @@ diffuseColor.rgb *= base;`);
     const tx0 = xs[i0], tx1 = xs[i1];
     uni.uCaja.value.set(tx0, shirtBot - 0.01 * zonas.YH, tx1 - tx0, zonas.top - shirtBot + 0.01 * zonas.YH);
     uni.uShortCaja.value.set(sx0, shortBot, sx1 - sx0, shortTop - shortBot);
+    // la orilla de abajo del short del modelo, columna por columna (0 = abajo de la caja, 1 = arriba): ahí cae la orilla de la foto
+    hemModelo = new Float32Array(HEMC).fill(-1);
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(kitMesh.matrixWorld);
+      if (v.z <= 0 || v.y > shortTop || v.y < shortBot - 0.02 * zonas.YH) continue;
+      const k = Math.min(HEMC - 1, Math.max(0, Math.floor((v.x - sx0) / (sx1 - sx0) * HEMC))), t = Math.max(0, (v.y - shortBot) / (shortTop - shortBot));
+      if (hemModelo[k] < 0 || t < hemModelo[k]) hemModelo[k] = t;
+    }
+    pintarHem();
     // el modelo por renglón (en la medida del torso: 0 = orilla izquierda del torso, 1 = la derecha)
     const cy = uni.uCaja.value.y, ch = uni.uCaja.value.w, tw = tx1 - tx0, L = new Float32Array(RENG).fill(1e9), R = new Float32Array(RENG).fill(-1e9);
     for (let i = 0; i < pos.count; i++) {
@@ -496,7 +507,7 @@ diffuseColor.rgb *= base;`);
     const s = E.fotos.short, d = E.dorsal;
     if (!s && !E.numeroShort) { uni.uHayShort.value = 0; return; }
     if (shortBaseDe !== s || !shortBase) {
-      if (s) shortBase = enderezarShort(s);
+      if (s) shortBase = enderezarShort(quitarPielOrillas(s));
       else { shortBase = document.createElement('canvas'); shortBase.width = 600; shortBase.height = 440; }
       shortBaseDe = s;
     }
@@ -507,6 +518,26 @@ diffuseColor.rgb *= base;`);
     const hay = E.numeroShort && d.numero && window.Kit; if (hay) window.Kit.drawNumber(cn.getContext('2d'), d.numero, c.width * 0.17, c.height * 0.74, c.height * 0.11, d.color, false, c.width * 0.11);
     uni.uHayNum.value = hay ? 1 : 0; poner(uni.uShortNum, textura(cn));
     uni.uHayShort.value = 1; poner(uni.uShortTex, textura(c));
+    hemFoto = s ? orillaFoto(shortBase) : null; pintarHem();
+  }
+  // la orilla de abajo de la foto del short, columna por columna (0 = abajo de la foto): el punto más bajo con tela
+  function orillaFoto(cv) {
+    const W = cv.width, H = cv.height, d = cv.getContext('2d').getImageData(0, 0, W, H).data, r = new Float32Array(HEMC).fill(-1);
+    for (let k = 0; k < HEMC; k++) {
+      const sx = Math.min(1, Math.max(0, ((k + 0.5) / HEMC - 0.06) / 0.88)), x = Math.min(W - 1, Math.round(sx * (W - 1)));
+      for (let y = H - 1; y >= 0; y--) if (d[(y * W + x) * 4 + 3] > 140) { r[k] = (H - 1 - y) / H; break; }
+    }
+    return r;
+  }
+  // une las dos orillas en una tira (rojo: la de la foto, verde: la del modelo); sin datos, se queda como antes
+  function pintarHem() {
+    if (!hemFoto || !hemModelo) { uni.uHayHem.value = 0; return; }
+    const lisa = (a) => { const o = Float32Array.from(a); for (let k = 0; k < HEMC; k++) { if (o[k] >= 0) continue; let j = 1; while (j < HEMC && !(k - j >= 0 && a[k - j] >= 0) && !(k + j < HEMC && a[k + j] >= 0)) j++; o[k] = k - j >= 0 && a[k - j] >= 0 ? a[k - j] : (k + j < HEMC && a[k + j] >= 0 ? a[k + j] : 0); }
+      const m = Float32Array.from(o); for (let k = 0; k < HEMC; k++) { const w = [o[k - 1], o[k], o[k + 1]].filter((x) => x !== undefined).sort((p, q) => p - q); m[k] = w[(w.length - 1) >> 1]; } return m; };
+    const pf = lisa(hemFoto), pm = lisa(hemModelo), dt = new Uint8Array(HEMC * 4);
+    for (let k = 0; k < HEMC; k++) { dt[k * 4] = Math.round(Math.min(0.9, pf[k]) * 255); dt[k * 4 + 1] = Math.round(Math.min(0.9, pm[k]) * 255); dt[k * 4 + 3] = 255; }
+    const t = new THREE.DataTexture(dt, HEMC, 1, THREE.RGBAFormat); t.magFilter = t.minFilter = THREE.LinearFilter; t.needsUpdate = true;
+    poner(uni.uHem, t); uni.uHayHem.value = 1;
   }
   // la espalda lleva el nombre y el número del cliente encima de la foto
   function pintarEspalda() {
@@ -739,6 +770,8 @@ diffuseColor.rgb *= base;`);
       return t > 0 && p.x > S.x && p.x < S.x + S.z ? 'calcetas' : null;
     },
     fondo(url) { ponerFondo(url || base + 'campo.webp'); },
+    // true si el fondo elegido chocaba con este uniforme y se puso otro
+    fondoCambiado() { return fondoPuesto !== fondoPedido; },
     congelar(si) { congelado = !!si; if (!si && debeDibujo) { debeDibujo = false; pedir(); } },
     ajuste(aj) {
       aj = aj || {};

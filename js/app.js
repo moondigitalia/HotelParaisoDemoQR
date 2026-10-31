@@ -123,7 +123,7 @@
   };
   function normal(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); }
   function textoBuscable(u) {
-    var e = u.etiquetas || {}, partes = [u.nombre, u.categoria, e.pais, e.equipo, e.otros, u.version];
+    var e = u.etiquetas || {}, partes = [u.nombre, u.categoria, e.pais, e.equipo, e.otros, e.liga, e.anio, u.version];
     (e.colores || []).forEach(function (c) { partes = partes.concat(COLORES_NOMBRE[c] || [c]); });
     return normal(partes.join(' '));
   }
@@ -343,7 +343,8 @@
       $$('[data-nav]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
           var n = b.getAttribute('data-nav');
-          if (probador.classList.contains('grande')) verGrande(false);
+          // en grande, "Atrás" solo sale de la vista en grande (un paso atrás); "Siguiente" sale y avanza
+          if (probador.classList.contains('grande')) { verGrande(false); if (n === 'atras') return; }
           if (n === 'siguiente') { if (pasos()[S.paso] === 'listo') { prepararSonido(); cotizar(); } else irA(S.paso + 1); }
           else if (n === 'atras') irA(S.paso - 1);
         });
@@ -470,7 +471,13 @@
 
   /* ---- títulos de cada paso ---- */
   var CABEZAS = {
-    diseno: function () { return '<h3>' + esc(T('p_diseno2')) + '</h3>'; },
+    // para los conocedores: una lupa para buscar por nombre, año, liga, color o palabra clave (el texto se queda si regresas)
+    diseno: function () {
+      var abierta = S.buscando || !!S.filtro.q;
+      return '<div class="cab-busca' + (abierta ? ' abierta' : '') + '"><h3>' + esc(T('p_diseno2')) + '</h3>' +
+        '<label class="busca-campo"><input id="p-buscar" type="search" enterkeyhint="search" autocomplete="off" placeholder="' + esc(T('buscar_ph2')) + '" value="' + esc(S.filtro.q) + '" aria-label="' + esc(T('buscar_ph2')) + '"></label>' +
+        '<button type="button" class="busca-lupa" data-lupa aria-label="' + esc(T(abierta ? 'cerrar' : 'buscar')) + '">' + (abierta ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>') + '</button></div>';
+    },
     tacos: function () { return '<h3>' + esc(T('p_tacos')) + '</h3>'; },
     dorsal: function () { return '<h3>' + esc(T('p_dorsal')) + '</h3>'; },
     equipo: function () { return '<h3>' + esc(T('p_equipo')) + '</h3>'; },
@@ -568,13 +575,46 @@
       pags.map(function (pg) { return '<div class="mini-grid" style="flex-basis:' + (100 / n) + '%">' + pg.map(tarjetaEquipo).join('') + '</div>'; }).join('') + '</div></div>' +
       '<button type="button" class="sec-mas' + (ini === n - 1 ? ' atras' : '') + '" data-sec-mas aria-label="' + esc(T('mas_equipos')) + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i><small>' + esc(ini === n - 1 ? T('volver') : '+' + pags.slice(ini + 1).reduce(function (s2, g2) { return s2 + g2.length; }, 0)) + '</small></button>';
   }
+  // pasar de página en una sección: con la flecha o deslizando el dedo de lado (la flecha es ayuda, no la única forma)
+  function irPagina(v, p) {
+    var n = +v.getAttribute('data-pags'), b = v.parentNode.querySelector('[data-sec-mas]');
+    p = Math.max(0, Math.min(n - 1, p));
+    v.setAttribute('data-pag', p); v.firstChild.style.transition = ''; v.firstChild.style.transform = 'translateX(' + (-p * 100 / n) + '%)';
+    if (b) { b.classList.toggle('atras', p === n - 1); var resto = $$('.mini-grid', v).slice(p + 1).reduce(function (s2, g2) { return s2 + g2.children.length; }, 0); b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto; }
+  }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-sec-mas]'); if (!b) return;
-    var v = b.parentNode.querySelector('.sec-vista'), n = +v.getAttribute('data-pags'), p = (+v.getAttribute('data-pag') + 1) % n, tot = v.querySelectorAll('[data-equipo]').length;
-    v.setAttribute('data-pag', p); v.firstChild.style.transform = 'translateX(' + (-p * 100 / n) + '%)';
-    b.classList.toggle('atras', p === n - 1);
-    var resto = $$('.mini-grid', v).slice(p + 1).reduce(function (s2, g2) { return s2 + g2.children.length; }, 0); b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto;
+    var v = b.parentNode.querySelector('.sec-vista'), n = +v.getAttribute('data-pags');
+    irPagina(v, (+v.getAttribute('data-pag') + 1) % n);
   });
+  (function () {
+    var v = null, x0 = 0, y0 = 0, t0 = 0, dx = 0, lado = null, id = null;
+    document.addEventListener('pointerdown', function (e) {
+      var s = e.target.closest && e.target.closest('.sec-vista'); if (!s || (e.button && e.button !== 0)) return;
+      v = s; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); dx = 0; lado = null; id = e.pointerId;
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (!v || e.pointerId !== id) return;
+      var mx = e.clientX - x0, my = e.clientY - y0;
+      if (lado === null && Math.abs(mx) + Math.abs(my) > 8) lado = Math.abs(mx) > Math.abs(my);
+      if (!lado) return;
+      var n = +v.getAttribute('data-pags'), p = +v.getAttribute('data-pag'), w = v.clientWidth || 1;
+      dx = mx; if ((p === 0 && dx > 0) || (p === n - 1 && dx < 0)) dx *= 0.3;   // en la orilla se resiste un poco
+      v.classList.add('arrastrando'); v.firstChild.style.transition = 'none'; v.firstChild.style.transform = 'translateX(calc(' + (-p * 100 / n) + '% + ' + dx + 'px))';
+    });
+    function soltar(e) {
+      if (!v || (e && e.pointerId !== id)) return;
+      var s = v; v = null; s.classList.remove('arrastrando');
+      if (!lado) return;
+      var w = s.clientWidth || 1, rapido = Math.abs(dx) / Math.max(1, Date.now() - t0) > 0.4, p = +s.getAttribute('data-pag');
+      if (Math.abs(dx) > w * 0.22 || (rapido && Math.abs(dx) > 24)) p += dx < 0 ? 1 : -1;
+      irPagina(s, p);
+      // deslizar no es tocar: el toque que termina el deslizamiento no escoge equipo
+      var tragar = function (ev) { ev.stopPropagation(); ev.preventDefault(); document.removeEventListener('click', tragar, true); };
+      document.addEventListener('click', tragar, true); setTimeout(function () { document.removeEventListener('click', tragar, true); }, 350);
+    }
+    document.addEventListener('pointerup', soltar); document.addEventListener('pointercancel', soltar);
+  })();
   function tarjetasPorSeccion(lista) {
     var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
     var grupos = secs.map(function (c) { return [c, lista.filter(function (u) { return u.categoria === c; })]; });
@@ -603,12 +643,13 @@
   }
   var VISTAS = {
     diseno: function () {
-      // con 10 equipos o menos se ven todos de un vistazo: el buscador y las carpetas sobran y empujarían los escudos fuera
-      return '<div id="p-resultados">' + tarjetasPorSeccion(catalogoVisible()) + '</div>';
+      // los escudos por sección; si se está buscando, salen los uniformes que coinciden (cada uno con su foto)
+      return '<div id="p-resultados">' + (S.filtro.q.trim() ? tarjetasUniformes(filtrar(catalogoVisible())) : tarjetasPorSeccion(catalogoVisible())) + '</div>';
     },
     tacos: function () {
-      var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(T('version')) + '</span><div class="chips llenar">' + q.items.map(function (u) {
-        return '<button type="button" class="chip' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '">' + esc(versionDe(u)) + '</button>';
+      // los diseños del equipo: un círculo con la foto de cada uniforme (no el nombre ni el escudo repetido); si son muchos se deslizan
+      var q = equipoDeId(S.baseId), vers = q && q.items.length > 1 ? '<div class="grupo g0"><span class="etq">' + esc(T('version')) + '</span><div class="vers-fila">' + q.items.map(function (u) {
+        return '<button type="button" class="vers' + (u.id === S.baseId ? ' on' : '') + '" data-version="' + esc(u.id) + '" aria-label="' + esc(versionDe(u)) + '"><img src="' + esc((u.fotos && u.fotos.frente) || u.mini) + '" alt="" loading="lazy" decoding="async"></button>';
       }).join('') + '</div></div>' : '';
       return vers + '<div class="grupo' + (vers ? '' : ' g0') + '"><span class="etq">' + esc(T('manga')) + '</span><div class="chips llenar"><button type="button" class="chip' + (S.d.manga !== 'larga' ? ' on' : '') + '" data-manga="corta">' + esc(T('manga_corta')) + '</button>' +
         '<button type="button" class="chip' + (S.d.manga === 'larga' ? ' on' : '') + '" data-manga="larga">' + esc(T('manga_larga')) + '</button></div></div>' +
@@ -682,13 +723,27 @@
       }
       function repintar() {
         var r = $('#p-resultados'); if (!r) return;
-        r.innerHTML = tarjetasUniformes(filtrar(catalogoVisible()));
+        r.innerHTML = S.filtro.q.trim() ? tarjetasUniformes(filtrar(catalogoVisible())) : tarjetasPorSeccion(catalogoVisible());
         enlazarTarjetas(r, elegir); acomodar(r); vigilarMas();
       }
       enlazarFiltros(tablero, 'p', repintar);
       enlazarTarjetas(tablero, elegir);
+      var cb = $('.cab-busca', tablero), lu = $('[data-lupa]', tablero), inp = $('#p-buscar', tablero);
+      if (lu) lu.addEventListener('click', function () {
+        var abrir = !cb.classList.contains('abierta');
+        S.buscando = abrir; cb.classList.toggle('abierta', abrir);
+        lu.setAttribute('aria-label', T(abrir ? 'cerrar' : 'buscar'));
+        lu.innerHTML = abrir ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>';
+        if (abrir) inp.focus(); else { inp.value = ''; S.filtro.q = ''; inp.blur(); repintar(); }
+      });
     },
     tacos: function () {
+      var vf = $('.vers-fila', tablero);
+      if (vf) {
+        var bordes = function () { var m = vf.scrollWidth - vf.clientWidth; vf.classList.toggle('f-izq', vf.scrollLeft > 2); vf.classList.toggle('f-der', m > 2 && vf.scrollLeft < m - 2); };
+        vf.addEventListener('scroll', bordes, { passive: true }); bordes();
+        var on = $('.vers.on', vf); if (on && on.offsetLeft + on.offsetWidth > vf.clientWidth) vf.scrollLeft = on.offsetLeft - 8; bordes();
+      }
       $$('[data-version]', tablero).forEach(function (b) {
         b.addEventListener('click', function () {
           var u = catalogoVisible().filter(function (x) { return x.id === b.getAttribute('data-version'); })[0]; if (!u || u.id === S.baseId) return;

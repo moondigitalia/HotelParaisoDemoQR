@@ -130,7 +130,7 @@
     if (P.tab === 'uniformes') h += P.editando ? vistaEditor() : vistaUniformes();
     if (P.tab === 'datos' || P.tab === 'pagina' || P.tab === 'ajustes') h += vistaDatos();
     if (P.tab === 'papelera') h += vistaPapelera();
-    // en el estudio el nombre del uniforme ya se ve abajo ("Equipo y versión"): arriba solo Regresar y Guardar, sin texto cortado
+    // en el estudio el nombre del uniforme ya se ve abajo ("Equipo y diseño"): arriba solo Regresar y Guardar, sin texto cortado
     var titulo = P.tab === 'uniformes' && P.editando ? '' : P.tab === 'uniformes' && P.equipo ? ((equipoDe(arbol(), P.equipo) || {}).nombre || 'Equipo') : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
     var der = P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-ir="ajustes" aria-label="Más de tu tienda: tallas, sonido y código">' + icono('mas') + '</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
     var barra = dentro ? '' : '<nav class="pn-barra" aria-label="Panel">' + [['folios', 'Pedidos'], ['uniformes', 'Uniformes'], ['pagina', 'Página'], ['datos', 'Tienda']].map(function (t) {
@@ -451,7 +451,7 @@
           '<span class="pn-info"><b>' + esc(u.version || u.nombre) + '</b><small>' + esc(u.nombre) + (u.oculto ? ' · oculto' : '') + '</small></span><span class="pn-editar">✎ Editar</span></button>' +
           (e.items.length < 2 ? '' : '<span class="pn-orden"><button type="button" class="icon-btn" data-ver-mueve="-1" data-i="' + i + '" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
           '<button type="button" class="icon-btn" data-ver-mueve="1" data-i="' + i + '" aria-label="Bajar"' + (i === e.items.length - 1 ? ' disabled' : '') + '>↓</button></span>') + '</div>';
-      }).join('') + '</div><button type="button" class="btn btn-linea" data-ver-nueva>+ Otra versión de este equipo</button></div>' +
+      }).join('') + '</div><button type="button" class="btn btn-linea" data-ver-nueva>+ Otro diseño de este equipo</button></div>' +
       '<div class="pn-eq-pie">' +
       '<button type="button" class="chip' + (oculto ? ' on' : '') + '" data-eq-oculto>' + (oculto ? 'Oculto · tocar para mostrar' : 'Ocultar de la página') + '</button>' +
       '<button type="button" class="chip" data-eq-papelera>A la papelera</button></div>' +
@@ -590,16 +590,18 @@
       '<div id="ed-aviso"></div>' +
       '<div class="pn-est-franja"><div class="pn-ctl" id="pn-ctl">' + franjaInicio(u, faltaLado, NOMF) + '</div></div>' +
       '<div class="pn-est-oculto" aria-hidden="true"><div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + '</div></div>' +
-      '<div class="pn-hoja" data-hoja="datos" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Equipo y versión</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form">' +
+      '<div class="pn-hoja" data-hoja="datos" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Equipo y diseño</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form">' +
       
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
       equipoHTML(u, cats) +
-      // versión: se toca una (o "Otra" y se escribe); el nombre en la página cambia solo
-      (function () { var std = ['Local', 'Visitante', 'Tercera'], otra = !!u.version && std.indexOf(u.version) < 0;
-        return '<div class="grupo"><span class="etq">Versión</span><div class="pn-version">' + std.concat(['Otra']).map(function (v) { var on = v === 'Otra' ? otra : u.version === v; return '<button type="button" class="chip' + (on ? ' on' : '') + '" data-ver="' + v + '">' + v + '</button>'; }).join('') + '</div>' +
-          '<input class="campo pn-ver-otra" id="ed-version" maxlength="30" value="' + esc(otra ? u.version : '') + '" placeholder="Escribe la versión, ej. Portero"' + (otra ? '' : ' hidden') + ' aria-label="Otra versión"></div>'; })() +
+      // el diseño se nombra libre (un equipo puede tener 6 o 10: "Local 2024", "Retro 98", "Portero"…); el nombre en la página cambia solo
+      '<div class="grupo"><label for="ed-version">Nombre del diseño</label><input class="campo" id="ed-version" maxlength="30" value="' + esc(u.version || '') + '" placeholder="Ej. Local 2024, Retro 98, Portero"></div>' +
+      // para la lupa de los conocedores: año, liga y palabras clave
+      '<div class="fila2"><div class="grupo"><label for="ed-anio">Año</label><input class="campo" id="ed-anio" inputmode="numeric" maxlength="9" value="' + esc(e.anio || '') + '" placeholder="Ej. 2024"></div>' +
+      '<div class="grupo"><label for="ed-liga">Liga o torneo</label><input class="campo" id="ed-liga" maxlength="40" value="' + esc(e.liga || '') + '" placeholder="Ej. Liga MX"></div></div>' +
+      '<div class="grupo"><label for="ed-otros">Palabras clave <small>(para que te encuentren)</small></label><input class="campo" id="ed-otros" maxlength="120" value="' + esc(e.otros || '') + '" placeholder="Ej. retro, mundial, campeón, portero"></div>' +
             '<div class="pn-mas-op" data-mas-op>' +
-      '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y versión)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
+      '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y diseño)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
       '<div class="grupo"><label for="ed-pais">País</label><input class="campo" id="ed-pais" maxlength="40" value="' + esc(e.pais) + '" placeholder="Ej. México"></div>' +
       '<div class="grupo"><span class="etq">Manga con la que se ve primero <small>(el cliente puede cambiarla)</small></span><div class="chips llenar"><button type="button" class="chip' + (u.manga !== 'larga' ? ' on' : '') + '" data-mg="corta">Corta</button><button type="button" class="chip' + (u.manga === 'larga' ? ' on' : '') + '" data-mg="larga">Larga</button></div></div>' +
       '<div class="grupo"><span class="etq">Color de nombre y número</span>' + bolitas('tx', u.colorTexto) + '</div>' +
@@ -622,12 +624,12 @@
     h += '<div class="pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar') + '</button></div></div>';
     return h;
   }
-  // la franja de abajo cuando no hay pieza escogida: qué falta (con su botón) o la ayuda, y "Equipo y versión"
+  // la franja de abajo cuando no hay pieza escogida: qué falta (con su botón) o la ayuda, y "Equipo y diseño"
   function franjaInicio(u, faltaLado, NOMF) {
     var f = u.fotos || {};
     var lados = '<div class="pn-est-lados" role="tablist"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div>';
     var nombre = esc(nombreAuto(u) || u.nombre || 'Sin equipo todavía');
-    var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo y versión</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
+    var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo y diseño</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
     if (!f.frente) return cab;
     if (faltaLado) return lados + '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto ' + ({ frente: 'del frente', espalda: 'de la espalda', short: 'del short' })[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + cab;
     // Frente / Espalda vive aquí abajo, nunca encima del uniforme
@@ -672,7 +674,8 @@
   function tocarPieza(e) {
     if (!mEditor || !mEditor.m || !mEditor.m.piezaEn) return;
     var p = mEditor.m.piezaEn(e.clientX, e.clientY);
-    elegirPieza(p || '');
+    // tocar el fondo (no una pieza) con nada escogido abre los fondos; si algo estaba escogido, solo lo suelta
+    elegirPieza(p || (pnSel ? '' : 'fondo'));
   }
   // las hojas que salen desde abajo (equipo y versión, calcetas): una a la vez, se cierran con "Listo" o tocando fuera
   function abrirHoja(k) {
@@ -689,8 +692,8 @@
   }
   function elegirPieza(p) {
     var m = mEditor && mEditor.m; if (!m) return;
-    pnSel = p; m.seleccionar(p);
-    var lado = p === 'espalda' || p === 'nombre' || p === 'numero' ? 'espalda' : p ? 'frente' : null;
+    pnSel = p; m.seleccionar(p === 'fondo' ? '' : p);
+    var lado = p === 'espalda' || p === 'nombre' || p === 'numero' ? 'espalda' : p && p !== 'fondo' ? 'frente' : null;
     if (lado && lado !== pvVista) { pvVista = lado; m.vista(lado); $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === lado); }); }
     pintarCtl();
   }
@@ -702,6 +705,29 @@
       ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>Calcetas</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>';
       if (cc) ctl.appendChild(cc);
       var li = $('[data-ctl="listo"]', ctl); if (li) li.addEventListener('click', function () { elegirPieza(''); });
+      return;
+    }
+    if (pnSel === 'fondo') {
+      // el fondo del uniforme, desde el estudio: el mismo de la página (al escogerlo cambia aquí, en la página y se guarda)
+      var act = P.config.fondo || '';
+      ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>Fondo</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>' +
+        '<div class="pn-fondos">' + FONDOS.map(function (f) { var fu = urlFondo(f[0]); return '<button type="button" class="pn-fondo' + (act === fu ? ' on' : '') + '" data-est-fondo="' + esc(fu) + '" aria-label="' + esc(f[1]) + '"><img src="' + esc(fu || '/assets/3d/campo.webp') + '" alt=""></button>'; }).join('') + '</div>';
+      $('[data-ctl="listo"]', ctl).addEventListener('click', function () { elegirPieza(''); });
+      $$('[data-est-fondo]', ctl).forEach(function (b) {
+        b.addEventListener('click', function () {
+          $$('[data-est-fondo]', ctl).forEach(function (x) { x.classList.toggle('on', x === b); });
+          P.config.fondo = b.getAttribute('data-est-fondo'); if (mEditor && mEditor.m) mEditor.m.fondo(P.config.fondo);
+          guardarConfig(); notaFondo();
+        });
+      });
+      // si el fondo escogido choca con este uniforme, la página le pone otro solo a este (y aquí se avisa por qué)
+      function notaFondo() {
+        var n = $('.pn-fondo-nota', ctl), cambio = mEditor && mEditor.m && mEditor.m.fondoCambiado && mEditor.m.fondoCambiado();
+        if (cambio && !n) { n = document.createElement('p'); n.className = 'pn-fondo-nota'; n.textContent = 'Este fondo choca con este uniforme: aquí se cambia solo para que resalte.'; ctl.appendChild(n); }
+        else if (!cambio && n) n.remove();
+      }
+      notaFondo();
+      var on0 = $('.pn-fondo.on', ctl), tira = $('.pn-fondos', ctl); if (on0 && tira) tira.scrollLeft = on0.offsetLeft - 12;
       return;
     }
     if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
@@ -792,7 +818,8 @@
         mEditor = { lienzo: c, p: window.Motor3D.crear(c).then(function (m) {
           // deslizar a los lados también voltea la vista previa
           if (m.deslizable) m.deslizable(function (v) { pvVista = v; $$('[data-pv]', panel).forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-pv') === v); }); });   // girar solo deslizando dentro del cuadro del 3D
-          c.addEventListener('click', tocarPieza); pnSel = '';   // tocar una pieza del uniforme la escoge para acomodarla
+          c.addEventListener('click', tocarPieza); pnSel = '';
+          if (P.config.fondo && m.fondo) m.fondo(P.config.fondo);   // el estudio enseña el mismo fondo que la página   // tocar una pieza del uniforme la escoge para acomodarla
           return m;
         }) };
       }
@@ -1040,6 +1067,7 @@
       verPh();
     }
     $('#ed-version').addEventListener('input', function (e) { ponerVersion(e.target.value.trim()); });
+    ['anio', 'liga', 'otros'].forEach(function (k) { var el = $('#ed-' + k); if (el) el.addEventListener('input', function () { u.etiquetas[k] = el.value.trim(); }); });
     $$('[data-ver]', panel).forEach(function (b) {
       b.addEventListener('click', function () {
         var v = b.getAttribute('data-ver'), ov = $('#ed-version');
