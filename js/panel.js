@@ -20,13 +20,17 @@
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.error || 'error'); e.code = r.status; throw e; } return j; }); });
   }
 
+  // con el panel abierto, en Android (Chrome) el teclado achica la pantalla del panel en vez de taparla:
+  // así lo que escribes y tu página quedan arriba del teclado, sin espacio en blanco. El iPhone lo hace con su propia medida.
+  var metaVp = document.querySelector('meta[name=viewport]'), vpBase = metaVp ? metaVp.getAttribute('content') : '';
+  function tecladoAchica(si) { if (metaVp) metaVp.setAttribute('content', si ? vpBase + ',interactive-widget=resizes-content' : vpBase); }
   function abrir() {
-    if (panel.hidden) window.FIJAR.on(); panel.hidden = false;
+    if (panel.hidden) window.FIJAR.on(); panel.hidden = false; tecladoAchica(true);
     P.pin = P.pin || ses.get();
     if (P.pin) cargar(); else pantallaPin();
   }
   function cerrar() {
-    if (!panel.hidden) window.FIJAR.off(); panel.hidden = true;
+    if (!panel.hidden) window.FIJAR.off(); panel.hidden = true; tecladoAchica(false);
     if (location.hash === '#panel') history.replaceState(null, '', location.pathname + location.search);
   }
 
@@ -605,10 +609,11 @@
         '<button type="button" class="chip' + (u.oculto ? ' on' : '') + '" data-sw="oculto">' + (u.oculto ? 'Oculto · tocar para mostrar' : 'Ocultar') + '</button>' +
         '<button type="button" class="chip pn-peligro" data-papelera>Mandar a la papelera</button></div></div>') +
       '</div></div></div>' +
-      '<div class="pn-hoja" data-hoja="calcetas" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Calcetas</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form"><p class="nota">Las calcetas no llevan foto: escoge su color.</p>' +
-      '<div class="grupo"><span class="etq">Color de las calcetas</span>' + bolitas('ca', u.colorCalceta) + '</div>' +
-      '<div class="grupo"><span class="etq">Franja de arriba de la calceta</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
-      '</div></div></div>';
+      // calcetas: sus controles viven guardados aquí y se pasan a la franja de abajo al tocar las calcetas (nada tapa el uniforme)
+      '<div class="pn-calc-guarda" hidden><div class="pn-calc-ctl">' +
+      '<div class="pn-calc-fila"><span class="etq">Color</span>' + bolitas('ca', u.colorCalceta) + '</div>' +
+      '<div class="pn-calc-fila"><span class="etq">Franja de arriba</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
+      '</div></div>';
     // las tres fotos siempre: la espalda trae su propio diseño (no se inventa volteando el frente) y el short lleva logo y a veces diseño
     var listo = f.frente && f.espalda && f.short && !/^data:/.test(f.frente + f.espalda + f.short);
     h += '<div class="pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar') + '</button></div></div>';
@@ -660,11 +665,10 @@
   /* ---------- tocar el uniforme para editarlo ----------
      El 3D es el control: se toca una pieza (playera de frente o de espalda, short, nombre o número), esa pieza brilla y lo demás
      se apaga, y abajo salen sus controles: mover, tamaño (y ancho en nombre y número), cambiar su foto o quitarle algo. */
-  var pnSel = '', NOM_PIEZA = { frente: 'Playera · frente', espalda: 'Playera · espalda', short: 'Short', nombre: 'Nombre', numero: 'Número' };
+  var pnSel = '', NOM_PIEZA = { frente: 'Playera · frente', espalda: 'Playera · espalda', short: 'Short', nombre: 'Nombre', numero: 'Número', calcetas: 'Calcetas' };
   function tocarPieza(e) {
     if (!mEditor || !mEditor.m || !mEditor.m.piezaEn) return;
     var p = mEditor.m.piezaEn(e.clientX, e.clientY);
-    if (p === 'calcetas') { elegirPieza(''); return abrirHoja('calcetas'); }
     elegirPieza(p || '');
   }
   // las hojas que salen desde abajo (equipo y versión, calcetas): una a la vez, se cierran con "Listo" o tocando fuera
@@ -689,6 +693,14 @@
   }
   function pintarCtl() {
     var ctl = $('#pn-ctl', panel), u = P.editando; if (!ctl || !u) return;
+    var cc = $('.pn-calc-ctl', panel), guarda = $('.pn-calc-guarda', panel);
+    if (cc && guarda && cc.parentNode !== guarda) guarda.appendChild(cc);   // antes de volver a pintar, los controles de calcetas regresan a su lugar
+    if (pnSel === 'calcetas') {
+      ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>Calcetas</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>';
+      if (cc) ctl.appendChild(cc);
+      var li = $('[data-ctl="listo"]', ctl); if (li) li.addEventListener('click', function () { elegirPieza(''); });
+      return;
+    }
     if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
     var txt = pnSel === 'nombre' || pnSel === 'numero', foto = !txt;
     var fl = function (d) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
@@ -1282,7 +1294,10 @@
     // Todo cambia en el mismo instante (barra, tamaño de la página y recuadro), así el recuadro sube una sola vez.
     var pn = $('.pn', panel); if (pn) pn.classList.toggle('enfoque', abierto);
     cp.classList.toggle('sube', abierto && !estaba);
+    // lo que se desliza de lado (la tira de fondos) se queda donde lo dejaste al volver a pintarse
+    var tira = $('.pn-fondos', cp), sl = tira ? tira.scrollLeft : 0;
     cp.hidden = !abierto; cp.innerHTML = abierto ? campoPagina() : '';
+    var tira2 = $('.pn-fondos', cp); if (tira2 && sl) tira2.scrollLeft = sl;
     colocarCapa();
     var pista = $('.pn-pag-pista', panel); if (pista) pista.hidden = !!P.pg.usado;
     // lo escogido no queda tapado por el recuadro
@@ -1344,7 +1359,13 @@
       if (t.hasAttribute('data-pg-foto')) { P.pg.fotoK = t.getAttribute('data-pg-foto'); var ia = $('[data-pg-archivo]', panel); ia.value = ''; ia.click(); return; }
       if (t.hasAttribute('data-pg-foto-quitar')) { ponerFotoPag(t.getAttribute('data-pg-foto-quitar'), ''); return; }
       if (t.hasAttribute('data-pg-listo')) { var ac = document.activeElement; if (ac && ac.id === 'pg-tx') ac.blur(); P.pg.k = ''; P.pg.que = ''; decirPagina({ tipo: 'suelta' }); pintarCampo(); return; }
-      if (t.hasAttribute('data-pg-fondo')) { ponerFotoPag('fondo', t.getAttribute('data-pg-fondo')); return; }
+      if (t.hasAttribute('data-pg-fondo')) {
+        // escoger un fondo solo cambia cuál está marcado: la tira no se vuelve a pintar ni se regresa al inicio
+        $$('.pn-fondo', panel).forEach(function (b) { b.classList.toggle('on', b === t); });
+        P.config.fondo = t.getAttribute('data-pg-fondo');
+        decirPagina({ tipo: 'fotos', logo: P.config.logo || '', fondo: P.config.fondo || '' });
+        if (P.guardarDatos) P.guardarDatos(); return;
+      }
       if (false) {
       } else if (t.hasAttribute('data-pg-lang')) {
         P.pg.lang = t.getAttribute('data-pg-lang'); decirPagina({ tipo: 'lang', l: P.pg.lang }); pintarCampo();

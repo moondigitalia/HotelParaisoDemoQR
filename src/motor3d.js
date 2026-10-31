@@ -252,12 +252,12 @@ if (t > uZonas.z - 0.01) {
     if (!atras && uHayNum > 0.5) { vec4 ns = texture2D(uShortNum, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w)); base = mix(base, ns.rgb / max(ns.a, 0.004), ns.a); }
   }
 } else {
-  base = uSock;
+  base = uSock; zona = 3.0;
   if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
 }
 // panel: la pieza escogida se ve normal y todo lo demás en blanco y negro, apagado
 if (uSel > 0.5) {
-  bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0);
+  bool on = (uSel < 1.5 && zona == 1.0 && !atras) || (uSel > 1.5 && uSel < 2.5 && zona == 1.0 && atras) || (uSel > 2.5 && uSel < 3.5 && zona == 2.0) || (uSel > 5.5 && zona == 3.0);
   float halo = 0.0;
   if (uSel > 3.5 && zona == 1.0 && atras && uvSel.x > uSelCaja.x && uvSel.x < uSelCaja.z && uvSel.y > uSelCaja.y && uvSel.y < uSelCaja.w) {
     // nombre o número: solo las letras quedan encendidas, con un contorno dorado alrededor (nada de cuadros)
@@ -467,7 +467,7 @@ diffuseColor.rgb *= base;`);
     }
     poner(uni.uDorsal, textura(cd)); marcarSel();
   }
-  const SEL = { frente: 1, espalda: 2, short: 3, nombre: 4, numero: 5 };
+  const SEL = { frente: 1, espalda: 2, short: 3, nombre: 4, numero: 5, calcetas: 6 };
   function marcarSel() {
     uni.uSel.value = SEL[E.sel] || 0;
     const k = cajas[E.sel]; if (k) uni.uSelCaja.value.set(k[0], k[1], k[2], k[3]); else uni.uSelCaja.value.set(0, 0, 0, 0);
@@ -515,7 +515,8 @@ diffuseColor.rgb *= base;`);
     const Z = zonas; let dest = { k: 1, m: 0.92, a: 1 };
     if (Z && p) {
       const hemY = Z.Y0 + Z.hem * Z.YH, shortY = Z.Y0 + Z.shortBot * Z.YH;
-      if (p === 'short') dest = { k: 0.5, m: (hemY + shortY) / 2, a: (hemY + shortY) / 2 + 0.05 };
+      if (p === 'calcetas') { const y = Z.Y0 + (shortY - Z.Y0) * 0.55; dest = { k: 0.5, m: y, a: y + 0.08 }; }
+      else if (p === 'short') dest = { k: 0.5, m: (hemY + shortY) / 2, a: (hemY + shortY) / 2 + 0.05 };
       else if (p === 'nombre' || p === 'numero') { const y = hemY + (Z.top - hemY) * 0.62; dest = { k: 0.42, m: y, a: y + 0.04 }; }
       else { const y = (hemY + Z.top) / 2; dest = { k: 0.62, m: y, a: y + 0.05 }; }
     }

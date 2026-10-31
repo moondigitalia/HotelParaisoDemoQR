@@ -61,6 +61,12 @@ def correr(rapido):
             ver('cliente', False)
             # el armador del cliente: cada paso, y "Ver todos"
             pg.locator('#cat-zona .cat-esc').first.click(); pg.wait_for_timeout(1500); ver('armador-1', False)
+            # ver en grande y regresar: los pasos de abajo no se mueven ni un pixel
+            if pg.locator('#lupa').is_visible():
+                POS = "JSON.stringify([...document.querySelectorAll('#paso-vista *')].slice(0,30).map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.x),Math.round(r.y),Math.round(r.width),Math.round(r.height)]}))"
+                a = pg.evaluate(POS); pg.click('#lupa'); pg.wait_for_timeout(250); m1 = pg.evaluate(POS); pg.wait_for_timeout(500)
+                pg.click('#lupa'); pg.wait_for_timeout(200); m2 = pg.evaluate(POS); pg.wait_for_timeout(600); d = pg.evaluate(POS)
+                if len({a, m1, m2, d}) > 1: res['armador-grande'] = ['los pasos se movieron al ver en grande y regresar']
             for k in range(2, 6):
                 sig = pg.locator('#barra-sig')
                 if not sig.is_visible(): break
@@ -85,6 +91,8 @@ def correr(rapido):
                 pg.click('[data-hoja-cerrar]')
                 bb = pg.locator('#ed-3d').bounding_box(); pg.mouse.click(bb['x'] + bb['width'] * .5, bb['y'] + bb['height'] * .35); pg.wait_for_timeout(900); ver('estudio-pieza')
                 pg.click('[data-ctl="listo"]'); pg.wait_for_timeout(300)
+                pg.mouse.click(bb['x'] + bb['width'] * .45, bb['y'] + bb['height'] * .78); pg.wait_for_timeout(900); ver('estudio-calcetas')
+                if pg.locator('[data-ctl="listo"]').count(): pg.click('[data-ctl="listo"]'); pg.wait_for_timeout(300)
                 pg.click('[data-atras]'); pg.wait_for_timeout(500)
             pg.click('[data-atras]'); pg.wait_for_timeout(500)
             pg.click('[data-tab="pagina"]'); pg.wait_for_timeout(3500); ver('pagina')

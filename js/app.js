@@ -403,7 +403,7 @@
     if (pasoVigilado !== c && typeof ResizeObserver === 'function') {
       if (vigiaPaso) vigiaPaso.disconnect();
       var pend = false;
-      vigiaPaso = new ResizeObserver(function () { if (pend) return; pend = true; requestAnimationFrame(function () { pend = false; if (document.body.contains(c)) medirPaso(c); }); });
+      vigiaPaso = new ResizeObserver(function () { if (pend || probador.classList.contains('grande')) return; pend = true; requestAnimationFrame(function () { pend = false; if (document.body.contains(c)) medirPaso(c); }); });
       vigiaPaso.observe(c); Array.prototype.forEach.call(c.children, function (h) { vigiaPaso.observe(h); });
       pasoVigilado = c;
     }
@@ -952,7 +952,8 @@
     var cont = $('#cat-zona'); if (!cont) return;
     var qs = equiposDe(catalogoVisible());
     cont.innerHTML = '<div class="cat-fila" id="cat-fila">' + qs.map(escudoCat).join('') + '</div>' +
-      '<div class="cat-pie"><span class="cat-avance" aria-hidden="true"><i id="cat-avance"></i></span><button type="button" class="btn btn-oro cat-todos" data-ver-todos>' + esc(T('ver_todos')) + ' <span>' + qs.length + '</span></button></div>';
+      // sin botón de "ver todos": todos los equipos están en la misma fila que se desliza; la barrita dice cuánto falta
+      '<div class="cat-pie"><span class="cat-avance" aria-hidden="true"><i id="cat-avance"></i></span></div>';
     enlazarCat(cont);
     var fila = $('#cat-fila'), barra = $('#cat-avance');
     function avance() {   // la barrita: su largo es lo que se ve; su lugar, cuánto has recorrido
@@ -962,8 +963,6 @@
     }
     fila.addEventListener('scroll', avance, { passive: true }); window.addEventListener('resize', avance); avance();
     $$('img', fila).forEach(function (im) { if (!im.complete) im.addEventListener('load', avance, { once: true }); });
-    $('[data-ver-todos]', cont).addEventListener('click', abrirCatTodo);
-    armarCatTodo();   // "Ver todos" queda listo desde ahorita, escondido
   }
   // "Ver todos": se arma UNA vez, escondido, en cuanto se pinta el catálogo (sus escudos se cargan desde antes).
   // Al tocar "Ver todos" solo se enseña: no se mide, no se reacomoda ni se crea nada en ese momento.
@@ -1175,29 +1174,37 @@
     lupa.innerHTML = g ? ICON_CHICO : ICON_GRANDE;
     lupa.setAttribute('aria-label', T(g ? 'ver_pasos' : 'ver_grande'));
   }
+  // ver en grande: el uniforme crece encima de los pasos; los pasos no se tocan (por eso al regresar nada se reacomoda)
+  var huecoEsc = null;
   function verGrande(si, sinAnim) {
     if (probador.hidden && si) return;
     if (si === probador.classList.contains('grande')) return;
     if (si && !esCelular()) return;
     enfocar('cuerpo');   // en grande siempre se ve el uniforme completo
-    var desde = escenario.getBoundingClientRect().height;
-    probador.classList.toggle('grande', si);
-    probador.classList.remove('achicando');
-    escenario.style.height = '';
-    if (!si) ajustarEscenario();
-    var hasta = si ? altoGrande() : escenario.getBoundingClientRect().height;   // al regresar: el alto que le toca junto a los pasos
-    pintarLupa();
-    if (sinAnim) { escenario.style.height = si ? hasta + 'px' : ''; return; }
-    // al achicar, el alto automático de los pasos (con !important) brincaba de golpe: mientras dura la animación manda el alto que le damos
-    if (!si) probador.classList.add('achicando');
-    escenario.classList.remove('creciendo');
-    escenario.style.height = desde + 'px'; void escenario.offsetHeight;
-    escenario.classList.add('creciendo');
-    escenario.style.height = hasta + 'px';
-    var listo = false;
-    function fin() { if (listo) return; listo = true; escenario.classList.remove('creciendo'); probador.classList.remove('achicando'); if (!probador.classList.contains('grande')) { escenario.style.height = ''; ajustarEscenario(); } moverPulgar(); }
+    var h0 = escenario.getBoundingClientRect().height;
+    if (si) {
+      huecoEsc = document.createElement('div'); huecoEsc.className = 'escenario-hueco'; huecoEsc.style.height = h0 + 'px';
+      escenario.parentNode.insertBefore(huecoEsc, escenario);
+      escenario.style.height = h0 + 'px';
+      probador.classList.add('grande'); pintarLupa();
+      var h1 = altoGrande();
+      if (sinAnim) { escenario.style.height = h1 + 'px'; if (motor) motor.redibujar(); return; }
+      void escenario.offsetHeight;
+      escenario.classList.add('creciendo'); escenario.style.height = h1 + 'px';
+      setTimeout(function () { escenario.classList.remove('creciendo'); if (motor) motor.redibujar(); moverPulgar(); }, 450);
+      return;
+    }
+    var hh = huecoEsc ? huecoEsc.offsetHeight : h0, listo = false;
+    function fin() {
+      if (listo) return; listo = true;
+      probador.classList.remove('grande'); escenario.classList.remove('creciendo'); escenario.style.height = '';
+      if (huecoEsc) { huecoEsc.remove(); huecoEsc = null; }
+      pintarLupa(); if (motor) motor.redibujar(); moverPulgar();
+    }
+    if (sinAnim) return fin();
+    escenario.classList.add('creciendo'); escenario.style.height = hh + 'px';
     escenario.addEventListener('transitionend', function te(e) { if (e.target === escenario) { escenario.removeEventListener('transitionend', te); fin(); } });
-    setTimeout(fin, 700);
+    setTimeout(fin, 600);
   }
   lupa.addEventListener('click', function () { verGrande(!probador.classList.contains('grande')); });
   $('#lienzo-wrap').addEventListener('click', function () { if (!probador.hidden && esCelular()) verGrande(!probador.classList.contains('grande')); });
