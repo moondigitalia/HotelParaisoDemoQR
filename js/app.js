@@ -225,13 +225,27 @@
   function verVistaDe(paso) { cambiarVista(paso === 'dorsal' ? 'espalda' : 'frente'); }
 
   /* ---------- imágenes del cliente ---------- */
-  function cargarArchivo(file) {
+  // abrir una foto de cualquier formato. Las del iPhone (HEIC) solo las abre Safari: en Chrome, Android o compu la página
+  // las convierte sola dentro del navegador (la herramienta se baja solo la primera vez que llega una HEIC; no sube nada a ningún lado)
+  function esHeic(f) { return /hei[cf]/i.test(f.type || '') || /\.hei[cf]$/i.test(f.name || ''); }
+  var heicP = null;
+  function convertirHeic(file) {
+    heicP = heicP || new Promise(function (ok, no) { if (window.heic2any) return ok(); var s = document.createElement('script'); s.src = '/assets/ia/heic2any.min.js?v=' + (window.VERSION || '1'); s.onload = ok; s.onerror = function () { heicP = null; no(new Error('heic')); }; document.head.appendChild(s); });
+    return heicP.then(function () { return window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 }); }).then(function (b) { return Array.isArray(b) ? b[0] : b; });
+  }
+  function abrirImagen(blob) {
     return new Promise(function (res, rej) {
-      var url = URL.createObjectURL(file);
-      var im = new Image();
+      var url = URL.createObjectURL(blob), im = new Image();
       im.onload = function () { res(im); };
-      im.onerror = function () { rej(new Error('img')); };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error('img')); };
       im.src = url;
+    });
+  }
+  function cargarArchivo(file) {
+    // primero como viene (Safari abre HEIC solo); si el navegador no puede y es HEIC (o no dice qué es), se convierte
+    return abrirImagen(file).catch(function (e) {
+      if (!esHeic(file) && file.type && file.type !== 'application/octet-stream') throw e;
+      return convertirHeic(file).then(abrirImagen);
     });
   }
   function aCanvas(im, max) {

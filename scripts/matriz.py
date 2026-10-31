@@ -86,6 +86,9 @@ def correr(rapido):
             pg.fill('#pn-codigo', '0'); pg.click('#pn-pin button'); pg.wait_for_timeout(1500)
             ver('pedidos')
             pg.click('[data-tab="uniformes"]'); ver('uniformes')
+            pg.click('[data-ir="claves"]'); ver('claves')
+            pg.fill('#cl-nueva', 'prueba'); pg.click('[data-cl-agregar]'); ver('clave-editor')
+            pg.click('[data-atras]'); pg.click('[data-atras]'); pg.wait_for_timeout(300)
             pg.locator('[data-eq]').nth(2).click(); ver('equipo')
             if not rapido:
                 pg.locator('[data-edit]').first.click(); pg.wait_for_timeout(5000); ver('estudio')

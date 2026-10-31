@@ -1840,3 +1840,37 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .vers-img{display:block;width:100%;height:100%;border-radius:50%;background-repeat:no-repeat;background-size:170% auto;background-position:50% 12%}
 /* una luz suave de estudio detrás de cada playera (igual en todos): una playera azul marino o negra resalta sobre el azul de la página */
 .vers{background:radial-gradient(circle at 50% 40%,rgba(226,233,255,.42) 0,rgba(226,233,255,.16) 52%,rgba(226,233,255,.06) 100%)}
+/* panel · palabras clave: arriba escribes, abajo las palabras (píldoras); al abrir una, tus uniformes en círculos para marcar */
+.pn-cl{display:flex;flex-direction:column;gap:12px}
+.pn-cl-nueva{display:flex;gap:10px;align-items:center}
+.pn-cl-nueva .campo{flex:1;min-width:0;border-radius:999px;height:46px}
+.pn-cl .pn-ctl-ayuda{margin:0}
+.pn-cl-lista{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start}
+.pn-cl-k{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 7px 0 16px;border-radius:999px;border:1.5px solid var(--linea);background:transparent;color:var(--texto);font-weight:700;font-size:14px}
+.pn-cl-k small{min-width:26px;height:26px;padding:0 6px;border-radius:99px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:12px;font-weight:800}
+.pn-cl-txt{border-radius:999px;height:46px}
+.pn-cl .etq{margin:0}
+.pn-cl-preg{margin:2px 0 0;font-weight:800;font-size:15px}
+.pn-cl-unis{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:14px 6px;align-content:start;padding:4px 0}
+.pn-cl-uni{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:var(--texto);padding:0;min-width:0;-webkit-tap-highlight-color:transparent}
+.pn-cl-cara{position:relative;width:62px;height:62px;border-radius:50%;border:2px solid var(--linea);background:radial-gradient(circle at 50% 40%,rgba(226,233,255,.42) 0,rgba(226,233,255,.16) 52%,rgba(226,233,255,.06) 100%);transition:border-color var(--rapido,.18s) ease,box-shadow var(--rapido,.18s) ease}
+.pn-cl-cara>span,.pn-cl-cara>img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;background-repeat:no-repeat;background-size:170% auto;background-position:50% 12%;object-fit:cover}
+.pn-cl-cara i{position:absolute;right:-3px;top:-3px;width:22px;height:22px;border-radius:50%;background:var(--oro);color:#0A1033;font-style:normal;font-weight:900;font-size:12px;display:grid;place-items:center;opacity:0;transform:scale(.6);transition:opacity var(--rapido,.18s) ease,transform var(--rapido,.18s) ease}
+.pn-cl-uni.on .pn-cl-cara{border-color:var(--oro);box-shadow:0 0 0 3px rgba(255,198,26,.25)}
+.pn-cl-uni.on .pn-cl-cara i{opacity:1;transform:none}
+.pn-cl-uni small{width:100%;font-size:11.5px;line-height:1.2;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--suave,rgba(255,255,255,.75))}
+.pn-cl-pie{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px}
+.pn-cl-quitar{background:none;border:0;color:#ff9b9b;font-weight:700;font-size:14px;padding:10px 4px}
+.pn-cl-fila{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px}
+.pn-cl-fila .pn-cl-quitar{padding:6px 2px}
+.pn-cl-k{height:auto;min-height:40px;padding-top:7px;padding-bottom:7px;text-align:left;line-height:1.25}
+.pn-top-der .pn-cl-guardar{height:44px;padding:0 20px}
+/* editor de una palabra: la pantalla no se mueve; solo los uniformes se deslizan (y su orilla se desvanece) */
+.pn.claves-ed .pn-cuerpo{overflow:hidden;display:flex;flex-direction:column}
+.pn-cl-ed{flex:1 1 auto;min-height:0}
+.pn-cl-ed .pn-cl-unis{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.pn-cl-ed .pn-cl-unis{padding:2px 0 0;gap:10px 6px}
+/* los uniformes del editor: 2 renglones fijos; si son más, se deslizan de lado por columnas completas (nunca sobra un pedacito) */
+.pn-cl-ed .pn-cl-unis{flex:none;display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);grid-auto-columns:calc((100% - 18px) / 4);gap:10px 6px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;padding:2px 0 0}
+.pn-cl-ed .pn-cl-unis::-webkit-scrollbar{display:none}
+.pn-cl-ed .pn-cl-uni{scroll-snap-align:start}

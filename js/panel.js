@@ -120,24 +120,26 @@
 
   // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
   // vuelve a dibujar el panel sin brincar: se queda donde estabas, o va al lugar que se le pida
-  var CUARTO = { folios: 'Pedidos', uniformes: 'Uniformes', pagina: 'Tu página', datos: 'Tu tienda', ajustes: 'Ajustes', papelera: 'Papelera' };
+  var CUARTO = { folios: 'Pedidos', uniformes: 'Uniformes', pagina: 'Tu página', datos: 'Tu tienda', ajustes: 'Ajustes', papelera: 'Papelera', claves: 'Palabras clave' };
   function pintar(irA) {
     var cu0 = $('.pn-cuerpo', panel), antes = cu0 ? cu0.scrollTop : 0;
     var nuevos = P.folios.filter(function (f) { return f.estado === 'nuevo'; }).length;
     // dentro de algo (un folio, un equipo, el estudio de un uniforme, la papelera, ajustes): arriba "volver" y sin barra de abajo
-    var dentro = (P.tab === 'folios' && P.detalle !== null) || (P.tab === 'uniformes' && (P.editando || P.equipo)) || P.tab === 'papelera' || P.tab === 'ajustes';
+    var dentro = (P.tab === 'folios' && P.detalle !== null) || (P.tab === 'uniformes' && (P.editando || P.equipo)) || P.tab === 'papelera' || P.tab === 'ajustes' || P.tab === 'claves';
     var h = '';
     if (P.tab === 'folios') h += P.detalle !== null ? vistaDetalle() : vistaFolios();
     if (P.tab === 'uniformes') h += P.editando ? vistaEditor() : vistaUniformes();
     if (P.tab === 'datos' || P.tab === 'pagina' || P.tab === 'ajustes') h += vistaDatos();
     if (P.tab === 'papelera') h += vistaPapelera();
+    if (P.tab === 'claves') h += vistaClaves();
     // en el estudio el nombre del uniforme ya se ve abajo ("Equipo y diseño"): arriba solo Regresar y Guardar, sin texto cortado
-    var titulo = P.tab === 'uniformes' && P.editando ? '' : P.tab === 'uniformes' && P.equipo ? ((equipoDe(arbol(), P.equipo) || {}).nombre || 'Equipo') : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
-    var der = P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-ir="ajustes" aria-label="Más de tu tienda: tallas, sonido y código">' + icono('mas') + '</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
+    var titulo = (P.tab === 'uniformes' && P.editando) || (P.tab === 'claves' && P.clave) ? '' : P.tab === 'uniformes' && P.equipo ? ((equipoDe(arbol(), P.equipo) || {}).nombre || 'Equipo') : P.tab === 'folios' && P.detalle !== null ? 'Pedido' : CUARTO[P.tab];
+    var ETIQ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12Z"/><circle cx="7.5" cy="8.5" r="1.4"/></svg>';
+    var der = P.tab === 'uniformes' && !P.editando && !P.equipo ? '<button type="button" class="pn-redondo" data-ir="claves" aria-label="Palabras clave">' + ETIQ + '</button>' : P.tab === 'folios' && P.detalle === null && P.folios.length ? '<button type="button" class="pn-redondo' + (P.buscando ? ' on' : '') + '" data-lupa aria-label="Buscar un pedido por su número"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>' : P.tab === 'datos' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-ir="ajustes" aria-label="Más de tu tienda: tallas, sonido y código">' + icono('mas') + '</button>' : P.tab === 'pagina' ? '<span class="pn-pg-estado" id="pg-estado"></span><button type="button" class="pn-redondo" data-pg-mas aria-label="Más de tu página: calificación y equipos que visten M Sport">' + icono('mas') + '</button>' : '';
     var barra = dentro ? '' : '<nav class="pn-barra" aria-label="Panel">' + [['folios', 'Pedidos'], ['uniformes', 'Uniformes'], ['pagina', 'Página'], ['datos', 'Tienda']].map(function (t) {
       return '<button type="button" class="pn-barra-b' + (P.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '"><span class="pn-barra-i">' + icono(t[0]) + '</span><span>' + t[1] + '</span>' + (t[0] === 'folios' && nuevos ? '<i>' + nuevos + '</i>' : '') + '</button>';
     }).join('') + '</nav>';
-    ponerHTML(marco(h, { titulo: titulo, atras: dentro, der: der, barra: barra, clase: P.tab === 'uniformes' && P.editando ? 'estudio' : P.tab === 'pagina' ? 'pagina' : P.tab === 'folios' && P.detalle === null ? 'folios' : P.tab === 'datos' ? 'tienda' : '' })); enlazarMarco();
+    ponerHTML(marco(h, { titulo: titulo, atras: dentro, der: der, barra: barra, clase: P.tab === 'uniformes' && P.editando ? 'estudio' : P.tab === 'claves' && P.clave ? 'claves-ed' : P.tab === 'pagina' ? 'pagina' : P.tab === 'folios' && P.detalle === null ? 'folios' : P.tab === 'datos' ? 'tienda' : '' })); enlazarMarco();
     var pubE = $('.pn-cuerpo .pn-publicar', panel); if (pubE) $('.pn-top-der', panel).appendChild(pubE);   // en el estudio, Publicar/Guardar va arriba en la barra, nunca encima del uniforme
     var cu1 = $('.pn-cuerpo', panel); if (cu1) cu1.scrollTop = irA == null ? antes : irA;
     colocarCapa();
@@ -150,9 +152,64 @@
     if (at) at.addEventListener('click', function () {
       var v = $('.pn-cuerpo [data-volver], .pn-cuerpo [data-volver-eq]', panel);
       if (v) return v.click();
-      P.tab = P.tab === 'papelera' ? 'uniformes' : 'datos'; pintar(0);
+      if (P.tab === 'claves' && P.clave) { P.clave = null; return pintar(0); }   // de una palabra regresa a la lista de palabras
+      P.tab = P.tab === 'papelera' || P.tab === 'claves' ? 'uniformes' : 'datos'; pintar(0);
     });
-    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, pagina: enlazarDatos, ajustes: enlazarDatos, papelera: enlazarPapelera })[P.tab]();
+    ({ folios: P.detalle !== null ? enlazarDetalle : enlazarFolios, uniformes: P.editando ? enlazarEditor : enlazarUniformes, datos: enlazarDatos, pagina: enlazarDatos, ajustes: enlazarDatos, papelera: enlazarPapelera, claves: enlazarClaves })[P.tab]();
+  }
+
+  /* ---------- palabras clave ----------
+     Para que te encuentren con la lupa. Arriba escribes una palabra; abajo, todas las que ya tienes (cada una dice en cuántos
+     uniformes va). Al tocar una (o al agregar una nueva) se ven todos tus uniformes en círculos: tocas en cuáles va y Guardar.
+     Una sola pieza a la vez, sin recuadros adentro de recuadros; escoger solo cambia el aro (nada se mueve). */
+  function clavesDe(u) { return String((u.etiquetas && u.etiquetas.otros) || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
+  function igual(a, b) { return normal(a) === normal(b); }
+  function unisClaves() { return P.catalogo.filter(function (u) { return u.tipo === '3d' && !u.borrado; }); }
+  function todasClaves() {
+    var m = {}; unisClaves().forEach(function (u) { clavesDe(u).forEach(function (k) { var n = normal(k); if (!m[n]) m[n] = { txt: k, n: 0 }; m[n].n++; }); });
+    return Object.keys(m).sort().map(function (n) { return m[n]; });
+  }
+  function vistaClaves() {
+    if (P.clave) {
+      var c = P.clave;
+      return '<div class="pn-cl pn-cl-ed">' +
+        '<div class="pn-cl-fila"><label class="etq" for="cl-txt">Palabra</label>' + (c.orig ? '<button type="button" class="pn-cl-quitar" data-cl-quitar>Quitar palabra</button>' : '') + '</div><input class="campo pn-cl-txt" id="cl-txt" maxlength="30" autocomplete="off" enterkeyhint="done" value="' + esc(c.txt) + '">' +
+        '<p class="pn-cl-preg">¿En qué uniformes va?</p>' +
+        '<div class="pn-cl-unis" data-vig="x">' + unisClaves().map(function (u) {
+          var img = u.circulo || u.silueta;
+          return '<button type="button" class="pn-cl-uni' + (c.sel[u.id] ? ' on' : '') + '" data-cl-uni="' + esc(u.id) + '" aria-pressed="' + (c.sel[u.id] ? 'true' : 'false') + '"><span class="pn-cl-cara">' + (img ? '<span style="background-image:url(\'' + esc(img) + '\')"></span>' : '<img src="' + esc(u.mini || '') + '" alt="">') + '<i aria-hidden="true">✓</i></span><small>' + esc(nombreAuto(u) || u.nombre || '') + '</small></button>';
+        }).join('') + '</div>' +
+        '<button type="button" class="pn-nuevo pn-cl-guardar" data-cl-guardar>Guardar</button></div>';
+    }
+    var l = todasClaves();
+    return '<div class="pn-cl">' +
+      '<div class="pn-cl-nueva"><input class="campo" id="cl-nueva" maxlength="30" autocomplete="off" enterkeyhint="next" placeholder="Escribe una palabra" aria-label="Palabra clave nueva"><button type="button" class="pn-nuevo" data-cl-agregar>Agregar</button></div>' +
+      '<p class="pn-ctl-ayuda">' + (l.length ? '☝ Toca una palabra para ver en qué uniformes va, cambiarla o quitarla.' : 'Todavía no tienes palabras clave. Escribe una arriba: la gente la podrá buscar con la lupa.') + '</p>' +
+      '<div class="pn-cl-lista" data-vig="y">' + l.map(function (k) { return '<button type="button" class="pn-cl-k" data-cl-k="' + esc(k.txt) + '">' + esc(k.txt) + '<small>' + k.n + '</small></button>'; }).join('') + '</div></div>';
+  }
+  function abrirClave(txt, nueva) {
+    var sel = {}; if (!nueva) unisClaves().forEach(function (u) { if (clavesDe(u).some(function (k) { return igual(k, txt); })) sel[u.id] = true; });
+    P.clave = { orig: nueva ? '' : txt, txt: txt, sel: sel }; pintar(0);
+  }
+  function guardarClaves(quitar) {
+    var c = P.clave, t = ($('#cl-txt', panel) || {}).value; t = String(t || c.txt).trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
+    if (!t && !quitar) { A.toast('Escribe la palabra.'); return; }
+    unisClaves().forEach(function (u) {
+      var l = clavesDe(u).filter(function (k) { return !(c.orig && igual(k, c.orig)) && !igual(k, t); });
+      if (!quitar && c.sel[u.id]) l.push(t);
+      u.etiquetas = u.etiquetas || { colores: [], pais: '' }; u.etiquetas.otros = l.join(', ');
+    });
+    api('catalogo', { catalogo: P.catalogo }).then(function () { A.toast(quitar ? 'Palabra quitada' : 'Guardado'); P.clave = null; pintar(0); return A.cargarTienda(); }).catch(function () { A.toast('No se pudo guardar. Revisa tu internet e inténtalo otra vez.'); });
+  }
+  function enlazarClaves() {
+    var nv = $('#cl-nueva', panel);
+    var agregar = function () { var t = nv.value.trim().replace(/,/g, ' ').replace(/\s+/g, ' '); if (!t) { nv.focus(); return; } var ya = todasClaves().filter(function (k) { return igual(k.txt, t); })[0]; abrirClave(ya ? ya.txt : t, !ya); };
+    if (nv) { $('[data-cl-agregar]', panel).addEventListener('click', agregar); nv.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); agregar(); } }); }
+    $$('[data-cl-k]', panel).forEach(function (b) { b.addEventListener('click', function () { abrirClave(b.getAttribute('data-cl-k')); }); });
+    $$('[data-cl-uni]', panel).forEach(function (b) { b.addEventListener('click', function () { var id = b.getAttribute('data-cl-uni'), on = !P.clave.sel[id]; if (on) P.clave.sel[id] = true; else delete P.clave.sel[id]; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); });
+    var tx = $('#cl-txt', panel); if (tx) tx.addEventListener('input', function () { P.clave.txt = tx.value; });
+    var g = $('[data-cl-guardar]', panel); if (g) { var td = $('.pn-top-der', panel); if (td) td.appendChild(g); g.addEventListener('click', function () { guardarClaves(false); }); }   // Guardar arriba, siempre a la vista (como en el estudio)
+    var q = $('[data-cl-quitar]', panel); if (q) q.addEventListener('click', function () { guardarClaves(true); });
   }
 
   /* ---------- folios ----------
@@ -443,7 +500,7 @@
     var orden = si >= 0 && n > 1 ? '<div class="pn-eq-lugar"><span class="etq">Lugar en su fila</span><div class="pn-orden-eq"><button type="button" class="pn-redondo" data-eq-mueve="-1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Más a la izquierda"' + (ei === 0 ? ' disabled' : '') + '>' + FLECHA + '</button><b>' + (ei + 1) + ' de ' + n + '</b><button type="button" class="pn-redondo" data-eq-mueve="1" data-si="' + si + '" data-ei="' + ei + '" aria-label="Más a la derecha"' + (ei === n - 1 ? ' disabled' : '') + '>' + FLECHA.replace('M15 6l-6 6 6 6', 'M9 6l6 6-6 6') + '</button></div></div>' : '';
     // arriba, todo junto y sin aire: su escudo, su nombre, su sección y su lugar en la fila
     return '<button type="button" class="link-x" data-volver-eq hidden>Volver</button><div class="pn-form">' +
-      '<div class="pn-eq-cab"><div class="pn-eq-esc"><label class="pn-escudo" aria-label="Cambiar escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo-eq></label>' +
+      '<div class="pn-eq-cab"><div class="pn-eq-esc"><label class="pn-escudo" aria-label="Cambiar escudo"><span class="pn-escudo-img">' + (e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*,.heic,.heif" data-escudo-eq></label>' +
       (e.escudo ? '<button type="button" class="pn-eq-acomodar" data-esc-acomodar aria-label="Acomodar escudo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>' : '') + '</div>' +
       '<div class="pn-eq-datos"><label class="etq" for="eq-nombre">Nombre del equipo</label><input class="campo" id="eq-nombre" maxlength="40" value="' + esc(e.nombre) + '">' +
       '<label class="etq" for="eq-sec">Sección</label><select class="campo" id="eq-sec">' + secs.map(function (s) { return '<option' + (s === e.sec ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '<option value=""' + (e.sec ? '' : ' selected') + '>Sin sección</option></select></div></div>' + orden +
@@ -569,14 +626,14 @@
     return '<div class="grupo"><label for="ed-eq">Equipo</label><select class="campo" id="ed-eq">' + eqs.map(function (x) { return '<option value="' + esc(x.clave) + '"' + (existe && x.clave === k ? ' selected' : '') + '>' + esc(x.nombre) + '</option>'; }).join('') +
       '<option value="__nuevo"' + (existe ? '' : ' selected') + '>+ Equipo nuevo…</option></select></div>' +
       '<div class="pn-eq-nuevo"' + (existe ? ' hidden' : '') + '><div class="fila2"><div class="grupo"><label for="ed-equipo">Nombre del equipo nuevo</label><input class="campo" id="ed-equipo" maxlength="40" value="' + esc(existe ? '' : ((u.etiquetas || {}).equipo || '')) + '" placeholder="Ej. Chivas"></div>' +
-      '<div class="grupo"><span class="etq">Escudo <small>(opcional)</small></span><label class="pn-escudo"><span class="pn-escudo-img">' + (u.escudo ? '<img src="' + esc(u.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*" data-escudo></label></div></div>' +
+      '<div class="grupo"><span class="etq">Escudo <small>(opcional)</small></span><label class="pn-escudo"><span class="pn-escudo-img">' + (u.escudo ? '<img src="' + esc(u.escudo) + '" alt="">' : '<b>+</b>') + '</span><input type="file" accept="image/*,.heic,.heif" data-escudo></label></div></div>' +
       '<div class="grupo"><label for="ed-cat">Sección</label><select class="campo" id="ed-cat">' + cats.map(function (c) { return '<option' + (c === u.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '<option value=""' + (u.categoria ? '' : ' selected') + '>Sin sección</option></select></div></div>';
   }
   function nombreAuto(u) { var eq = (u.etiquetas || {}).equipo || '', v = (u.version || '').trim(); return eq ? eq + (v ? ' · ' + v : '') : ''; }
   function vistaEditor() {
     var u = P.editando, cats = P.config.categorias || [], f = u.fotos, e = u.etiquetas || (u.etiquetas = { colores: [], pais: '', equipo: '' });
     function boton(lado, texto, opcional) {
-      return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*" multiple data-foto="' + lado + '"></label>';
+      return '<label class="pn-foto' + (f[lado] ? ' lista' : '') + '"><span class="pn-foto-img">' + (f[lado] ? '<img src="' + esc(f[lado]) + '" alt="">' : '<b>+</b>') + '</span><span>' + texto + (opcional ? ' <small>(opcional)</small>' : '') + '</span><input type="file" accept="image/*,.heic,.heif" multiple data-foto="' + lado + '"></label>';
     }
     // arriba lo único que hace falta: fotos → cómo se ve → equipo y versión → Publicar. Lo demás ya viene listo, en "Más opciones"
     var angosto = window.innerWidth <= 980;   // en celular la vista 3D va justo debajo de las fotos; en compu, a un lado
@@ -1229,7 +1286,7 @@
         '<div class="pn-cli-datos"><label class="etq">Su uniforme</label><select class="campo" data-cli-k="uni"><option value="">' + (unis.length ? 'Escoge su uniforme' : 'Primero sube su uniforme en Uniformes') + '</option>' + unis.map(function (u) { return '<option value="' + esc(u.id) + '"' + (uc && u.id === uc.id ? ' selected' : '') + '>' + esc(u.nombre) + '</option>'; }).join('') + '</select>' +
         (uc ? '' : '<small class="falta">Escoge su uniforme para que se vea en la página. Si no está, súbelo primero en Uniformes.</small>') +
         '<input class="campo" data-cli-k="nombre" maxlength="40" placeholder="Nombre del equipo" value="' + esc(x.nombre || '') + '">' +
-        '<div class="pn-cli-botones"><label class="chip">' + (x.escudo ? 'Cambiar logo' : (logo ? 'Poner otro logo' : 'Subir logo')) + '<input type="file" accept="image/*" data-cli-esc="' + i + '" hidden></label>' + (x.escudo ? '<button type="button" class="chip" data-cli-acomodar="escudo" data-i="' + i + '">⤢ Acomodar logo</button>' : '') + '</div>' +
+        '<div class="pn-cli-botones"><label class="chip">' + (x.escudo ? 'Cambiar logo' : (logo ? 'Poner otro logo' : 'Subir logo')) + '<input type="file" accept="image/*,.heic,.heif" data-cli-esc="' + i + '" hidden></label>' + (x.escudo ? '<button type="button" class="chip" data-cli-acomodar="escudo" data-i="' + i + '">⤢ Acomodar logo</button>' : '') + '</div>' +
         '<input class="campo" data-cli-k="ig" placeholder="Instagram (@usuario)" value="' + esc(x.ig || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="fb" placeholder="Facebook (link)" value="' + esc(x.fb || '') + '" autocapitalize="off">' +
         '<input class="campo" data-cli-k="tt" placeholder="TikTok (@usuario)" value="' + esc(x.tt || '') + '" autocapitalize="off">' +
@@ -1264,7 +1321,7 @@
       '<h3 class="pn-h">Foto para compartir</h3><div class="pn-pag-fotos"><div class="pn-pag-fotofila">' + filaFoto('compartir') + botonesFoto('compartir') + '</div></div>' +
       '<h3 class="pn-h">Equipos que visten M Sport</h3>' + clientesHTML(c) +
       '<div class="grupo"><label for="dt-max">¿Cuántos equipos se ven para armar uniforme?</label><input class="campo" id="dt-max" type="number" inputmode="numeric" min="1" max="30" value="' + esc(String(c.maxEquipos || 10)) + '"></div>' +
-      '</div></div></div><input type="file" accept="image/*" class="pn-est-oculto" data-pg-archivo tabindex="-1" aria-hidden="true"></div>';
+      '</div></div></div><input type="file" accept="image/*,.heic,.heif" class="pn-est-oculto" data-pg-archivo tabindex="-1" aria-hidden="true"></div>';
   }
   var QUE_TOQUE = {
     tienda: ['Visítanos', 'La dirección, el horario y el WhatsApp se cambian en Tienda.', 'Ir a Tienda', 'datos'],
