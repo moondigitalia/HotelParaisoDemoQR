@@ -3848,13 +3848,9 @@ float xFoto(float u, float m0, float m1, vec2 tor, vec2 ph) {
   if (u < 0.0) return (tor.x - ph.x > 0.02 && m0 < -0.01) ? tor.x - (tor.x - ph.x) * (u / m0) : tor.x + u * tor.y;
   if (u > 1.0) return (ph.y - t1 > 0.02 && m1 > 1.01) ? t1 + (ph.y - t1) * ((u - 1.0) / (m1 - 1.0)) : tor.x + u * tor.y;
   return tor.x + u * tor.y;
-}`).replace("#include <map_fragment>",`
-if (vMundo.y < uCorte) discard;
-float t = (vMundo.y - uZonas.x) / uZonas.y;
-vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
-// el uniforme no se mueve (gira la c\xE1mara): lo que mira hacia atr\xE1s usa la foto de la espalda
-bool atras = vNormMundo.z < 0.0;
-if (t > uZonas.z - 0.01) {
+}
+// una cara de la playera (frente o espalda) en este punto: de d\xF3nde sale de su foto, el pu\xF1o limpio, la tela y el nombre/n\xFAmero
+vec3 caraPlayera(bool atras, out vec2 uvSalida) {
   float ux = (vMundo.x - uCaja.x) / uCaja.z, vy = (vMundo.y - uCaja.y) / uCaja.w;
   vec2 tor = atras ? uTorsoB : uTorsoF;
   vec2 uv = vec2(tor.x + (atras ? 1.0 - ux : ux) * tor.y, vy);
@@ -3866,7 +3862,7 @@ if (t > uZonas.z - 0.01) {
     vec2 ph = atras ? vec2(leer2(4.5 / 6.0, vr), leer2(5.5 / 6.0, vr)) : vec2(leer2(2.5 / 6.0, vr), leer2(3.5 / 6.0, vr));
     uv.x = xFoto(ux, m0, m1, tor, ph);
   }
-  vec2 uv0 = uv; uvSel = uv0; zona = 1.0;
+  vec2 uv0 = uv; uvSalida = uv0;
   vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el due\xF1o acomod\xF3: m\xE1s grande/chica y movida (el nombre y n\xFAmero no se mueven)
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) f.a = 0.0;
@@ -3881,8 +3877,25 @@ if (t > uZonas.z - 0.01) {
     }
   }
   vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
-  base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
-  if (atras) { vec4 nd = texture2D(uDorsal, uv0); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }
+  vec3 c = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
+  if (atras) { vec4 nd = texture2D(uDorsal, uv0); c = mix(c, nd.rgb / max(nd.a, 0.004), nd.a); }
+  return c;
+}
+`).replace("#include <map_fragment>",`
+if (vMundo.y < uCorte) discard;
+float t = (vMundo.y - uZonas.x) / uZonas.y;
+vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
+// el uniforme no se mueve (gira la c\xE1mara): lo que mira hacia atr\xE1s usa la foto de la espalda
+bool atras = vNormMundo.z < 0.0;
+if (t > uZonas.z - 0.01) {
+  // los costados: una foto plana no los muestra. En vez de cambiar de golpe de la foto del frente a la de la espalda en la
+  // costura (ah\xED se ve\xEDa el corte y lo estirado), en una franja del costado se mezclan las dos, suave, seg\xFAn hacia d\xF3nde mira la tela
+  float nz = normalize(vNormMundo).z, franja = 0.28;
+  vec2 uvF = vec2(-1.0), uvB = vec2(-1.0);
+  if (nz > franja) base = caraPlayera(false, uvF);
+  else if (nz < -franja) base = caraPlayera(true, uvB);
+  else { vec3 cf = caraPlayera(false, uvF), cb = caraPlayera(true, uvB); base = mix(cb, cf, smoothstep(-franja, franja, nz)); }
+  uvSel = atras ? uvB : uvF; zona = 1.0;
 } else if (t > uShortBot) {
   base = uShort; zona = 2.0;
   if (uHayShort > 0.5) {
