@@ -1322,6 +1322,8 @@
     var pn = $('.pn', panel); if (!pn) return;
     // solo en celular o tableta (con teclado en pantalla); en computadora no cambia nada
     pn.classList.toggle('escribiendo', !!si && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches));
+    var ed = $('#pg-campo', panel);
+    decirPagina({ tipo: 'escribiendo', si: pn.classList.contains('escribiendo'), abajo: ed && !ed.hidden ? ed.offsetHeight + 8 : 0 });
     ajustarTeclado();
   }
   function ajustarTeclado() {

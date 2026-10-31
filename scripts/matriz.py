@@ -54,6 +54,9 @@ def correr(rapido):
             res = {}
             def ver(n, panel=True):
                 pg.wait_for_timeout(350)
+                # se revisa ya quieta: espera a que terminen las animaciones (hasta 3 s)
+                try: pg.wait_for_function("document.getAnimations().filter(a=>a.playState==='running'&&isFinite(a.effect&&a.effect.getComputedTiming().endTime)).length===0", timeout=3000)
+                except Exception: pass
                 res[n] = pg.evaluate(REVISAR, panel)
                 pg.screenshot(path=SALIDA + '%dx%d_%s.png' % (w, h, n))
             # página del cliente: arriba y abajo

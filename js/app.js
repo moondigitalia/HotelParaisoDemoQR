@@ -1155,10 +1155,10 @@
     if (ancla && document.body.contains(ancla.el)) window.scrollTo({ top: window.scrollY + ancla.el.getBoundingClientRect().top - ancla.top, behavior: 'instant' });
     if (motor) motor.redibujar(); moverPulgar();
   }
-  // la X regresa un paso (como la gente la usa); solo en el primer paso cierra y te deja en la página donde estabas
+  // la X regresa a escoger equipo (para un paso atrás ya está "Atrás"); si ya estás escogiendo equipo, cierra y te deja en la página
   $('#probador-x').addEventListener('click', function () {
     if (probador.classList.contains('grande')) return verGrande(false);
-    if (S.paso > 0) return irA(S.paso - 1);
+    if (S.paso > 0) return irA(0);
     cerrarProbador();
   });
 
@@ -1319,7 +1319,7 @@
     if (!EDITAR) return;
     document.documentElement.classList.add('editando');
     var st = document.createElement('style');
-    st.textContent = '.ed-sel{outline:2px solid #FFC61A!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,198,26,.22),0 0 22px rgba(255,198,26,.55)!important;border-radius:6px}html.editando{scrollbar-width:none}html.editando::-webkit-scrollbar{display:none}';
+    st.textContent = 'html.ed-escribe .top{display:none!important}.ed-sel{outline:2px solid #FFC61A!important;outline-offset:3px;box-shadow:0 0 0 7px rgba(255,198,26,.22),0 0 22px rgba(255,198,26,.55)!important;border-radius:6px}html.editando{scrollbar-width:none}html.editando::-webkit-scrollbar{display:none}';
     document.head.appendChild(st);
     var sel = null, selK = '', SECS = ['.portada', '#crear', '#catalogo', '#historia', '.equipos-casa', '.como', '#visita'];
     function decir(m) { m.msport = 1; try { parent.postMessage(m, location.origin); } catch (e) { /* nada */ } }
@@ -1339,10 +1339,11 @@
       return r;
     }
     // lo escogido se acomoda en la parte que se ve (arriba del recuadro del panel); si ya se ve completo, no se mueve nada
+    // se acomoda pegado arriba (no al centro): así, aunque el teclado achique la pantalla desde abajo, lo que cambias sigue a la vista
     function alCentro(el, abajo) {
-      if (!el) return; var r = el.getBoundingClientRect(), tb = $('.top'), arriba = tb ? tb.getBoundingClientRect().bottom : 0, alto = window.innerHeight - (abajo || 0);
+      if (!el) return; var r = el.getBoundingClientRect(), tb = $('.top'), arriba = tb && getComputedStyle(tb).display !== 'none' ? tb.getBoundingClientRect().bottom : 0, alto = window.innerHeight - (abajo || 0);
       if (r.top >= arriba + 4 && r.bottom <= alto - 4) return;
-      window.scrollTo({ top: Math.max(0, window.scrollY + r.top - arriba - Math.max(8, (alto - arriba - r.height) / 2)), behavior: 'smooth' });
+      window.scrollTo({ top: Math.max(0, window.scrollY + r.top - arriba - 12), behavior: 'smooth' });
     }
     document.addEventListener('click', function (e) {
       e.preventDefault(); e.stopPropagation();
@@ -1389,6 +1390,8 @@
       if (m.tipo === 'lang' && m.l !== lang) { lang = m.l; aplicarIdioma(); if (selK) marcar(buscar(selK), selK); }
       if (m.tipo === 'ir') { var el = buscar(m.k); marcar(el, m.k); alCentro(el, m.abajo); }
       if (m.tipo === 'centrar') alCentro(sel, m.abajo);
+      // mientras el dueño escribe, la barra de arriba de la página se esconde: más lugar para ver el texto
+      if (m.tipo === 'escribiendo') { document.documentElement.classList.toggle('ed-escribe', !!m.si); if (sel) alCentro(sel, m.abajo); }
       if (m.tipo === 'suelta') marcar(null);
       if (m.tipo === 'fotos') { c.logo = m.logo || ''; c.fondo = m.fondo || ''; ponerFotos(c); }
       if (m.tipo === 'sec') { var s = $(SECS[m.i]), tb = $('.top'), alto = m.i && tb ? tb.getBoundingClientRect().bottom : 0; if (s) window.scrollTo({ top: Math.max(0, window.scrollY + s.getBoundingClientRect().top - alto), behavior: 'instant' }); }
