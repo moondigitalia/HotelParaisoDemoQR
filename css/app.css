@@ -1825,6 +1825,13 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .busca-lupa{position:absolute;right:0;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1.5px solid var(--linea);background:rgba(255,255,255,.06);color:var(--texto);display:flex;align-items:center;justify-content:center;padding:0}
 .busca-lupa svg{width:20px;height:20px}
 .cab-busca.abierta .busca-lupa{border-color:#FFC61A}
-/* secciones de equipos: el dedo desliza de lado (lo de arriba-abajo sigue siendo de la página); mientras se desliza, las orillas se desvanecen */
-.sec-vista{touch-action:pan-y}
-.sec-vista.arrastrando{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%)}
+/* secciones de equipos: deslizar de lado con el propio deslizamiento del celular (con inercia) y se acomoda solo en cada grupo de 3;
+   mientras se desliza, las orillas se desvanecen */
+.sec-vista{overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none}
+.sec-vista::-webkit-scrollbar{display:none}
+.sec-pista{transition:none}
+.sec-pista>.mini-grid{scroll-snap-align:start;scroll-snap-stop:always}
+.sec-vista.moviendo{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 18px,#000 calc(100% - 18px),transparent 100%)}
+/* catálogo: el escudo que queda a medias en la orilla se desvanece (nunca un corte seco) */
+.cat-fila{--fi:0px;--fd:0px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi),#000 calc(100% - var(--fd)),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 var(--fi),#000 calc(100% - var(--fd)),transparent 100%)}
+.cat-fila.f-izq{--fi:36px}.cat-fila.f-der{--fd:36px}

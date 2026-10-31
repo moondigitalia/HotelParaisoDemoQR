@@ -3858,9 +3858,11 @@ if (t > uZonas.z - 0.01) {
   float ux = (vMundo.x - uCaja.x) / uCaja.z, vy = (vMundo.y - uCaja.y) / uCaja.w;
   vec2 tor = atras ? uTorsoB : uTorsoF;
   vec2 uv = vec2(tor.x + (atras ? 1.0 - ux : ux) * tor.y, vy);
+  bool hayManga = false;   // en este rengl\xF3n el modelo tiene manga de ese lado (no es el costado del cuerpo)
   if (uHayRen > 0.5) {
     float vr = clamp(vy, 0.002, 0.998), m0 = leer2(0.5 / 6.0, vr) * 4.0 - 1.5, m1 = leer2(1.5 / 6.0, vr) * 4.0 - 1.5;
     if (atras) { ux = 1.0 - ux; float k = m0; m0 = 1.0 - m1; m1 = 1.0 - k; }
+    hayManga = (ux < 0.0 && m0 < -0.12) || (ux > 1.0 && m1 > 1.12);
     vec2 ph = atras ? vec2(leer2(4.5 / 6.0, vr), leer2(5.5 / 6.0, vr)) : vec2(leer2(2.5 / 6.0, vr), leer2(3.5 / 6.0, vr));
     uv.x = xFoto(ux, m0, m1, tor, ph);
   }
@@ -3868,6 +3870,16 @@ if (t > uZonas.z - 0.01) {
   vec3 aj = atras ? uAjB : uAjF; uv = (uv - 0.5) / aj.x + 0.5 - aj.yz;   // lo que el due\xF1o acomod\xF3: m\xE1s grande/chica y movida (el nombre y n\xFAmero no se mueven)
   vec4 f = atras ? texture2D(uEspalda, uv) : texture2D(uFoto, uv);
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) f.a = 0.0;
+  // la punta de la manga (el borde grueso del pu\xF1o) cae justo en la orilla de la foto, donde hay sombra, fondo o nada:
+  // ah\xED se toma la tela un poco m\xE1s adentro del pu\xF1o (su color real: blanco si el pu\xF1o es blanco), nunca la orilla sucia
+  if (hayManga && f.a < 0.9 && normalize(vNormMundo).y < -0.35) {   // solo el borde del pu\xF1o (mira hacia abajo), no la orilla de arriba de la manga
+    vec2 haciaDentro = normalize(vec2(0.5, 0.62) - uv);
+    for (int i = 1; i <= 8; i++) {
+      vec2 q = uv + haciaDentro * (0.009 * float(i));
+      vec4 g = atras ? texture2D(uEspalda, q) : texture2D(uFoto, q);
+      if (q.x >= 0.0 && q.x <= 1.0 && q.y >= 0.0 && q.y <= 1.0 && g.a > 0.92) { f = g; break; }
+    }
+  }
   vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
   base = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
   if (atras) { vec4 nd = texture2D(uDorsal, uv0); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }

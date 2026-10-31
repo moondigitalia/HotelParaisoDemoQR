@@ -571,50 +571,37 @@
     pags = renglones(eqs, 3);   // de 3 en 3; la última página pegada a la izquierda (cuadra con las columnas de abajo)
     pags.forEach(function (pg, k) { if (actual && pg.some(function (q) { return q.clave === actual.clave; })) ini = k; });
     var n = pags.length;
-    return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%;transform:translateX(' + (-ini * 100 / n) + '%)">' +
+    return '<div class="sec-vista" data-pag="' + ini + '" data-pags="' + n + '"><div class="sec-pista" style="width:' + (n * 100) + '%">' +
       pags.map(function (pg) { return '<div class="mini-grid" style="flex-basis:' + (100 / n) + '%">' + pg.map(tarjetaEquipo).join('') + '</div>'; }).join('') + '</div></div>' +
       '<button type="button" class="sec-mas' + (ini === n - 1 ? ' atras' : '') + '" data-sec-mas aria-label="' + esc(T('mas_equipos')) + '"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></i><small>' + esc(ini === n - 1 ? T('volver') : '+' + pags.slice(ini + 1).reduce(function (s2, g2) { return s2 + g2.length; }, 0)) + '</small></button>';
   }
-  // pasar de página en una sección: con la flecha o deslizando el dedo de lado (la flecha es ayuda, no la única forma)
-  function irPagina(v, p) {
-    var n = +v.getAttribute('data-pags'), b = v.parentNode.querySelector('[data-sec-mas]');
-    p = Math.max(0, Math.min(n - 1, p));
-    v.setAttribute('data-pag', p); v.firstChild.style.transition = ''; v.firstChild.style.transform = 'translateX(' + (-p * 100 / n) + '%)';
+  // pasar de página en una sección: con la flecha o deslizando el dedo de lado. El deslizar es el del propio celular
+  // (suave y con inercia, igual que bajar la página) y se acomoda solo en el siguiente grupo; la flecha lleva al mismo lugar.
+  function marcarPagina(v) {
+    var n = +v.getAttribute('data-pags'), w = v.clientWidth || 1, p = Math.max(0, Math.min(n - 1, Math.round(v.scrollLeft / w))), b = v.parentNode.querySelector('[data-sec-mas]');
+    v.setAttribute('data-pag', p);
     if (b) { b.classList.toggle('atras', p === n - 1); var resto = $$('.mini-grid', v).slice(p + 1).reduce(function (s2, g2) { return s2 + g2.children.length; }, 0); b.querySelector('small').textContent = p === n - 1 ? T('volver') : '+' + resto; }
+  }
+  function irPagina(v, p) {
+    var n = +v.getAttribute('data-pags'); p = Math.max(0, Math.min(n - 1, p));
+    v.setAttribute('data-pag', p);
+    try { v.scrollTo({ left: p * v.clientWidth, behavior: 'smooth' }); } catch (e) { v.scrollLeft = p * v.clientWidth; }
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-sec-mas]'); if (!b) return;
     var v = b.parentNode.querySelector('.sec-vista'), n = +v.getAttribute('data-pags');
     irPagina(v, (+v.getAttribute('data-pag') + 1) % n);
   });
-  (function () {
-    var v = null, x0 = 0, y0 = 0, t0 = 0, dx = 0, lado = null, id = null;
-    document.addEventListener('pointerdown', function (e) {
-      var s = e.target.closest && e.target.closest('.sec-vista'); if (!s || (e.button && e.button !== 0)) return;
-      v = s; x0 = e.clientX; y0 = e.clientY; t0 = Date.now(); dx = 0; lado = null; id = e.pointerId;
-    });
-    document.addEventListener('pointermove', function (e) {
-      if (!v || e.pointerId !== id) return;
-      var mx = e.clientX - x0, my = e.clientY - y0;
-      if (lado === null && Math.abs(mx) + Math.abs(my) > 8) lado = Math.abs(mx) > Math.abs(my);
-      if (!lado) return;
-      var n = +v.getAttribute('data-pags'), p = +v.getAttribute('data-pag'), w = v.clientWidth || 1;
-      dx = mx; if ((p === 0 && dx > 0) || (p === n - 1 && dx < 0)) dx *= 0.3;   // en la orilla se resiste un poco
-      v.classList.add('arrastrando'); v.firstChild.style.transition = 'none'; v.firstChild.style.transform = 'translateX(calc(' + (-p * 100 / n) + '% + ' + dx + 'px))';
-    });
-    function soltar(e) {
-      if (!v || (e && e.pointerId !== id)) return;
-      var s = v; v = null; s.classList.remove('arrastrando');
-      if (!lado) return;
-      var w = s.clientWidth || 1, rapido = Math.abs(dx) / Math.max(1, Date.now() - t0) > 0.4, p = +s.getAttribute('data-pag');
-      if (Math.abs(dx) > w * 0.22 || (rapido && Math.abs(dx) > 24)) p += dx < 0 ? 1 : -1;
-      irPagina(s, p);
-      // deslizar no es tocar: el toque que termina el deslizamiento no escoge equipo
-      var tragar = function (ev) { ev.stopPropagation(); ev.preventDefault(); document.removeEventListener('click', tragar, true); };
-      document.addEventListener('click', tragar, true); setTimeout(function () { document.removeEventListener('click', tragar, true); }, 350);
-    }
-    document.addEventListener('pointerup', soltar); document.addEventListener('pointercancel', soltar);
-  })();
+  // mientras se desliza, las orillas se desvanecen; al acomodarse, la flecha dice cuántos faltan
+  document.addEventListener('scroll', function (e) {
+    var v = e.target; if (!v.classList || !v.classList.contains('sec-vista')) return;
+    v.classList.add('moviendo'); clearTimeout(v._quieto);
+    v._quieto = setTimeout(function () { v.classList.remove('moviendo'); marcarPagina(v); }, 120);
+  }, true);
+  // al pintarse una sección ya empieza en el grupo del equipo escogido (sin animación)
+  new MutationObserver(function () {
+    $$('.sec-vista:not([data-lista])').forEach(function (v) { v.setAttribute('data-lista', ''); var p = +v.getAttribute('data-pag'); if (p) v.scrollLeft = p * v.clientWidth; });
+  }).observe(document.body, { childList: true, subtree: true });
   function tarjetasPorSeccion(lista) {
     var secs = carpetas(), sin = lista.filter(function (u) { return !u.categoria || secs.indexOf(u.categoria) < 0; });
     var grupos = secs.map(function (c) { return [c, lista.filter(function (u) { return u.categoria === c; })]; });
@@ -1007,14 +994,17 @@
     var cont = $('#cat-zona'); if (!cont) return;
     var qs = equiposDe(catalogoVisible());
     cont.innerHTML = '<div class="cat-fila" id="cat-fila">' + qs.map(escudoCat).join('') + '</div>' +
-      // sin botón de "ver todos": todos los equipos están en la misma fila que se desliza; la barrita dice cuánto falta
-      '<div class="cat-pie"><span class="cat-avance" aria-hidden="true"><i id="cat-avance"></i></span></div>';
+      // la fila se desliza con el dedo (la barrita dice cuánto falta) y "Ver todos" los enseña todos de un vistazo
+      '<div class="cat-pie"><span class="cat-avance" aria-hidden="true"><i id="cat-avance"></i></span><button type="button" class="btn btn-oro cat-todos" data-ver-todos>' + esc(T('ver_todos')) + ' <span>' + qs.length + '</span></button></div>';
     enlazarCat(cont);
+    $('[data-ver-todos]', cont).addEventListener('click', abrirCatTodo);
+    armarCatTodo();   // "Ver todos" queda listo desde ahorita, escondido
     var fila = $('#cat-fila'), barra = $('#cat-avance');
     function avance() {   // la barrita: su largo es lo que se ve; su lugar, cuánto has recorrido
       var vis = fila.clientWidth / Math.max(1, fila.scrollWidth), pos = fila.scrollLeft / Math.max(1, fila.scrollWidth - fila.clientWidth);
       barra.style.width = Math.max(12, vis * 100) + '%'; barra.style.left = ((1 - Math.min(1, vis)) * pos * 100) + '%';
       barra.parentNode.classList.toggle('lleno', vis >= 0.999);
+      fila.classList.toggle('f-izq', fila.scrollLeft > 2); fila.classList.toggle('f-der', fila.scrollLeft < fila.scrollWidth - fila.clientWidth - 2);   // lo que se corta se desvanece
     }
     fila.addEventListener('scroll', avance, { passive: true }); window.addEventListener('resize', avance); avance();
     $$('img', fila).forEach(function (im) { if (!im.complete) im.addEventListener('load', avance, { once: true }); });
