@@ -1,5 +1,8 @@
 (function () {
   'use strict';
+  // la vista de "Página" dentro del panel es la misma página, cargada en modo editar: ahí el panel no existe
+  // (si no, dejar picado el logo de esa vista abría un panel dentro del panel, sin fin)
+  if (/[?&]editar=1/.test(location.search) && window.parent !== window) { var pn0 = document.getElementById('panel'); if (pn0) pn0.remove(); return; }
   var A = window.APP, T = A.T, esc = A.esc;
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
