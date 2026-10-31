@@ -1538,3 +1538,133 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn.enfoque .pn-vv.foco .pn-vv-hor.on,.pn.enfoque #dt-estado{display:none}
 .pn.enfoque .pn-vv.foco{padding-top:12px;padding-bottom:12px;margin-bottom:10px}
 .pn.enfoque .pn-cuerpo{padding-bottom:12px}
+/* Pedidos: sin bajar con el dedo. Arriba los círculos, en medio los que caben, abajo las flechas para pasar de hoja */
+.pn.folios .pn-cuerpo{overflow:hidden;display:flex;flex-direction:column;padding-bottom:10px}
+.pn.folios .pn-circulos{position:static;flex:none;margin:0 0 10px;padding:2px 0 0}
+.pn.folios .pn-circulo b{width:60px;height:60px;font-size:28px}
+.pn.folios .pn-lista-folios{flex:none;gap:8px}
+.pn.folios .pn-folio{min-height:72px;box-sizing:border-box}
+.pn-hojas{flex:none;margin-top:auto;height:52px;display:flex;align-items:center;justify-content:center;gap:18px;color:var(--suave);font-size:14px}
+.pn-hojas b{color:var(--texto);font-weight:800}
+.pn-hojas .pn-redondo:disabled{opacity:.3}
+.pn-redondo.pn-der svg{transform:scaleX(-1)}
+/* botones redondos con ícono: siempre círculo exacto (también en Safari viejo) y el ícono al centro */
+.capa-x,.pn-atras,.pn-redondo{padding:0;flex:0 0 44px;min-width:44px;max-width:44px;display:flex;align-items:center;justify-content:center;color:var(--texto,#fff)}
+.capa-x svg{width:20px;height:20px;display:block}
+.pn-atras svg,.pn-redondo svg{width:20px;height:20px;display:block}
+.pn.folios .pn-folio{min-height:0;padding:8px 12px;gap:12px;border-radius:22px}
+.pn.folios .pn-folio img{width:38px;height:52px;border-radius:9px}
+.pn.folios .pn-folio-txt{gap:1px}
+.pn.folios .pn-folio-arriba b{font-size:20px}
+.pn.folios .pn-folio-txt .pn-que{font-size:13.5px}
+.pn.folios .pn-cuantos{font-size:12.5px}
+.pn.folios .pn-que .pn-cuantos{display:inline;font-size:inherit;font-weight:600;color:var(--suave)}
+.pn.folios .pn-folio{min-height:68px}
+/* Guardar/Publicar arriba: chico, sin empujar el título */
+.pn-top-der .pn-publicar{position:static!important;margin:0!important;padding:0!important;background:none!important;box-shadow:none!important;width:auto!important}
+.pn-top-der .pn-publicar .btn{height:40px;min-height:0;padding:0 16px;font-size:15px;border-radius:999px;width:auto;box-shadow:none}
+.pn-top-der .pn-publicar .pn-falta{display:none}
+.pn-top>b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Equipo: escudo, nombre y sección juntos arriba; su lugar en la fila en un solo renglón */
+.pn-eq-cab{display:flex;gap:14px;align-items:flex-start;margin:2px 0 12px}
+.pn-eq-esc{position:relative;flex:none}
+.pn-eq-esc .pn-escudo-img{width:88px;height:88px}
+.pn-eq-esc input[type=file]{display:none}
+.pn-eq-acomodar{position:absolute;right:-4px;bottom:-4px;width:36px;height:36px;padding:0;border-radius:50%;border:2px solid var(--noche);background:var(--oro);color:#0A1033;display:flex;align-items:center;justify-content:center}
+.pn-eq-acomodar svg{width:18px;height:18px}
+.pn-eq-datos{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.pn-eq-datos .etq{margin:0;font-size:12.5px}
+.pn-eq-datos .campo{height:44px;min-height:0;padding:0 14px;margin:0 0 6px}
+.pn-eq-lugar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:4px 4px 4px 16px;border-radius:999px;background:rgba(255,255,255,.04)}
+.pn-eq-lugar .etq{margin:0}
+.pn-eq-pie{display:flex;gap:8px;margin-top:4px}
+.pn-eq-pie .chip{flex:1;min-height:42px;justify-content:center}
+.pn-form [data-ver-nueva]{min-height:44px;height:44px;padding:0 18px;font-size:15px;margin:2px 0 12px}
+/* Pedidos (v56): todos en una lista compacta que se desliza aquí adentro; los círculos se quedan fijos arriba */
+.pn.folios .pn-cuerpo{padding-bottom:8px}
+.pn-folios-caja{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.pn.folios .pn-lista-folios{flex:1;min-height:0;display:block;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:22px;background:#0E1645;box-shadow:inset 0 0 0 1px rgba(196,206,255,.12);padding:4px 6px 8px}
+.pn.folios .pn-lista-folios.hay-mas{-webkit-mask-image:linear-gradient(#000 calc(100% - 46px),transparent);mask-image:linear-gradient(#000 calc(100% - 46px),transparent)}
+.pn-dia-cab{position:sticky;top:-4px;z-index:1;margin:0 -6px;padding:10px 16px 6px;background:#0E1645;font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--suave)}
+.pn.folios .pn-folio.pn-fol1{display:flex;align-items:center;gap:10px;min-height:0;height:54px;padding:0 10px;margin:0 0 4px;border:0;border-radius:16px;background:rgba(255,255,255,.04);transform:none}
+.pn.folios .pn-fol1:active{background:rgba(255,198,26,.14)}
+.pn.folios .pn-fol1 img{width:30px;height:42px;border-radius:7px;flex:none}
+.pn-fol1>b{flex:none;min-width:34px;font:800 22px/1 var(--display);color:var(--oro);text-align:left}
+.pn-fol1-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.pn-fol1-t span{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-fol1-t small{font-size:12px;color:var(--suave);font-weight:600}
+.pn-mas-abajo{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;height:36px;padding:0 16px 0 12px;border:0;border-radius:999px;background:var(--oro);color:#0A1033;font-weight:800;font-size:13.5px;box-shadow:0 6px 16px rgba(0,0,0,.4);white-space:nowrap}
+.pn-mas-abajo svg{width:18px;height:18px}
+.pn-mas-abajo[hidden]{display:none}
+.pn-mas-viejos{display:flex;margin:10px auto 4px;min-height:42px}
+/* estudio: Frente / Espalda abajo, en la franja; el uniforme queda limpio */
+.pn-est-lados{align-self:center;display:flex;gap:2px;padding:4px;margin:0 0 10px;border-radius:999px;background:rgba(255,255,255,.07)}
+.pn-est-lados .vista{height:36px;min-height:0;padding:0 20px;border:0;border-radius:999px;background:none;color:var(--suave);font-weight:700;font-size:14px}
+.pn-est-lados .vista.on{background:var(--oro);color:#0A1033;font-weight:800}
+.pn.estudio .pn-ctl-ayuda{margin:0 0 10px;font-size:13.5px;padding:10px 14px}
+/* controles de una pieza: cruz para mover, menos/más para tamaño y ancho; íconos siempre al centro de su círculo */
+.pn.estudio .pn-ctl-zona{display:flex;align-items:center;justify-content:center;gap:26px}
+.pn-mov{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pn-mov small{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--suave)}
+.pn-cruz{display:grid;grid-template-columns:repeat(3,38px);grid-template-rows:repeat(3,38px);gap:0}
+.pn-cruz .ar{grid-column:2;grid-row:1}.pn-cruz .iz{grid-column:1;grid-row:2}.pn-cruz i{grid-column:2;grid-row:2;width:8px;height:8px;border-radius:50%;background:rgba(196,206,255,.3);align-self:center;justify-self:center}.pn-cruz .de{grid-column:3;grid-row:2}.pn-cruz .ab{grid-column:2;grid-row:3}
+.pn-cruz button,.pn-par button{width:38px;height:38px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;display:flex;align-items:center;justify-content:center;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.pn-cruz button svg,.pn-par button svg{width:20px;height:20px;display:block;flex:none}
+.pn-cruz button:active,.pn-par button:active{background:rgba(255,198,26,.3);color:var(--oro)}
+.pn-tams{display:flex;flex-direction:column;gap:10px}
+.pn-par{display:flex;gap:8px}
+.pn-par button{width:44px;height:44px}
+.pn-version{display:flex;gap:6px;flex-wrap:nowrap}
+.pn-version .chip{flex:1;min-width:0;padding:0 6px;justify-content:center}
+.pn-ver-otra{margin-top:8px}
+/* Tu página (v56): toda la pantalla es tu página; el recuadro para cambiar sube encima al tocar algo */
+.pn-pag{position:relative}
+.pn-pag-vista{flex:1;min-height:0}
+.pn-pag-marco{max-width:none;width:100%;border-radius:24px}
+.pn-pag-capa{border-radius:24px}
+.pn-pag-ed{position:absolute;left:0;right:0;bottom:0;z-index:6;height:204px;box-sizing:border-box;margin:0 auto;max-width:520px;padding:12px 14px 14px;border-radius:26px;background:#0E1645;box-shadow:0 -12px 30px rgba(0,0,0,.55),inset 0 0 0 1px rgba(196,206,255,.16);display:flex;flex-direction:column;gap:8px;overflow:hidden;animation:subeHoja .26s var(--curva)}
+.pn-pag-ed[hidden]{display:none}
+.pn-pag-ed .pn-pag-cab{padding-left:2px}
+.pn-pag-listo{min-height:0!important;height:36px;padding:0 18px!important;font-size:14px!important}
+.pn-pag-ed .pn-pag-tx.campo{height:84px}
+.pn-pag-ed .pn-pag-pie{margin-top:auto}
+.pn-pag-ed .pn-pag-fotobox,.pn-pag-ed .pn-pag-msj{flex:1;height:auto;padding:4px 2px 0;background:none;box-shadow:none;border-radius:0;justify-content:space-between;align-items:stretch;text-align:left}
+.pn-pag-ed .pn-pag-msj{justify-content:center;align-items:flex-start;gap:12px}
+.pn-pag-ir{height:40px}
+.pn-pag-pista{position:absolute;left:50%;bottom:12px;z-index:6;transform:translateX(-50%);margin:0;padding:10px 16px;border-radius:999px;background:var(--oro);color:#0A1033;font-weight:800;font-size:13.5px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.45);pointer-events:none}
+.pn-pag-pista[hidden]{display:none}
+.pn-fondos{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.pn-fondo{position:relative;aspect-ratio:1/1;width:100%;padding:0;border:0;border-radius:50%;overflow:hidden;background:#0c1235;box-shadow:inset 0 0 0 1px rgba(196,206,255,.25);color:var(--texto);display:flex;align-items:center;justify-content:center}
+@supports not (aspect-ratio:1/1){.pn-fondo{height:46px}}
+.pn-fondo img{width:100%;height:100%;object-fit:cover;display:block}
+.pn-fondo.on{box-shadow:0 0 0 3px var(--oro)}
+.pn-fondo-tuyo{background:rgba(255,255,255,.08)}
+.pn-fondo-tuyo svg{width:22px;height:22px}
+.pn-pag-ed .pn-pag-nota{margin:2px 0 0;font-size:12.5px}
+.pn.escribiendo .pn-pag-ed{border-radius:22px 22px 0 0}
+/* la página (iframe) queda debajo del panel; el panel es transparente donde está la página y deja pasar los toques */
+.pn.pagina{position:relative;z-index:6;pointer-events:none}
+.pn.pagina .pn-top,.pn.pagina .pn-barra,.pn.pagina .pn-pag-ed,.pn.pagina .pn-hoja,.pn.pagina .pn-pag-cargando{pointer-events:auto}
+.pn.pagina .pn-pag-marco{background:none}
+.pn-pag-capa{background:#0c1235}
+/* Tienda: lo guardado se dice arriba (como en Página); Ajustes es un botón con su nombre */
+.pn.tienda #dt-estado{display:none}
+.pn-pildora-top{height:40px;padding:0 16px;border-radius:999px;border:1px solid rgba(196,206,255,.3);background:rgba(255,255,255,.06);color:var(--texto);font-weight:800;font-size:14px;flex:none}
+.pn.tienda .pn-vv-k{color:var(--oro);letter-spacing:0;text-transform:none;font-size:13.5px;font-weight:800}
+.pn.tienda .pn-vv-k:only-child{color:var(--suave)}
+.pn.estudio .pn-est-franja{height:222px}
+.pn-cruz{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px)}
+.pn-cruz button{width:34px;height:34px}
+.pn-cruz button svg{width:18px;height:18px}
+.pn.estudio .pn-ctl-tit{margin-bottom:4px;min-height:38px}
+.pn.estudio .pn-ctl-extra{margin-top:6px}
+.pn.estudio .pn-ctl-extra .chip{min-height:36px;height:36px}
+.pn-mov{gap:2px}
+.pn.estudio .pn-ctl-pieza{padding-left:6px}
+.pn-pag-ed{height:236px}
+.pn-pag-ed .pn-pag-tx.campo{height:110px}
+.pn-eq-cab{margin-bottom:6px}
+.pn-eq-lugar{margin-bottom:8px}
+/* donde sí hay más abajo, la orilla de abajo se desvanece: se nota que se puede bajar */
+.pn-cuerpo.hay-mas{-webkit-mask-image:linear-gradient(#000 calc(100% - 40px),transparent);mask-image:linear-gradient(#000 calc(100% - 40px),transparent)}
+.pn-eq-pie{margin-top:0}.pn-form [data-ver-nueva]{margin:0 0 8px}.pn-eq-cab{margin-top:0}

@@ -974,7 +974,7 @@
       // no se esconde con display:none: el iPhone no prepara las imágenes de algo escondido así y al abrir las pintaba de a poco.
       // Se queda invisible y sin tocarse (pero ya pintado), y al abrir solo aparece
       catTodo = document.createElement('div'); catTodo.className = 'capa cat-todo oculta'; catTodo.setAttribute('aria-hidden', 'true'); catTodo.inert = true;
-      catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true"><header class="cat-todo-top"><div class="cat-todo-tit"><h2></h2><button type="button" class="capa-x" data-cerrar-todo>×</button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
+      catTodo.innerHTML = '<div class="cat-todo-in" role="dialog" aria-modal="true"><header class="cat-todo-top"><div class="cat-todo-tit"><h2></h2><button type="button" class="capa-x" data-cerrar-todo aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="t-filtros"></div></header><div id="t-resultados"></div></div>';
       document.body.appendChild(catTodo);
       $('[data-cerrar-todo]', catTodo).addEventListener('click', function () { cerrarCatTodo(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && catTodo && catTodo._abierto) cerrarCatTodo(); });
@@ -1324,7 +1324,12 @@
       $$('main *').some(function (el) { if (!el.children.length && (el.textContent || '').trim() === v && visible(el)) { r = el; return true; } return false; });
       return r;
     }
-    function alCentro(el) { if (!el) return; var r = el.getBoundingClientRect(); window.scrollTo({ top: Math.max(0, window.scrollY + r.top - (window.innerHeight - r.height) / 2), behavior: 'instant' }); }
+    // lo escogido se acomoda en la parte que se ve (arriba del recuadro del panel); si ya se ve completo, no se mueve nada
+    function alCentro(el, abajo) {
+      if (!el) return; var r = el.getBoundingClientRect(), tb = $('.top'), arriba = tb ? tb.getBoundingClientRect().bottom : 0, alto = window.innerHeight - (abajo || 0);
+      if (r.top >= arriba + 4 && r.bottom <= alto - 4) return;
+      window.scrollTo({ top: Math.max(0, window.scrollY + r.top - arriba - Math.max(8, (alto - arriba - r.height) / 2)), behavior: 'smooth' });
+    }
     document.addEventListener('click', function (e) {
       e.preventDefault(); e.stopPropagation();
       var t = e.target, el = null, k = '', que = '';
@@ -1368,7 +1373,8 @@
         TXT = Object.assign({}, c.textos); TXT_EN = Object.assign({}, c.textos_en); repintar(m.k);
       }
       if (m.tipo === 'lang' && m.l !== lang) { lang = m.l; aplicarIdioma(); if (selK) marcar(buscar(selK), selK); }
-      if (m.tipo === 'ir') { var el = buscar(m.k); marcar(el, m.k); alCentro(el); }
+      if (m.tipo === 'ir') { var el = buscar(m.k); marcar(el, m.k); alCentro(el, m.abajo); }
+      if (m.tipo === 'centrar') alCentro(sel, m.abajo);
       if (m.tipo === 'suelta') marcar(null);
       if (m.tipo === 'fotos') { c.logo = m.logo || ''; c.fondo = m.fondo || ''; ponerFotos(c); }
       if (m.tipo === 'sec') { var s = $(SECS[m.i]), tb = $('.top'), alto = m.i && tb ? tb.getBoundingClientRect().bottom : 0; if (s) window.scrollTo({ top: Math.max(0, window.scrollY + s.getBoundingClientRect().top - alto), behavior: 'instant' }); }
