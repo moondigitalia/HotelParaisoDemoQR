@@ -72,9 +72,9 @@ def hacer(d, manga, salida):
     t((bF[0] + bF[2]) // 2, bF[1] - 30, 34, 'FRENTE'); t((bE[0] + bE[2]) // 2, bE[1] - 30, 34, 'ESPALDA')
     t((bS[0] + bS[2]) // 2, bS[1] - 30, 30, 'SHORT (FRENTE)')
     gris = (95, 100, 125)
-    for b, nom, frente_izq in [(bI, 'MANGA IZQUIERDA', False), (bD, 'MANGA DERECHA', True)]:
+    for b, nom, frente_izq in [(bI, 'MANGA DERECHA DEL JUGADOR', False), (bD, 'MANGA IZQUIERDA DEL JUGADOR', True)]:   # mangaI del 3D = la derecha de quien la viste (a tu izquierda viéndolo de frente)
         cx = (b[0] + b[2]) // 2; cy = (b[1] + b[3]) // 2
-        t(cx, b[1] - 58, 26, nom); t(cx, b[1] - 24, 22, '▲ HOMBRO', gris); t(cx, b[3] + 26, 22, '▼ PUÑO', gris)
+        t(cx, b[1] - 58, 23, nom); t(cx, b[1] - 24, 22, '▲ HOMBRO', gris); t(cx, b[3] + 26, 22, '▼ PUÑO', gris)
         dr.text((b[0] - 12, cy), 'FRENTE' if frente_izq else 'ATRÁS', font=F(20), fill=gris, anchor='rm')
         dr.text((b[2] + 12, cy), 'ATRÁS' if frente_izq else 'FRENTE', font=F(20), fill=gris, anchor='lm')
     for (x, y) in MARCAS:

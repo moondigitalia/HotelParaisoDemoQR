@@ -98,7 +98,16 @@ function torsoFoto(c, alt) {
   const g = c.getContext('2d'), y = Math.round(c.height * (1 - alt)), d = g.getImageData(0, y, c.width, 1).data; let a = -1, b = -1;
   for (let x = 0; x < c.width; x++) if (d[x * 4 + 3] > 128) { if (a < 0) a = x; b = x; }
   if (a < 0) return [0, 1];
-  return [a / c.width, (b - a) / c.width];
+  // manga larga: a esa altura la foto también trae los brazos a los lados (separados del cuerpo por un hueco).
+  // El torso es solo el pedazo del centro; si se midiera todo, las franjas de los brazos caerían sobre el cuerpo del 3D.
+  const W = c.width, hueco = Math.max(2, Math.round(W * 0.006)), cen = Math.round((a + b) / 2);
+  let i0 = cen, i1 = cen;
+  if (d[cen * 4 + 3] > 128) {
+    for (let x = cen, v = 0; x >= a; x--) { if (d[x * 4 + 3] > 128) { i0 = x; v = 0; } else if (++v > hueco) break; }
+    for (let x = cen, v = 0; x <= b; x++) { if (d[x * 4 + 3] > 128) { i1 = x; v = 0; } else if (++v > hueco) break; }
+    if ((i1 - i0) > (b - a) * 0.45 && (i1 - i0) < (b - a) * 0.97) { a = i0; b = i1; }
+  }
+  return [a / W, (b - a) / W];
 }
 // tela para las mangas y costados: el cuadro más liso de la manga de la foto (sin letras ni logos)
 function telaManga(c, fx0) {
@@ -374,11 +383,15 @@ if (t > uZonas.z - 0.01) {
       // manga larga), va desde el hombro con sus proporciones reales y el resto del brazo sale de las fotos de frente y espalda
       vec3 MR = izq ? uMRI : uMRD;   // x: 1 estirar, 0 proporción real; y: radio de la manga; z: alto/ancho de la foto
       float tF = MR.x > 0.5 ? tA : tA * sqrt(L2) / max(MR.z * 3.14159265 * MR.y, 0.01);
-      vec2 um = (vec2(su, 1.0 - tF) - 0.5) / ajm.x + 0.5 - ajm.yz;
+      // foto del mismo largo: TODA la manga sale de su foto (las fotos de frente y espalda también enseñan la manga y la
+      // repetían: franjas y parches dobles). La mitad de afuera es la foto tal cual; la otra mitad sigue con la orilla de la
+      // foto renglón por renglón, así el puño y sus líneas dan la vuelta completa sin repetir parches.
+      bool mismo = MR.x > 0.5;
+      vec2 um = (vec2(mismo ? clamp(su, 0.04, 0.96) : su, 1.0 - tF) - 0.5) / ajm.x + 0.5 - ajm.yz;
       vec4 g = izq ? texture2D(uMangaI, um) : texture2D(uMangaD, um);
       if (um.x < 0.0 || um.x > 1.0 || um.y < 0.0 || um.y > 1.0) g.a = 0.0;
-      float w = (1.0 - smoothstep(1.25, 1.57, abs(fi))) * smoothstep(0.35, 0.9, g.a) * smoothstep(-0.04, 0.06, tA) * smoothstep(0.03, 0.09, izq ? -uxM : uxM - 1.0);
-      if (MR.x < 0.5) w *= 1.0 - smoothstep(0.76, 0.84, tF);   // foto de otro largo: su puño no se pone a media manga
+      float w = (mismo ? 1.0 : 1.0 - smoothstep(1.25, 1.57, abs(fi))) * smoothstep(0.35, 0.9, g.a) * smoothstep(-0.04, 0.06, tA) * (mismo ? smoothstep(0.0, 0.025, izq ? -uxM : uxM - 1.0) : smoothstep(0.03, 0.09, izq ? -uxM : uxM - 1.0));
+      if (!mismo) w *= 1.0 - smoothstep(0.76, 0.84, tF);   // foto de otro largo: su puño no se pone a media manga
       base = mix(base, g.rgb / max(g.a, 0.004), w);
     }
   }
