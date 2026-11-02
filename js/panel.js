@@ -657,6 +657,9 @@
       // para la lupa de los conocedores: año, liga y palabras clave
       '<div class="fila2"><div class="grupo"><label for="ed-anio">Año</label><input class="campo" id="ed-anio" inputmode="numeric" maxlength="9" value="' + esc(e.anio || '') + '" placeholder="Ej. 2024"></div>' +
       '<div class="grupo"><label for="ed-liga">Liga o torneo</label><input class="campo" id="ed-liga" maxlength="40" value="' + esc(e.liga || '') + '" placeholder="Ej. Liga MX"></div></div>' +
+      // el molde: se descarga, se le da a cualquier generador de imágenes con las fotos del uniforme y se sube lleno
+      '<div class="grupo pn-molde"><span class="etq">Molde para generador de imágenes <small>(ChatGPT u otro)</small></span><p class="pn-molde-p">Descarga el molde, dáselo al generador junto con las fotos de este uniforme y el texto. Después sube aquí el molde lleno: cada pieza cae sola en su lugar.</p>' +
+        '<div class="pn-molde-b"><a class="chip" href="/assets/molde/molde-corta.png" download="molde-m-sport-manga-corta.png">Molde manga corta</a><a class="chip" href="/assets/molde/molde-larga.png" download="molde-m-sport-manga-larga.png">Molde manga larga</a><button type="button" class="chip" data-molde-texto>Copiar texto</button><label class="chip pn-molde-subir">Subir molde lleno<input type="file" accept="image/*,.heic,.heif" data-molde class="pn-est-oculto"></label></div></div>' +
       '<div class="grupo"><label for="ed-otros">Palabras clave <small>(para que te encuentren)</small></label><input class="campo" id="ed-otros" maxlength="120" value="' + esc(e.otros || '') + '" placeholder="Ej. retro, mundial, campeón, portero"></div>' +
             '<div class="pn-mas-op" data-mas-op>' +
       '<div class="grupo"><label for="ed-nombre">Nombre en la página <small>(vacío = equipo y diseño)</small></label><input class="campo" id="ed-nombre" maxlength="50" value="' + esc(u.nombre) + '" placeholder="' + esc(nombreAuto(u) || 'Ej. México · Local') + '"></div>' +
@@ -932,6 +935,73 @@
       });
     });
   }
+  /* ---------- el molde lleno ----------
+     Las 4 marcas de las esquinas dicen cómo enderezarlo (aunque el generador lo haya movido o achicado); la máscara del molde
+     dice qué pixel es de qué pieza. Cada pieza sale recortada justo por su silueta y entra como foto del uniforme. */
+  var TEXTO_MOLDE = 'La primera imagen es un MOLDE. Las demás son fotos reales de un uniforme de fútbol (frente de la playera, espalda de la playera y frente del short; si hay, también las mangas). Pinta ese mismo uniforme dentro de las siluetas blancas del molde: en FRENTE el frente de la playera, en ESPALDA la espalda, en SHORT el frente del short. En MANGA IZQUIERDA y MANGA DERECHA pinta la cara de afuera de cada manga como se ve en las fotos, con el hombro arriba y el puño abajo, con sus franjas, puños y parches. Reglas: no muevas nada del molde; deja igual el fondo gris, los cuadros negros de las cuatro esquinas, los textos y los contornos; llena cada silueta completa hasta su contorno, sin salirte; vista plana y de frente, sin sombras, sin arrugas y sin personas; copia exactamente los colores, logos, escudos y patrocinadores de las fotos; no inventes nada que no esté en las fotos.';
+  function copiarTexto(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(function () { return copiarViejo(t); });
+    return Promise.resolve(copiarViejo(t));
+  }
+  function copiarViejo(t) { var a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) { /* nada */ } a.remove(); }
+  function cargarJSON(u) { return fetch(u).then(function (r) { return r.json(); }); }
+  function homografia(de, a) {   // 4 puntos del molde -> 4 puntos de la foto
+    var M = [], b = [];
+    for (var i = 0; i < 4; i++) { var x = de[i][0], y = de[i][1], u = a[i][0], v = a[i][1]; M.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u); M.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v); }
+    for (var c = 0; c < 8; c++) { var p = c; for (var r = c + 1; r < 8; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; var t = M[c]; M[c] = M[p]; M[p] = t; t = b[c]; b[c] = b[p]; b[p] = t;
+      for (r = 0; r < 8; r++) if (r !== c) { var f = M[r][c] / M[c][c]; for (var k = c; k < 8; k++) M[r][k] -= f * M[c][k]; b[r] -= f * b[c]; } }
+    var h = b.map(function (bv, i) { return bv / M[i][i]; });
+    return function (x, y) { var w = h[6] * x + h[7] * y + 1; return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w]; };
+  }
+  function leerMolde(file) {
+    var u = P.editando; if (!u) return;
+    A.toast('Leyendo el molde…', true);
+    var hoja;
+    A.cargarArchivo(file).then(function (im) {
+      hoja = A.aCanvas(im, 2400); var W = hoja.width, H = hoja.height, d = hoja.getContext('2d').getImageData(0, 0, W, H).data;
+      // las marcas: lo oscuro de cada esquina (los cuadros negros), su centro
+      var marca = function (fx, fy) {
+        var x0 = Math.round(fx ? W * 0.86 : 0), x1 = Math.round(fx ? W : W * 0.14), y0 = Math.round(fy ? H * 0.86 : 0), y1 = Math.round(fy ? H : H * 0.14), sx = 0, sy = 0, n = 0;
+        for (var y = y0; y < y1; y += 2) for (var x = x0; x < x1; x += 2) { var i = (y * W + x) * 4; if (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11 < 75) { sx += x; sy += y; n++; } }
+        return n > 30 ? [sx / n, sy / n] : null;
+      };
+      var mk = [marca(0, 0), marca(1, 0), marca(0, 1), marca(1, 1)];
+      if (mk.some(function (m) { return !m; })) throw new Error('marcas');
+      return cargarJSON('/assets/molde/molde-corta.json?v=' + (window.VERSION || '1')).then(function (J) {
+        var aHoja = homografia(J.marcas, mk);
+        // ¿manga corta o larga? En el molde de corta, la caja de la manga va pintada casi completa; en el de larga, solo una tira
+        var bI = J.piezas.mangaI, pint = 0, tot = 0, yM = (bI[1] + bI[3]) / 2;
+        for (var x = bI[0] + 10; x < bI[2] - 10; x += 4) { var q = aHoja(x, yM), i = (Math.round(q[1]) * W + Math.round(q[0])) * 4; tot++; if (Math.abs(d[i] - 236) + Math.abs(d[i + 1] - 238) + Math.abs(d[i + 2] - 243) > 40) pint++; }
+        var tipo = pint / Math.max(1, tot) > 0.7 ? 'corta' : 'larga';
+        return Promise.all([tipo === 'corta' ? J : cargarJSON('/assets/molde/molde-larga.json?v=' + (window.VERSION || '1')), imagenP('/assets/molde/molde-' + tipo + '-mascara.png?v=' + (window.VERSION || '1'))]).then(function (r) {
+          var JT = r[0], mc = A.aCanvas(r[1], 2048), md = mc.getContext('2d').getImageData(0, 0, mc.width, mc.height).data, MW = mc.width, aH = homografia(JT.marcas, mk);
+          var piezas = {};
+          Object.keys(JT.piezas).forEach(function (k) {
+            var b = JT.piezas[k], val = JT.mascara[k], w = b[2] - b[0], h = b[3] - b[1], c = document.createElement('canvas'); c.width = w; c.height = h;
+            var g = c.getContext('2d'), out = g.createImageData(w, h), o = out.data;
+            for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+              var tx = b[0] + x, ty = b[1] + y; if (Math.abs(md[(ty * MW + tx) * 4] - val) > 10) continue;
+              var q = aH(tx + 0.5, ty + 0.5), sx = Math.round(q[0]), sy = Math.round(q[1]); if (sx < 0 || sy < 0 || sx >= W || sy >= H) continue;
+              var i = (sy * W + sx) * 4, j = (y * w + x) * 4; o[j] = d[i]; o[j + 1] = d[i + 1]; o[j + 2] = d[i + 2]; o[j + 3] = 255;
+            }
+            g.putImageData(out, 0, 0); piezas[k] = c;
+          });
+          return { tipo: tipo, piezas: piezas };
+        });
+      });
+    }).then(function (r) {
+      u.manga = r.tipo; u.ajuste = {};
+      var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
+      return Promise.all(lados.map(function (l) { return ponerFoto(u, l, r.piezas[l]); })).then(function () {
+        u.shortPropio = true;
+        P.avisos = ['Molde de manga ' + r.tipo + ' leído: cada pieza quedó en su lugar. Revisa en el 3D que todo venga de tus fotos (el generador a veces inventa) antes de guardar.'];
+        pintar(); $('#ed-aviso').innerHTML = '<div class="aviso"><p>' + esc(P.avisos[0]) + '</p></div>';
+        A.toast('Molde listo'); previsualizar();
+      });
+    }).catch(function (e) {
+      A.toast(e && e.message === 'marcas' ? 'No encontramos las 4 marcas negras de las esquinas. Sube el molde completo, sin recortar.' : 'No se pudo leer el molde. Inténtalo otra vez.');
+    });
+  }
   // la foto del dueño: se recorta el fondo, se revisa y se sube; de la del frente salen los colores para el buscador
   // la foto del dueño: la IA de su propio celular separa la prenda del fondo (sin créditos ni cuentas);
   // si trae playera y short juntos, se separan solos. De la del frente salen los colores para el buscador.
@@ -1174,6 +1244,8 @@
       verPh();
     }
     $('#ed-version').addEventListener('input', function (e) { ponerVersion(e.target.value.trim()); });
+    var mt = $('[data-molde-texto]', panel); if (mt) mt.addEventListener('click', function () { copiarTexto(TEXTO_MOLDE).then(function () { A.toast('Texto copiado: pégalo en el generador junto con el molde y las fotos'); }); });
+    var mo = $('[data-molde]', panel); if (mo) mo.addEventListener('change', function () { var f = mo.files && mo.files[0]; mo.value = ''; if (f) leerMolde(f); });
     ['anio', 'liga', 'otros'].forEach(function (k) { var el = $('#ed-' + k); if (el) el.addEventListener('input', function () { u.etiquetas[k] = el.value.trim(); }); });
     $$('[data-ver]', panel).forEach(function (b) {
       b.addEventListener('click', function () {

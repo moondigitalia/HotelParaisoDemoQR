@@ -1874,3 +1874,8 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-cl-ed .pn-cl-unis{flex:none;display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,auto);grid-auto-columns:calc((100% - 18px) / 4);gap:10px 6px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;padding:2px 0 0}
 .pn-cl-ed .pn-cl-unis::-webkit-scrollbar{display:none}
 .pn-cl-ed .pn-cl-uni{scroll-snap-align:start}
+/* panel · molde para generador de imágenes */
+.pn-molde-p{margin:4px 0 10px;font-size:13px;line-height:1.4;color:var(--suave,rgba(255,255,255,.75))}
+.pn-molde-b{display:flex;flex-wrap:wrap;gap:8px}
+.pn-molde-b .chip{text-decoration:none}
+.pn-molde-subir{position:relative;cursor:pointer;background:var(--oro);color:#0A1033;border-color:var(--oro)}
