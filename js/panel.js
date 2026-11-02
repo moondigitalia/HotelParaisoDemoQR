@@ -938,7 +938,7 @@
   /* ---------- el molde lleno ----------
      Las 4 marcas de las esquinas dicen cómo enderezarlo (aunque el generador lo haya movido o achicado); la máscara del molde
      dice qué pixel es de qué pieza. Cada pieza sale recortada justo por su silueta y entra como foto del uniforme. */
-  var TEXTO_MOLDE = 'La primera imagen es un MOLDE. Las demás son fotos reales de un uniforme de fútbol (frente de la playera, espalda de la playera y frente del short; si hay, también las mangas). Pinta ese mismo uniforme dentro de las siluetas blancas del molde: en FRENTE el frente de la playera, en ESPALDA la espalda, en SHORT el frente del short. En MANGA DERECHA DEL JUGADOR y MANGA IZQUIERDA DEL JUGADOR pinta la cara de afuera de cada manga (derecha e izquierda de quien viste la playera: en la foto del frente, la derecha del jugador se ve a tu izquierda), cada una con sus propios parches, con el hombro arriba y el puño abajo, con sus franjas, puños y parches. Reglas: no muevas nada del molde; deja igual el fondo gris, los cuadros negros de las cuatro esquinas, los textos y los contornos; llena cada silueta completa hasta su contorno, sin salirte; vista plana y de frente, sin sombras, sin arrugas y sin personas; copia exactamente los colores, logos, escudos y patrocinadores de las fotos; no inventes nada que no esté en las fotos.';
+  var TEXTO_MOLDE = 'La primera imagen es un MOLDE. Las demás son fotos reales de un uniforme de fútbol (frente de la playera, espalda de la playera y frente del short; si hay, también las mangas). Pinta ese mismo uniforme dentro de las siluetas blancas del molde: en FRENTE el frente de la playera, en ESPALDA la espalda, en SHORT el frente del short. En MANGA DERECHA DEL JUGADOR y MANGA IZQUIERDA DEL JUGADOR pinta la cara de afuera de cada manga (derecha e izquierda de quien viste la playera: en la foto del frente, la derecha del jugador se ve a tu izquierda), cada una solo con los parches que se ven en esa manga en las fotos (si una manga no trae parche, déjala lisa; no pases a las mangas logos del pecho ni de la espalda), con el hombro arriba y el puño abajo, con sus franjas, puños y parches. Reglas: no muevas nada del molde; deja igual el fondo gris, los cuadros negros de las cuatro esquinas, los textos y los contornos; llena cada silueta completa hasta su contorno, sin salirte; vista plana y de frente, sin sombras, sin arrugas y sin personas; copia exactamente los colores, logos, escudos y patrocinadores de las fotos; no inventes nada que no esté en las fotos.';
   function copiarTexto(t) {
     if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(function () { return copiarViejo(t); });
     return Promise.resolve(copiarViejo(t));
@@ -984,6 +984,69 @@
     // solo con una diferencia fuerte y clara (un parche de otro color en una sola manga). Si las dos mangas traen detalles
     // parecidos (letras blancas en las dos), no se adivina: se respeta lo que puso el generador.
     return c < -0.35 && Math.sqrt(nt) > 0.03 && Math.sqrt(nz) > 0.02;
+  }
+  // dónde está el cuerpo (sin brazos) en una pieza de playera: el pedazo del centro a 70% de su alto
+  function cuerpoDe(F) {
+    var W = F.width, H = F.height, fd = F.getContext('2d').getImageData(0, Math.round(H * 0.7), W, 1).data, a = -1, b = -1;
+    for (var x = 0; x < W; x++) if (fd[x * 4 + 3] > 128) { if (a < 0) a = x; b = x; }
+    if (a < 0) return null;
+    var cen = Math.round((a + b) / 2), i0 = cen, i1 = cen, hueco = Math.max(2, Math.round(W * 0.006));
+    for (var v = 0, xx = cen; xx >= a; xx--) { if (fd[xx * 4 + 3] > 128) { i0 = xx; v = 0; } else if (++v > hueco) break; }
+    for (v = 0, xx = cen; xx <= b; xx++) { if (fd[xx * 4 + 3] > 128) { i1 = xx; v = 0; } else if (++v > hueco) break; }
+    return [i0 - W * 0.01, i1 + W * 0.01];
+  }
+  // las manchas de detalle de un pedazo de tela (parches, letras, escudos): lo que no es la tela principal, en grupos.
+  // No cuentan las tiras (puños, franjas, ribetes): son muy alargadas o muy delgadas para su caja.
+  function manchas(c, dentro, estricto) {
+    var W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, P = 3, gw = Math.ceil(W / P), gh = Math.ceil(H / P);
+    var en = new Uint8Array(gw * gh), tela = new Uint8Array(gw * gh), cuenta = {}, celdas = 0;
+    for (var gy = 0; gy < gh; gy++) for (var gx = 0; gx < gw; gx++) { var x = gx * P, y = gy * P, i = (y * W + x) * 4; if (d[i + 3] < 200) continue; tela[gy * gw + gx] = 1; if (!dentro(x, y, W, H)) continue; en[gy * gw + gx] = 1; celdas++; var k = (d[i] >> 5) + ',' + (d[i + 1] >> 5) + ',' + (d[i + 2] >> 5); cuenta[k] = (cuenta[k] || 0) + 1; }
+    var top = null, n = 0; Object.keys(cuenta).forEach(function (k) { if (cuenta[k] > n) { n = cuenta[k]; top = k; } });
+    if (!top) return { lista: [], celdas: 0 };
+    var t = top.split(',').map(function (v) { return v * 32 + 16; }), det = new Uint8Array(gw * gh);
+    for (var q = 0; q < gw * gh; q++) { if (!en[q]) continue; var j = ((Math.floor(q / gw) * P) * W + (q % gw) * P) * 4; if (Math.abs(d[j] - t[0]) + Math.abs(d[j + 1] - t[1]) + Math.abs(d[j + 2] - t[2]) > 110) det[q] = 1; }
+    var gr = new Uint8Array(gw * gh);   // las letras sueltas de un mismo parche se juntan
+    for (q = 0; q < gw * gh; q++) if (det[q]) { var qx = q % gw, qy = (q - qx) / gw; for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++) { var X = qx + dx, Y = qy + dy; if (X >= 0 && Y >= 0 && X < gw && Y < gh && en[Y * gw + X]) gr[Y * gw + X] = 1; } }
+    var vis = new Uint8Array(gw * gh), lista = [];
+    for (q = 0; q < gw * gh; q++) {
+      if (!gr[q] || vis[q]) continue;
+      var pila = [q], x0 = gw, x1 = 0, y0 = gh, y1 = 0, nd = 0, sr = 0, sg = 0, sb = 0, ng = 0, orilla = 0, hist = new Float32Array(64); vis[q] = 1;
+      while (pila.length) { var p = pila.pop(), px = p % gw, py = (p - px) / gw; ng++;
+        if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+        if (px === 0 || py === 0 || px === gw - 1 || py === gh - 1 || !tela[p - 1] || !tela[p + 1] || !tela[p - gw] || !tela[p + gw]) orilla++;   // la orilla de la prenda (no el corte de la zona)
+        if (det[p]) { var jj = ((py * P) * W + px * P) * 4; sr += d[jj]; sg += d[jj + 1]; sb += d[jj + 2]; nd++; hist[(d[jj] >> 6) * 16 + (d[jj + 1] >> 6) * 4 + (d[jj + 2] >> 6)]++; }
+        [p - gw, p + gw, px > 0 ? p - 1 : -1, px < gw - 1 ? p + 1 : -1].forEach(function (v) { if (v >= 0 && v < gw * gh && gr[v] && !vis[v]) { vis[v] = 1; pila.push(v); } }); }
+      var bw = x1 - x0 + 1, bh = y1 - y0 + 1, asp = Math.max(bw, bh) / Math.min(bw, bh), lleno = ng / (bw * bh);
+      // en las mangas del molde, lo que toca su orilla (franjas de hombro a puño, puño, contorno) no es parche.
+      // En frente y espalda sí cuenta: ahí un parche puede quedar cortado por la orilla; el puño se distingue por su mezcla de colores.
+      if (asp >= 5 || lleno < 0.3 || !nd || (estricto && orilla > 0)) continue;
+      for (var hj = 0; hj < 64; hj++) hist[hj] /= nd;
+      lista.push({ n: nd, col: [sr / nd, sg / nd, sb / nd], h: hist, caja: [x0 * P, y0 * P, (x1 + 1) * P, (y1 + 1) * P] });
+    }
+    return { lista: lista, celdas: celdas };
+  }
+  // regla: todo parche de una manga del molde tiene que verse también en esa manga en el FRENTE o la ESPALDA de la hoja.
+  // Si no aparece en ninguna, el generador lo inventó. Regresa esos parches.
+  function mangaInventada(manga, zonas) {
+    var m = manchas(manga, function () { return true; }, true);
+    var ref = []; zonas.forEach(function (z) { var r = manchas(z.c, z.dentro); r.lista.forEach(function (b) { if (b.n > r.celdas * 0.002) ref.push(b); }); });
+    return m.lista.filter(function (b) {
+      if (b.n < m.celdas * 0.004) return false;   // motitas: no son parches
+      // la misma hoja tiene la misma escala: el parche real se ve en el frente o la espalda con al menos una cuarta parte de su tamaño
+      // y con la misma mezcla de colores (un escudo rojo-blanco-azul no es lo mismo que una orilla gris azulada)
+      return !ref.some(function (r) { if (r.n < b.n * 0.25) return false; var s2 = 0; for (var hj = 0; hj < 64; hj++) s2 += Math.min(r.h[hj], b.h[hj]); return s2 >= 0.76; });
+    });
+  }
+  // borra un parche inventado: su lugar se llena con la tela de alrededor, renglón por renglón (de la orilla izquierda a la derecha)
+  function borrarParche(c, caja) {
+    var g = c.getContext('2d'), W = c.width, H = c.height, m = 6, x0 = Math.max(0, caja[0] - m), x1 = Math.min(W - 1, caja[2] + m), y0 = Math.max(0, caja[1] - m), y1 = Math.min(H - 1, caja[3] + m);
+    var im = g.getImageData(0, 0, W, H), d = im.data;
+    for (var y = y0; y <= y1; y++) {
+      var a = (y * W + Math.max(0, x0 - 2)) * 4, b = (y * W + Math.min(W - 1, x1 + 2)) * 4;
+      if (d[a + 3] < 200) a = b; if (d[b + 3] < 200) b = a; if (d[a + 3] < 200) continue;
+      for (var x = x0; x <= x1; x++) { var t = (x - x0) / Math.max(1, x1 - x0), k = (y * W + x) * 4; if (d[k + 3] < 200) continue; for (var ch = 0; ch < 3; ch++) d[k + ch] = d[a + ch] * (1 - t) + d[b + ch] * t; }
+    }
+    g.putImageData(im, 0, 0);
   }
   function leerMolde(file) {
     var u = P.editando; if (!u) return;
@@ -1061,7 +1124,16 @@
           // ¿cuál manga es cuál? Los generadores confunden derecha e izquierda. Se compara cada manga con cómo se ven las
           // mangas en el FRENTE de la misma hoja (sus parches y franjas) y, si quedaron al revés, se cambian solas.
           if (mangasAlReves(piezas, tipo)) { var tmp = piezas.mangaI; piezas.mangaI = piezas.mangaD; piezas.mangaD = tmp; }
-          return { tipo: tipo, piezas: piezas };
+          // manga I del 3D = la derecha del jugador: en el FRENTE se ve a la izquierda y en la ESPALDA a la derecha
+          var fc = cuerpoDe(piezas.frente), ec = cuerpoDe(piezas.espalda), alto = tipo === 'corta' ? 0.45 : 0.97, quitadas = [];
+          if (fc && ec) ['mangaI', 'mangaD'].forEach(function (k) {
+            var izqF = k === 'mangaI', zonas = [
+              { c: piezas.frente, dentro: function (x, y, w, h) { return (izqF ? x < fc[0] : x > fc[1]) && y < h * alto; } },
+              { c: piezas.espalda, dentro: function (x, y, w, h) { return (izqF ? x > ec[1] : x < ec[0]) && y < h * alto; } }];
+            var inv = mangaInventada(piezas[k], zonas);
+            if (inv.length) { quitadas.push(k); inv.forEach(function (b) { borrarParche(piezas[k], b.caja); }); }
+          });
+          return { tipo: tipo, piezas: piezas, quitadas: quitadas };
         });
       });
     }).then(function (r) {
@@ -1069,7 +1141,8 @@
       var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
       return Promise.all(lados.map(function (l) { return ponerFoto(u, l, r.piezas[l]); })).then(function () {
         u.shortPropio = true;
-        P.avisos = ['Molde de manga ' + r.tipo + ' leído: cada pieza quedó en su lugar. Revisa en el 3D que todo venga de tus fotos (el generador a veces inventa) antes de guardar.'];
+        var nomM = { mangaI: 'derecha', mangaD: 'izquierda' }, q = r.quitadas.map(function (l) { return nomM[l]; });
+        P.avisos = ['Molde de manga ' + r.tipo + ' leído: cada pieza quedó en su lugar.' + (q.length ? ' La manga ' + q.join(' y la ') + ' traía un parche que no aparece en el frente ni en la espalda (el generador lo inventó): lo borramos y quedó la tela de la manga.' : '') + ' Revisa en el 3D que todo venga de tus fotos antes de guardar.'];
         pintar(); $('#ed-aviso').innerHTML = '<div class="aviso"><p>' + esc(P.avisos[0]) + '</p></div>';
         A.toast('Molde listo'); previsualizar();
       });
