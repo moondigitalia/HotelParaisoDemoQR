@@ -286,13 +286,14 @@ export async function crear(canvas, opt = {}) {
     uMangaI: { value: null }, uMangaD: { value: null }, uHayMI: { value: 0 }, uHayMD: { value: 0 },
     uCajaMI: { value: new THREE.Vector4(0, 0, 1, 1) }, uCajaMD: { value: new THREE.Vector4(0, 0, 1, 1) },
     uMSI: { value: new THREE.Vector3() }, uMAI: { value: new THREE.Vector3(0, -1, 0) }, uMOI: { value: new THREE.Vector3(-1, 0, 0) }, uMFI: { value: new THREE.Vector3(0, 0, 1) },
+    uPatron: { value: null }, uHayPatron: { value: 0 },
     uOtroLargo: { value: 0 }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uni);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vMundo; varying vec3 vNormMundo;')
-      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvMundo = (modelMatrix * vec4(transformed,1.0)).xyz; vNormMundo = normalize(mat3(modelMatrix) * objectNormal);');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vMundo; varying vec3 vNormMundo; attribute vec2 patron; varying vec2 vPat; attribute float piezaPat; varying float vPz;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvMundo = (modelMatrix * vec4(transformed,1.0)).xyz; vNormMundo = normalize(mat3(modelMatrix) * objectNormal); vPat = patron; vPz = piezaPat;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; uniform sampler2D uManga; uniform sampler2D uShortTex; uniform sampler2D uDorsal; uniform sampler2D uShortNum; uniform float uHayNum;
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
@@ -300,7 +301,7 @@ uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro; uniform sampler
 uniform sampler2D uMangaI; uniform sampler2D uMangaD; uniform float uHayMI; uniform float uHayMD; uniform vec4 uCajaMI; uniform vec4 uCajaMD; uniform vec3 uAjMI; uniform vec3 uAjMD;
 uniform float uOtroLargo; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
-varying vec3 vMundo; varying vec3 vNormMundo;
+varying vec3 vMundo; varying vec3 vNormMundo; varying vec2 vPat; varying float vPz; uniform sampler2D uPatron; uniform float uHayPatron;
 // de dónde de la foto sale cada punto de la playera, renglón por renglón: el torso del modelo con el torso de la foto y lo que
 // sobra a cada lado (la manga a esa altura) con lo que sobra a ese lado en la foto, hasta su orilla (el puño).
 float leer2(float x, float v) { vec4 p = texture2D(uRen, vec2(x, v)); return (p.r * 255.0 + p.g * 0.99609375) * 0.00390631; }
@@ -346,6 +347,9 @@ vec3 caraPlayera(bool atras, out vec2 uvSalida) {
       .replace('#include <map_fragment>', `
 if (vMundo.y < uCorte) discard;
 float t = (vMundo.y - uZonas.x) / uZonas.y;
+// con patrón, en las costuras manda la pieza del triángulo (no la altura): la playera es playera y el short es short
+if (uHayPatron > 0.5 && vPz < 3.5) t = max(t, uZonas.z);
+else if (uHayPatron > 0.5 && vPz > 3.5 && vPz < 4.5) t = clamp(t, uShortBot + 0.001, uZonas.z - 0.011);
 vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0; float mangaLado = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
 // el uniforme no se mueve (gira la cámara): lo que mira hacia atrás usa la foto de la espalda
 bool atras = vNormMundo.z < 0.0;
@@ -395,6 +399,11 @@ if (t > uZonas.z - 0.01) {
       base = mix(base, g.rgb / max(g.a, 0.004), w);
     }
   }
+  // con PATRÓN (molde): la tela sale tal cual de su pieza del patrón, sin proyectar ni estirar. El nombre y el número encima.
+  if (uHayPatron > 0.5 && vPat.x > 0.0) {
+    base = texture2D(uPatron, vec2(vPat.x, 1.0 - vPat.y)).rgb;
+    if (atras) { vec2 uvD; caraPlayera(true, uvD); vec4 nd = texture2D(uDorsal, uvD); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }
+  }
 } else if (t > uShortBot) {
   base = uShort; zona = 2.0;
   if (uHayShort > 0.5) {
@@ -409,8 +418,9 @@ if (t > uZonas.z - 0.01) {
     float deFrente = normalize(vNormMundo).z;
     s.a *= smoothstep(0.5, 0.68, deFrente);
     base = mix(uShort, s.rgb / max(s.a, 0.004), s.a);
+    if (uHayPatron > 0.5 && vPat.x > 0.0) base = texture2D(uPatron, vec2(vPat.x, 1.0 - vPat.y)).rgb;
     if (!atras && uHayNum > 0.5) { vec4 ns = texture2D(uShortNum, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w)); base = mix(base, ns.rgb / max(ns.a, 0.004), ns.a); }
-  }
+  } else if (uHayPatron > 0.5 && vPat.x > 0.0) base = texture2D(uPatron, vec2(vPat.x, 1.0 - vPat.y)).rgb;
 } else {
   base = uSock; zona = 3.0;
   if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
@@ -452,7 +462,27 @@ diffuseColor.rgb *= base;`);
     raiz.add(kit);
     medirZonas();
     await ponerTacos();
+    await ponerPatron(M);
     aplicarFotos();
+  }
+  // el patrón de costura del modelo (scripts/patron.py): cada esquina de cada triángulo sabe en qué punto de su pieza plana
+  // cae. El modelo se separa en triángulos sueltos para que las costuras (costados, debajo de la manga) queden limpias.
+  const patrones = {}, piezas = {};
+  async function ponerPatron(M) {
+    const k = M.url.replace('.glb', '');
+    if (!(k in patrones)) {
+      try { const r = await fetch(base + k + '-patron.bin?v=' + (window.VERSION || '1')); patrones[k] = r.ok ? new Uint16Array(await r.arrayBuffer()) : null; } catch (e) { patrones[k] = null; }
+      try { const r = await fetch(base + k + '-pieza.bin?v=' + (window.VERSION || '1')); piezas[k] = r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch (e) { piezas[k] = null; }
+    }
+    const q = patrones[k], g0 = kitMesh.geometry;
+    if (!q || !g0.index || q.length !== g0.index.count * 2) { E.patronListo = false; return; }
+    const g = g0.toNonIndexed(), f = new Float32Array(q.length);
+    for (let i = 0; i < q.length; i++) f[i] = q[i] ? (q[i] - 1) / 65534 : -1;
+    g.setAttribute('patron', new THREE.BufferAttribute(f, 2));
+    const pz = piezas[k], fp = new Float32Array(g.attributes.position.count).fill(255);
+    if (pz && pz.length * 3 === fp.length) for (let i = 0; i < pz.length; i++) fp[i * 3] = fp[i * 3 + 1] = fp[i * 3 + 2] = pz[i];
+    g.setAttribute('piezaPat', new THREE.BufferAttribute(fp, 1));
+    kitMesh.geometry = g; E.patronListo = true;
   }
   // medidas del modelo para pegar la foto: torso y short
   function medirZonas() {
@@ -590,6 +620,8 @@ diffuseColor.rgb *= base;`);
     pintarEspalda();
     pintarShort();
     pintarMangas();
+    const pat = E.fotos.patron && E.fotos.patron[E.manga];
+    if (pat && E.patronListo) { if (uni.uPatron.value && uni.uPatron.value.image === pat) {} else { const tp = textura(pat); tp.anisotropy = 8; poner(uni.uPatron, tp); } uni.uHayPatron.value = 1; } else uni.uHayPatron.value = 0;
     uni.uOtroLargo.value = E.mangaFotos === 'corta' && E.manga === 'larga' ? 1 : 0;
     uni.uShort.value.set(E.colorShort); uni.uSock.value.set(E.colorCalceta);
     uni.uHayFranja.value = E.colorFranja ? 1 : 0; if (E.colorFranja) uni.uFranja.value.set(E.colorFranja);
@@ -824,6 +856,7 @@ diffuseColor.rgb *= base;`);
   const api = {
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short); E.fotos.mangaI = canvasDe(o.mangaI); E.fotos.mangaD = canvasDe(o.mangaD); E.mangaFotos = o.mangaFotos || '';
+      E.fotos.patron = { corta: canvasDe(o.patronCorta), larga: canvasDe(o.patronLarga) };
       if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || ''; E.numeroShort = !!o.numeroShort; E.torso = Array.isArray(o.torso) ? o.torso : null;
       api.ajuste(o.ajuste);
       const m = o.manga || E.manga;

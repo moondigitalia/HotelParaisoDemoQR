@@ -794,6 +794,16 @@
     }
     if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
     var esManga = pnSel === 'mangaI' || pnSel === 'mangaD';
+    var clavePat = u.manga === 'larga' ? 'patronLarga' : 'patronCorta';
+    if (esManga && (u.fotos || {})[clavePat]) {
+      // uniforme hecho con molde: la manga ya trae su tela del molde; si el generador puso los parches en el brazo
+      // contrario, un toque los pasa al otro brazo (sin volver a generar)
+      ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>' + NOM_PIEZA[pnSel] + '</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>' +
+        '<div class="pn-ctl-extra"><button type="button" class="chip" data-ctl="cambiar">Pasar al otro brazo</button></div>';
+      $('[data-ctl="listo"]', ctl).addEventListener('click', function () { elegirPieza(''); });
+      $('[data-ctl="cambiar"]', ctl).addEventListener('click', function () { cambiarMangas(u, clavePat); });
+      return;
+    }
     if (esManga && !(u.fotos || {})[pnSel]) {
       // la manga todavía sin su foto: sale de las fotos del frente y la espalda; aquí se le pone la suya
       ctl.innerHTML = '<div class="pn-ctl-tit"><span class="pn-ctl-pieza"><i></i>' + NOM_PIEZA[pnSel] + '</span><button type="button" class="pn-ctl-listo" data-ctl="listo">Listo</button></div>' +
@@ -896,9 +906,9 @@
     A.cargarMotor().then(function () { return window.Motor3D.crear(c); }).then(function (m) {
       return falta.reduce(function (cadena, u) {
         return cadena.then(function () {
-          return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
+          return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD), imagenP(u.fotos.patronCorta), imagenP(u.fotos.patronLarga)]).then(function (im) {
             if (!im[0]) return;
-            return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null })
+            return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], patronCorta: im[5], patronLarga: im[6], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, torso: u.torso || null, ajuste: u.ajuste || null })
               .then(function () { return m.taco('negro'); })
               .then(function () { m.dorsal({ nombre: '', numero: '' }); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); })
               .then(function () { return A.subirConReintento(m.foto(480, 720, 'frente', true), 'catalogo'); })
@@ -928,9 +938,9 @@
       }
       return mEditor.p.then(function (m) {
         mEditor.m = m;
-        return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
+        return Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD), imagenP(u.fotos.patronCorta), imagenP(u.fotos.patronLarga)]).then(function (im) {
           if (m.congelar) m.congelar(true);   // cambia de un solo jalón, sin pasos a medias
-          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
+          return m.uniforme({ frente: im[0], espalda: im[1], short: im[2], mangaI: im[3], mangaD: im[4], patronCorta: im[5], patronLarga: im[6], mangaFotos: u.manga === 'larga' ? 'larga' : 'corta', manga: u.manga === 'larga' ? 'larga' : 'corta', colorShort: u.colorShort || '#f3f3f5', colorCalceta: u.colorCalceta || u.colorShort || '#f3f3f5', colorFranja: u.colorFranja || '', numeroShort: !!u.numeroShort, ajuste: u.ajuste || null });
         }).then(function () { return m.taco('negro'); }).then(function () { m.dorsal({ nombre: 'JUANPI', numero: '69', color: u.colorTexto || '#111111', sello: true }); m.vista(pvVista, false); return new Promise(function (ok) { requestAnimationFrame(function () { requestAnimationFrame(ok); }); }); }).then(function () { if (m.congelar) m.congelar(false); }, function () { if (m.congelar) m.congelar(false); });
       });
     });
@@ -938,7 +948,7 @@
   /* ---------- el molde lleno ----------
      Las 4 marcas de las esquinas dicen cómo enderezarlo (aunque el generador lo haya movido o achicado); la máscara del molde
      dice qué pixel es de qué pieza. Cada pieza sale recortada justo por su silueta y entra como foto del uniforme. */
-  var TEXTO_MOLDE = 'La primera imagen es un MOLDE. Las demás son fotos reales de un uniforme de fútbol (frente de la playera, espalda de la playera y frente del short; si hay, también las mangas). Pinta ese mismo uniforme dentro de las siluetas blancas del molde: en FRENTE el frente de la playera, en ESPALDA la espalda, en SHORT el frente del short. En MANGA DERECHA DEL JUGADOR y MANGA IZQUIERDA DEL JUGADOR pinta la cara de afuera de cada manga (derecha e izquierda de quien viste la playera: en la foto del frente, la derecha del jugador se ve a tu izquierda), cada una solo con los parches que se ven en esa manga en las fotos (si una manga no trae parche, déjala lisa; no pases a las mangas logos del pecho ni de la espalda), con el hombro arriba y el puño abajo, con sus franjas, puños y parches. Reglas: no muevas nada del molde; deja igual el fondo gris, los cuadros negros de las cuatro esquinas, los textos y los contornos; llena cada silueta completa hasta su contorno, sin salirte; vista plana y de frente, sin sombras, sin arrugas y sin personas; copia exactamente los colores, logos, escudos y patrocinadores de las fotos; no inventes nada que no esté en las fotos.';
+  var TEXTO_MOLDE = 'La primera imagen es un MOLDE: el patrón de costura de una playera de fútbol y su short, con cada pieza plana y en su tamaño real. Las demás son fotos reales de un uniforme (frente y espalda de la playera, frente del short; si hay, también las mangas). Pinta ese mismo uniforme dentro de las piezas blancas, como si la tela estuviera cortada para coserse: en FRENTE el frente de la playera (sin mangas), en ESPALDA la espalda vista desde atrás, en SHORT el frente del short. Cada MANGA es la manga completa desenrollada: arriba el hombro, abajo el puño, en el centro la cara de afuera del brazo (donde van los parches) y en las orillas de los lados la costura de abajo del brazo; fíjate en la foto del frente: lo que trae la manga que ves a tu izquierda va en la caja de la izquierda, y lo de la manga que ves a tu derecha va en la caja de la derecha. Pon en cada manga solo los parches, franjas y puños que se ven en esa manga en las fotos; si no trae parche, déjala lisa. Reglas: no muevas ni cambies el tamaño de las piezas; deja igual el fondo gris, los cuadros negros de las cuatro esquinas y los textos; llena cada pieza completa hasta su contorno; vista plana, sin sombras, sin arrugas y sin personas; copia exactamente los colores, logos, escudos y patrocinadores de las fotos; no inventes nada que no esté en las fotos.';
   function copiarTexto(t) {
     if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(function () { return copiarViejo(t); });
     return Promise.resolve(copiarViejo(t));
@@ -1048,13 +1058,35 @@
     }
     g.putImageData(im, 0, 0);
   }
+  // EL MOLDE LLENO → la tela del uniforme. El molde ES el patrón de costura del 3D (scripts/patron.py + molde.py), así que
+  // cada pieza pintada se pone tal cual en su lugar del patrón: lo que se ve en el molde es lo que se ve en el 3D.
+  // Pasos: 1) enderezar la hoja con las 4 marcas; 2) cada pieza: lo que el generador pintó en su zona (aunque se haya
+  // pasado tantito de la línea o quedado más chico) se acomoda a la silueta exacta; 3) sin la línea del contorno y con la
+  // tela extendida un poco más allá de cada orilla (las costuras del 3D nunca toman el fondo gris).
+  // las dos mangas del molde cambian de brazo (los parches quedan en la cara de afuera y se leen derecho)
+  function cambiarMangas(u, clave) {
+    var tipo = clave === 'patronLarga' ? 'larga' : 'corta';
+    A.toast('Pasando las mangas al otro brazo…', true);
+    Promise.all([imagenP(u.fotos[clave]), cargarJSON('/assets/molde/molde-' + tipo + '.json?v=' + (window.VERSION || '1'))]).then(function (r) {
+      if (!r[0]) throw new Error('img');
+      var S = 2048, c = document.createElement('canvas'); c.width = c.height = S; var g = c.getContext('2d'); g.drawImage(r[0], 0, 0, S, S);
+      var orig = document.createElement('canvas'); orig.width = orig.height = S; orig.getContext('2d').drawImage(c, 0, 0);
+      var bI = r[1].piezas.mangaI, bD = r[1].piezas.mangaD, m = 40;
+      var caja = function (b) { return [b[0] - m, b[1] - m, b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m]; };
+      var cI = caja(bI), cD = caja(bD);
+      g.clearRect(cI[0], cI[1], cI[2], cI[3]); g.clearRect(cD[0], cD[1], cD[2], cD[3]);
+      g.drawImage(orig, cD[0], cD[1], cD[2], cD[3], cI[0], cI[1], cI[2], cI[3]);
+      g.drawImage(orig, cI[0], cI[1], cI[2], cI[3], cD[0], cD[1], cD[2], cD[3]);
+      var datos = c.toDataURL('image/webp', 0.9); if (datos.indexOf('data:image/webp') !== 0) datos = c.toDataURL('image/jpeg', 0.92);
+      return A.subirConReintento(datos, 'catalogo');
+    }).then(function (url) { u.fotos[clave] = url; A.toast('Listo: las mangas cambiaron de brazo'); return previsualizar(); }).catch(function () { A.toast('No se pudo cambiar. Inténtalo otra vez.'); });
+  }
   function leerMolde(file) {
     var u = P.editando; if (!u) return;
     A.toast('Leyendo el molde…', true);
-    var hoja;
+    var S = 2048;
     A.cargarArchivo(file).then(function (im) {
-      hoja = A.aCanvas(im, 2400); var W = hoja.width, H = hoja.height, d = hoja.getContext('2d').getImageData(0, 0, W, H).data;
-      // las marcas: lo oscuro de cada esquina (los cuadros negros), su centro
+      var hoja = A.aCanvas(im, 2400), W = hoja.width, H = hoja.height, d = hoja.getContext('2d').getImageData(0, 0, W, H).data;
       var marca = function (fx, fy) {
         var x0 = Math.round(fx ? W * 0.86 : 0), x1 = Math.round(fx ? W : W * 0.14), y0 = Math.round(fy ? H * 0.86 : 0), y1 = Math.round(fy ? H : H * 0.14), sx = 0, sy = 0, n = 0;
         for (var y = y0; y < y1; y += 2) for (var x = x0; x < x1; x += 2) { var i = (y * W + x) * 4; if (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11 < 75) { sx += x; sy += y; n++; } }
@@ -1063,91 +1095,78 @@
       var mk = [marca(0, 0), marca(1, 0), marca(0, 1), marca(1, 1)];
       if (mk.some(function (m) { return !m; })) throw new Error('marcas');
       return cargarJSON('/assets/molde/molde-corta.json?v=' + (window.VERSION || '1')).then(function (J) {
-        var aHoja = homografia(J.marcas, mk);
-        // ¿manga corta o larga? En el molde de corta, la caja de la manga va pintada casi completa; en el de larga, solo una tira
-        var bI = J.piezas.mangaI, pint = 0, tot = 0, yM = (bI[1] + bI[3]) / 2;
-        for (var x = bI[0] + 10; x < bI[2] - 10; x += 4) { var q = aHoja(x, yM), i = (Math.round(q[1]) * W + Math.round(q[0])) * 4; tot++; if (Math.abs(d[i] - 236) + Math.abs(d[i + 1] - 238) + Math.abs(d[i + 2] - 243) > 40) pint++; }
-        var tipo = pint / Math.max(1, tot) > 0.7 ? 'corta' : 'larga';
+        var aH = homografia(J.marcas, mk);
+        var fondo = function (i) { return Math.abs(d[i] - 236) + Math.abs(d[i + 1] - 238) + Math.abs(d[i + 2] - 243) <= 30; };
+        // ¿corta o larga? Solo las mangas largas bajan hasta esta altura: ahí se cruzan sus contornos (líneas oscuras) o su tela
+        // de color. Una playera blanca casi no se distingue del fondo, pero su contorno sí.
+        var lineas = 0, color = 0, tot = 0, enLinea = false;
+        for (var x = 150; x < 1250; x += 2) {
+          var q = aH(x, 1650), qi = (Math.round(q[1]) * W + Math.round(q[0])) * 4, lum = d[qi] * 0.3 + d[qi + 1] * 0.59 + d[qi + 2] * 0.11; tot++;
+          if (lum < 130) { if (!enLinea) lineas++; enLinea = true; } else enLinea = false;
+          if (!fondo(qi)) color++;
+        }
+        var tipo = lineas >= 3 || color / tot > 0.35 ? 'larga' : 'corta';
         return Promise.all([tipo === 'corta' ? J : cargarJSON('/assets/molde/molde-larga.json?v=' + (window.VERSION || '1')), imagenP('/assets/molde/molde-' + tipo + '-mascara.png?v=' + (window.VERSION || '1'))]).then(function (r) {
-          var JT = r[0], mc = A.aCanvas(r[1], 2048), md = mc.getContext('2d').getImageData(0, 0, mc.width, mc.height).data, MW = mc.width, aH = homografia(JT.marcas, mk);
-          var piezas = {};
-          // playera y short: se toma TODO lo que el generador pintó en su zona (aunque se pase de la línea), sin el fondo,
-          // y se acomoda al 3D igual que una foto normal. Las mangas sí van por su caja exacta (son el tubo extendido).
-          ['frente', 'espalda', 'short'].forEach(function (k) {
-            var b = JT.piezas[k], z;
-            if (k === 'short') z = [b[0] - 60, b[1] - 12, Math.min(2000, b[2] + 60), Math.min(1935, b[3] + 230)];
-            else z = [k === 'frente' ? 100 : 1024, b[1] - 8, k === 'frente' ? 1024 : 1948, 1170];
-            var zw = z[2] - z[0], zh = z[3] - z[1], px = new Uint8ClampedArray(zw * zh * 4), pin = new Uint8Array(zw * zh);
-            for (var y = 0; y < zh; y++) for (var x = 0; x < zw; x++) {
-              var q = aH(z[0] + x + 0.5, z[1] + y + 0.5), sx = Math.round(q[0]), sy = Math.round(q[1]); if (sx < 0 || sy < 0 || sx >= W || sy >= H) continue;
-              var i = (sy * W + sx) * 4, j = y * zw + x; px[j * 4] = d[i]; px[j * 4 + 1] = d[i + 1]; px[j * 4 + 2] = d[i + 2];
-              if (Math.abs(d[i] - 236) + Math.abs(d[i + 1] - 238) + Math.abs(d[i + 2] - 243) > 30) pin[j] = 1;
+          var JT = r[0], md = A.aCanvas(r[1], S).getContext('2d').getImageData(0, 0, S, S).data;
+          var at = document.createElement('canvas'); at.width = at.height = S; var ag = at.getContext('2d'), ad = ag.createImageData(S, S), o = ad.data;
+          var sueltas = {};
+          Object.keys(JT.piezas).forEach(function (k) {
+            var tb = JT.piezas[k], val = JT.mascara[k], m = 24;
+            // lo pintado en la zona de esta pieza (la mancha más grande): su caja en coordenadas del molde
+            var zx0 = Math.max(0, tb[0] - m), zy0 = Math.max(0, tb[1] - m), zx1 = Math.min(S, tb[2] + m), zy1 = Math.min(S, tb[3] + m), zw = zx1 - zx0, zh = zy1 - zy0, P2 = 2;
+            var gw = Math.ceil(zw / P2), gh = Math.ceil(zh / P2), pin = new Uint8Array(gw * gh);
+            for (var gy = 0; gy < gh; gy++) for (var gx = 0; gx < gw; gx++) { var qq = aH(zx0 + gx * P2 + 0.5, zy0 + gy * P2 + 0.5), si = (Math.round(qq[1]) * W + Math.round(qq[0])) * 4; if (qq[0] >= 0 && qq[1] >= 0 && qq[0] < W && qq[1] < H && !fondo(si)) pin[gy * gw + gx] = 1; }
+            var et = new Int32Array(gw * gh), mejor = 0, mejorN = 0, n2 = 0, caja = null, cajaN = [gw, gh, -1, -1];
+            for (var s0 = 0; s0 < gw * gh; s0++) {
+              if (!pin[s0] || et[s0]) continue; n2++; var pila = [s0], cnt = 0, bx = [gw, gh, -1, -1]; et[s0] = n2;
+              while (pila.length) { var p = pila.pop(), px = p % gw, py = (p - px) / gw; cnt++; if (px < bx[0]) bx[0] = px; if (py < bx[1]) bx[1] = py; if (px > bx[2]) bx[2] = px; if (py > bx[3]) bx[3] = py;
+                [p - gw, p + gw, px > 0 ? p - 1 : -1, px < gw - 1 ? p + 1 : -1].forEach(function (v) { if (v >= 0 && v < gw * gh && pin[v] && !et[v]) { et[v] = n2; pila.push(v); } }); }
+              if (cnt > mejorN) { mejorN = cnt; mejor = n2; cajaN = bx; }
             }
-            // la mancha pintada más grande (los letreros quedan fuera), con sus huecos rellenos (cuello, letras blancas)
-            var et = new Int32Array(zw * zh), mejor = 0, mejorN = 0, pila = [], n = 0;
-            for (var s = 0; s < zw * zh; s++) {
-              if (!pin[s] || et[s]) continue; n++; var cnt = 0; et[s] = n; pila.push(s);
-              while (pila.length) { var p = pila.pop(), px0 = p % zw; cnt++;
-                [p - zw, p + zw, px0 > 0 ? p - 1 : -1, px0 < zw - 1 ? p + 1 : -1].forEach(function (v) { if (v >= 0 && v < zw * zh && pin[v] && !et[v]) { et[v] = n; pila.push(v); } }); }
-              if (cnt > mejorN) { mejorN = cnt; mejor = n; }
+            var tw = tb[2] - tb[0], th = tb[3] - tb[1];
+            if (mejorN > gw * gh * 0.08) caja = [zx0 + cajaN[0] * P2, zy0 + cajaN[1] * P2, zx0 + (cajaN[2] + 1) * P2, zy0 + (cajaN[3] + 1) * P2];
+            // si lo pintado no se parece en tamaño a la pieza (otra cosa), se usa la silueta tal cual
+            if (!caja || Math.abs((caja[2] - caja[0]) / tw - 1) > 0.25 || Math.abs((caja[3] - caja[1]) / th - 1) > 0.25) caja = tb;
+            var kx = (caja[2] - caja[0]) / tw, ky = (caja[3] - caja[1]) / th, b = 14;
+            for (var y2 = tb[1]; y2 < tb[3]; y2++) for (var x2 = tb[0]; x2 < tb[2]; x2++) {
+              var mi = (y2 * S + x2) * 4; if (Math.abs(md[mi] - val) > 10) continue;
+              // la orilla (donde va la línea del contorno) no se toma: la llena la tela de adentro
+              var orilla = false;
+              for (var e = 0; e < 8 && !orilla; e++) { var ox = [b, -b, 0, 0, 10, -10, 10, -10][e], oy = [0, 0, b, -b, 10, 10, -10, -10][e], X = x2 + ox, Y = y2 + oy; if (X < 0 || Y < 0 || X >= S || Y >= S || Math.abs(md[(Y * S + X) * 4] - val) > 10) orilla = true; }
+              if (orilla) continue;
+              var hq = aH(caja[0] + (x2 - tb[0] + 0.5) * kx, caja[1] + (y2 - tb[1] + 0.5) * ky), hx = Math.round(hq[0]), hy = Math.round(hq[1]);
+              if (hx < 0 || hy < 0 || hx >= W || hy >= H) continue;
+              var hi = (hy * W + hx) * 4; o[mi] = d[hi]; o[mi + 1] = d[hi + 1]; o[mi + 2] = d[hi + 2]; o[mi + 3] = 255;
             }
-            var fuera = new Uint8Array(zw * zh);   // fondo que se alcanza desde la orilla de la zona
-            for (var e = 0; e < zw; e++) { pila.push(e, (zh - 1) * zw + e); } for (e = 0; e < zh; e++) { pila.push(e * zw, e * zw + zw - 1); }
-            while (pila.length) { var t = pila.pop(); if (t < 0 || t >= zw * zh || fuera[t] || et[t] === mejor) continue; fuera[t] = 1; var tx = t % zw; pila.push(t - zw, t + zw); if (tx > 0) pila.push(t - 1); if (tx < zw - 1) pila.push(t + 1); }
-            // la línea del contorno que dibuja el generador no entra a la pieza: se quita una tira fina de la orilla
-            for (var it = 0; it < 6; it++) { var quitar = []; for (s = 0; s < zw * zh; s++) { if (fuera[s]) continue; var sx3 = s % zw; if (s < zw || s >= zw * (zh - 1) || sx3 === 0 || sx3 === zw - 1 || fuera[s - zw] || fuera[s + zw] || fuera[s - 1] || fuera[s + 1]) quitar.push(s); } quitar.forEach(function (v) { fuera[v] = 1; }); }
-            var x0 = zw, y0 = zh, x1 = -1, y1 = -1;
-            for (s = 0; s < zw * zh; s++) if (!fuera[s]) { var sx2 = s % zw, sy2 = (s - sx2) / zw; if (sx2 < x0) x0 = sx2; if (sx2 > x1) x1 = sx2; if (sy2 < y0) y0 = sy2; if (sy2 > y1) y1 = sy2; }
-            if (x1 < 0 || mejorN < zw * zh * 0.04) throw new Error('pieza');
-            var cw = x1 - x0 + 1, ch = y1 - y0 + 1, c = document.createElement('canvas'); c.width = cw; c.height = ch;
-            var g = c.getContext('2d'), out = g.createImageData(cw, ch), o = out.data;
-            for (y = 0; y < ch; y++) for (x = 0; x < cw; x++) { var a = (y + y0) * zw + x + x0, m = (y * cw + x) * 4; if (fuera[a]) continue; o[m] = px[a * 4]; o[m + 1] = px[a * 4 + 1]; o[m + 2] = px[a * 4 + 2]; o[m + 3] = 255; }
-            g.putImageData(out, 0, 0); piezas[k] = c;
           });
-          ['mangaI', 'mangaD'].forEach(function (k) {
-            var b = JT.piezas[k], val = JT.mascara[k], w = b[2] - b[0], h = b[3] - b[1], c = document.createElement('canvas'); c.width = w; c.height = h;
-            var g = c.getContext('2d'), out = g.createImageData(w, h), o = out.data;
-            for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
-              var tx = b[0] + x, ty = b[1] + y; if (Math.abs(md[(ty * MW + tx) * 4] - val) > 10) continue;
-              var q = aH(tx + 0.5, ty + 0.5), sx = Math.round(q[0]), sy = Math.round(q[1]); if (sx < 0 || sy < 0 || sx >= W || sy >= H) continue;
-              var i = (sy * W + sx) * 4, j = (y * w + x) * 4; o[j] = d[i]; o[j + 1] = d[i + 1]; o[j + 2] = d[i + 2]; o[j + 3] = 255;
-            }
-            // si el generador no llenó toda la caja (dibujó otra forma), lo que quedó del fondo gris no es tela: se quita
-            // desde la orilla de la caja hacia adentro, solo lo que es del color del fondo
-            var vis = new Uint8Array(w * h), pila = [];
-            for (x = 0; x < w; x++) pila.push(x, (h - 1) * w + x); for (y = 0; y < h; y++) pila.push(y * w, y * w + w - 1);
-            while (pila.length) { var t = pila.pop(); if (t < 0 || t >= w * h || vis[t]) continue; vis[t] = 1; var m = t * 4;
-              if (o[m + 3] && Math.abs(o[m] - 236) + Math.abs(o[m + 1] - 238) + Math.abs(o[m + 2] - 243) > 22) continue;
-              o[m + 3] = 0; var tx2 = t % w; pila.push(t - w, t + w); if (tx2 > 0) pila.push(t - 1); if (tx2 < w - 1) pila.push(t + 1); }
-            g.putImageData(out, 0, 0); piezas[k] = c;
+          ag.putImageData(ad, 0, 0);
+          // cada pieza sola (con su transparencia) sirve como "foto": colores del buscador, nombre y número, círculos
+          ['frente', 'espalda', 'short'].forEach(function (k) { var tb = JT.piezas[k], c = document.createElement('canvas'); c.width = tb[2] - tb[0]; c.height = tb[3] - tb[1]; c.getContext('2d').drawImage(at, tb[0], tb[1], c.width, c.height, 0, 0, c.width, c.height); sueltas[k] = c; });
+          // la tela se extiende más allá de cada orilla (la costura del 3D nunca toma gris)
+          var tmp = document.createElement('canvas'); tmp.width = tmp.height = S; var tg = tmp.getContext('2d');
+          [1, 2, 3, 5, 8, 13, 21, 34].forEach(function (dd) {
+            tg.clearRect(0, 0, S, S); tg.drawImage(at, 0, 0);
+            ag.globalCompositeOperation = 'destination-over';
+            [[dd, 0], [-dd, 0], [0, dd], [0, -dd]].forEach(function (o2) { ag.drawImage(tmp, o2[0], o2[1]); });
+            ag.globalCompositeOperation = 'source-over';
           });
-          // ¿cuál manga es cuál? Los generadores confunden derecha e izquierda. Se compara cada manga con cómo se ven las
-          // mangas en el FRENTE de la misma hoja (sus parches y franjas) y, si quedaron al revés, se cambian solas.
-          if (mangasAlReves(piezas, tipo)) { var tmp = piezas.mangaI; piezas.mangaI = piezas.mangaD; piezas.mangaD = tmp; }
-          // manga I del 3D = la derecha del jugador: en el FRENTE se ve a la izquierda y en la ESPALDA a la derecha
-          var fc = cuerpoDe(piezas.frente), ec = cuerpoDe(piezas.espalda), alto = tipo === 'corta' ? 0.45 : 0.97, quitadas = [];
-          if (fc && ec) ['mangaI', 'mangaD'].forEach(function (k) {
-            var izqF = k === 'mangaI', zonas = [
-              { c: piezas.frente, dentro: function (x, y, w, h) { return (izqF ? x < fc[0] : x > fc[1]) && y < h * alto; } },
-              { c: piezas.espalda, dentro: function (x, y, w, h) { return (izqF ? x > ec[1] : x < ec[0]) && y < h * alto; } }];
-            var inv = mangaInventada(piezas[k], zonas);
-            if (inv.length) { quitadas.push(k); inv.forEach(function (b) { borrarParche(piezas[k], b.caja); }); }
-          });
-          return { tipo: tipo, piezas: piezas, quitadas: quitadas };
+          ag.globalCompositeOperation = 'destination-over'; ag.fillStyle = '#808080'; ag.fillRect(0, 0, S, S); ag.globalCompositeOperation = 'source-over';
+          return { tipo: tipo, atlas: at, piezas: sueltas };
         });
       });
     }).then(function (r) {
-      u.manga = r.tipo; u.ajuste = {};
-      var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
-      return Promise.all(lados.map(function (l) { return ponerFoto(u, l, r.piezas[l]); })).then(function () {
+      u.manga = r.tipo; u.ajuste = {}; delete u.fotos.mangaI; delete u.fotos.mangaD;
+      var clave = r.tipo === 'larga' ? 'patronLarga' : 'patronCorta';
+      var datos = r.atlas.toDataURL('image/webp', 0.9); if (datos.indexOf('data:image/webp') !== 0) datos = r.atlas.toDataURL('image/jpeg', 0.92);
+      return Promise.all([A.subirConReintento(datos, 'catalogo').then(function (url) { u.fotos[clave] = url; })].concat(['frente', 'espalda', 'short'].map(function (l) { return ponerFoto(u, l, r.piezas[l]); }))).then(function () {
         u.shortPropio = true;
-        var nomM = { mangaI: 'derecha', mangaD: 'izquierda' }, q = r.quitadas.map(function (l) { return nomM[l]; });
-        P.avisos = ['Molde de manga ' + r.tipo + ' leído: cada pieza quedó en su lugar.' + (q.length ? ' La manga ' + q.join(' y la ') + ' traía un parche que no aparece en el frente ni en la espalda (el generador lo inventó): lo borramos y quedó la tela de la manga.' : '') + ' Revisa en el 3D que todo venga de tus fotos antes de guardar.'];
+        var otro = r.tipo === 'larga' ? 'corta' : 'larga', tieneOtro = !!u.fotos[r.tipo === 'larga' ? 'patronCorta' : 'patronLarga'];
+        P.avisos = ['Molde de manga ' + r.tipo + ' leído: cada pieza quedó en su lugar del uniforme.' + (tieneOtro ? '' : ' Si también subes el molde de manga ' + otro + ', esa versión se verá igual de bien.') + ' Revisa en el 3D que todo venga de tus fotos antes de guardar.'];
         pintar(); $('#ed-aviso').innerHTML = '<div class="aviso"><p>' + esc(P.avisos[0]) + '</p></div>';
         A.toast('Molde listo'); previsualizar();
       });
     }).catch(function (e) {
-      A.toast(e && e.message === 'marcas' ? 'No encontramos las 4 marcas negras de las esquinas. Sube el molde completo, sin recortar.' : e && e.message === 'pieza' ? 'Al molde le falta una pieza pintada (playera o short). Pídele al generador que llene todas.' : 'No se pudo leer el molde. Inténtalo otra vez.');
+      A.toast(e && e.message === 'marcas' ? 'No encontramos las 4 marcas negras de las esquinas. Sube el molde completo, sin recortar.' : 'No se pudo leer el molde. Inténtalo otra vez.');
     });
   }
   // la foto del dueño: se recorta el fondo, se revisa y se sube; de la del frente salen los colores para el buscador
@@ -1285,7 +1304,7 @@
     Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
       var M = window.Motor3D, cf = A.aCanvas(im[0], 1000), base = M.coloresBase(cf);
       var nuevo = A.clone(u); nuevo.id = 'u' + Date.now().toString(36); nuevo.nuevo = true; delete nuevo.destacado; delete nuevo.oculto;
-      nuevo.nombre = ''; nuevo.mini = ''; nuevo.version = '';
+      nuevo.nombre = ''; nuevo.mini = ''; nuevo.version = ''; delete nuevo.fotos.patronCorta; delete nuevo.fotos.patronLarga;
       var mapa = function (hex) { var c = document.createElement('canvas'); c.width = c.height = 1; var g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 1, 1); return hexDe(Array.from(M.recolorear(c, base, rgb).getContext('2d').getImageData(0, 0, 1, 1).data).slice(0, 3)); };
       ['colorShort', 'colorCalceta', 'colorFranja', 'colorTexto'].forEach(function (k) { if (nuevo[k]) nuevo[k] = mapa(nuevo[k]); });
       var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
