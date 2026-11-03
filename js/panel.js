@@ -1127,12 +1127,12 @@
             if (mejorN > gw * gh * 0.08) caja = [zx0 + cajaN[0] * P2, zy0 + cajaN[1] * P2, zx0 + (cajaN[2] + 1) * P2, zy0 + (cajaN[3] + 1) * P2];
             // si lo pintado no se parece en tamaño a la pieza (otra cosa), se usa la silueta tal cual
             if (!caja || Math.abs((caja[2] - caja[0]) / tw - 1) > 0.25 || Math.abs((caja[3] - caja[1]) / th - 1) > 0.25) caja = tb;
-            var kx = (caja[2] - caja[0]) / tw, ky = (caja[3] - caja[1]) / th, b = 14;
+            var kx = (caja[2] - caja[0]) / tw, ky = (caja[3] - caja[1]) / th, b = 8;
             for (var y2 = tb[1]; y2 < tb[3]; y2++) for (var x2 = tb[0]; x2 < tb[2]; x2++) {
               var mi = (y2 * S + x2) * 4; if (Math.abs(md[mi] - val) > 10) continue;
-              // la orilla (donde va la línea del contorno) no se toma: la llena la tela de adentro
+              // la orilla (donde va la línea del contorno que dibuja el generador) no se toma: la llena la tela de adentro
               var orilla = false;
-              for (var e = 0; e < 8 && !orilla; e++) { var ox = [b, -b, 0, 0, 10, -10, 10, -10][e], oy = [0, 0, b, -b, 10, 10, -10, -10][e], X = x2 + ox, Y = y2 + oy; if (X < 0 || Y < 0 || X >= S || Y >= S || Math.abs(md[(Y * S + X) * 4] - val) > 10) orilla = true; }
+              for (var e = 0; e < 8 && !orilla; e++) { var ox = [b, -b, 0, 0, 6, -6, 6, -6][e], oy = [0, 0, b, -b, 6, 6, -6, -6][e], X = x2 + ox, Y = y2 + oy; if (X < 0 || Y < 0 || X >= S || Y >= S || Math.abs(md[(Y * S + X) * 4] - val) > 10) orilla = true; }
               if (orilla) continue;
               var hq = aH(caja[0] + (x2 - tb[0] + 0.5) * kx, caja[1] + (y2 - tb[1] + 0.5) * ky), hx = Math.round(hq[0]), hy = Math.round(hq[1]);
               if (hx < 0 || hy < 0 || hx >= W || hy >= H) continue;
