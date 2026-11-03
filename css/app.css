@@ -1875,7 +1875,11 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-cl-ed .pn-cl-unis::-webkit-scrollbar{display:none}
 .pn-cl-ed .pn-cl-uni{scroll-snap-align:start}
 /* panel · molde para generador de imágenes */
-.pn-molde-p{margin:4px 0 10px;font-size:13px;line-height:1.4;color:var(--suave,rgba(255,255,255,.75))}
+.pn-molde{margin:14px 0 0;padding:14px 16px;border-radius:22px;background:rgba(255,198,26,.08);border:1px solid rgba(255,198,26,.35)}
+.pn-molde-t{display:block;font-size:15px;line-height:1.35;margin:0 0 10px}
+.pn-molde-pasos{margin:0;padding:0 0 0 20px;display:grid;gap:10px}
+.pn-molde-pasos li{font-size:14px;line-height:1.35}
+.pn-molde-pasos li>span:first-child{display:block;margin:0 0 6px}
 .pn-molde-b{display:flex;flex-wrap:wrap;gap:8px}
 .pn-molde-b .chip{text-decoration:none}
 .pn-molde-subir{position:relative;cursor:pointer;background:var(--oro);color:#0A1033;border-color:var(--oro)}
