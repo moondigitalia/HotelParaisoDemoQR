@@ -1,5 +1,5 @@
 # LAS MANGAS DE LOS DOS MOLDES, para sacar un largo del otro (manga larga desde la corta y al revés).
-# Por cada manga del molde: su caja, cuántos pixeles mide un metro y, renglón por renglón (64), hasta dónde llega la tela a
+# Por cada pieza del molde (mangas, frente, espalda y short): su caja, cuántos pixeles mide un metro y, renglón por renglón (64), hasta dónde llega la tela a
 # la izquierda y a la derecha. El centro de la caja es la cara de afuera del brazo (así lo marca el molde); las orillas son
 # la costura de abajo del brazo. Salida: assets/molde/mangas.json (lo usa src/otro-largo.js).
 import json, numpy as np
@@ -10,7 +10,7 @@ for m in ['corta', 'larga']:
     J = json.load(open(RAIZ + 'assets/molde/molde-%s.json' % m)); P = json.load(open(RAIZ + 'assets/molde/patron-%s.json' % m))
     M = np.array(Image.open(RAIZ + 'assets/molde/molde-%s-mascara.png' % m).convert('L'))
     d = {'tam': J['tam'], 'escala': P['escala'], 'piezas': J['piezas'], 'filas': {}}
-    for k in ['mangaI', 'mangaD']:
+    for k in ['mangaI', 'mangaD', 'frente', 'espalda', 'short']:
         b = J['piezas'][k]; v = J['mascara'][k]; H = b[3] - b[1]; W = b[2] - b[0]; fil = []
         for r in range(64):
             y0 = b[1] + int(r * H / 64); y1 = b[1] + max(int((r + 1) * H / 64), int(r * H / 64) + 1)

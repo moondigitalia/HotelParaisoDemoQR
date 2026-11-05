@@ -11,8 +11,11 @@ import { otroLargo, altoPuno } from './otro-largo.js';
 
 // alturas de cada parte en cada modelo (0 = abajo, 1 = arriba), medidas sobre las imágenes con que se hicieron
 const MODELOS = {
-  corta: { url: 'corta.glb', hem: 0.592, shortBot: 0.398 },
-  larga: { url: 'larga.glb', hem: 0.569, shortBot: 0.388 }
+  // anillo: la orilla de abajo de la playera de verdad (donde el modelo junta sus puntos del dobladillo), 0 abajo, 1 arriba.
+  // estira: cuánto se estira el frente y la espalda del molde para que su orilla de abajo caiga justo en ese dobladillo.
+  // arriba: dónde empiezan el frente y la espalda en el molde (de 0 a 1, de arriba a abajo)
+  corta: { url: 'corta.glb', hem: 0.592, shortBot: 0.398, anillo: 0.5857, estira: 0.9848, arriba: [230 / 2048, 231 / 2048] },
+  larga: { url: 'larga.glb', hem: 0.569, shortBot: 0.388, anillo: 0.5760, estira: 1.0166, arriba: [230 / 2048, 230 / 2048] }
 };
 export const TACOS = {
   negro: { cuerpo: 0x141518, suela: 0x1d2024, tachones: 0x2b8a94 },
@@ -288,7 +291,7 @@ export async function crear(canvas, opt = {}) {
     uCajaMI: { value: new THREE.Vector4(0, 0, 1, 1) }, uCajaMD: { value: new THREE.Vector4(0, 0, 1, 1) },
     uMSI: { value: new THREE.Vector3() }, uMAI: { value: new THREE.Vector3(0, -1, 0) }, uMOI: { value: new THREE.Vector3(-1, 0, 0) }, uMFI: { value: new THREE.Vector3(0, 0, 1) },
     uPatron: { value: null }, uHayPatron: { value: 0 }, uCajaB: { value: new THREE.Vector4(0, 0, 1, 1) },
-    uOtroLargo: { value: 0 }, uPunoM: { value: new THREE.Vector4(1, 1, 1, 1) }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
+    uOtroLargo: { value: 0 }, uDobl: { value: new THREE.Vector4(0.6, 1, 0, 0) }, uPunoM: { value: new THREE.Vector4(1, 1, 1, 1) }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -300,7 +303,7 @@ uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; unifo
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
 uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro; uniform sampler2D uHem; uniform float uHayHem;
 uniform sampler2D uMangaI; uniform sampler2D uMangaD; uniform float uHayMI; uniform float uHayMD; uniform vec4 uCajaMI; uniform vec4 uCajaMD; uniform vec3 uAjMI; uniform vec3 uAjMD;
-uniform float uOtroLargo; uniform vec4 uPunoM; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
+uniform float uOtroLargo; uniform vec4 uDobl; uniform vec4 uPunoM; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo; varying vec2 vF; varying vec2 vB; varying vec2 vS; varying vec2 vH; varying vec2 vSel; uniform sampler2D uPatron; uniform float uHayPatron; uniform vec4 uCajaB;
 // el punto del patrón que le toca a este punto de la tela: la costura se decide aquí, punto por punto (línea suave)
@@ -358,7 +361,8 @@ float t = (vMundo.y - uZonas.x) / uZonas.y;
 vec3 base; vec2 uvSel = vec2(-1.0); float zona = 0.0; float mangaLado = 0.0;   // zona: 1 playera, 2 short, 3 calcetas (para iluminar la pieza escogida en el panel)
 // el uniforme no se mueve (gira la cámara): lo que mira hacia atrás usa la foto de la espalda
 bool atras = vNormMundo.z < 0.0;
-if (t > uZonas.z - 0.01) {
+// con molde, la playera termina justo en su dobladillo (el del modelo); con fotos, como siempre
+if (t > (uHayPatron > 0.5 ? uDobl.x : uZonas.z - 0.01)) {
   // los costados: una foto plana no los muestra. En vez de cambiar de golpe de la foto del frente a la de la espalda en la
   // costura (ahí se veía el corte y lo estirado), en una franja del costado se mezclan las dos, suave, según hacia dónde mira la tela
   float nz = normalize(vNormMundo).z, franja = 0.28;
@@ -424,7 +428,9 @@ if (t > uZonas.z - 0.01) {
   if (uHayPatron > 0.5 && pu.x > 0.0) {
     // en cada costura (costado y hombro) la tela pasa de una pieza a la otra en una franja de ~1 cm, como una costura real:
     // sin el cambio de golpe punto por punto (eso dibujaba una línea punteada del color de la otra pieza)
-    vec3 tF = texture2D(uPatron, vec2(vF.x, 1.0 - vF.y)).rgb, tB = texture2D(uPatron, vec2(vB.x, 1.0 - vB.y)).rgb;
+    // la orilla de abajo del frente y la espalda del molde (su dobladillo pintado) cae justo en el dobladillo del modelo
+    vec2 qF = vec2(vF.x, uDobl.z + (vF.y - uDobl.z) * uDobl.y), qB = vec2(vB.x, uDobl.w + (vB.y - uDobl.w) * uDobl.y);
+    vec3 tF = texture2D(uPatron, vec2(qF.x, 1.0 - qF.y)).rgb, tB = texture2D(uPatron, vec2(qB.x, 1.0 - qB.y)).rgb;
     base = mix(tB, tF, smoothstep(-0.06, 0.06, vSel.x));
     if (vS.x > 0.0) base = mix(base, texture2D(uPatron, vec2(vS.x, 1.0 - vS.y)).rgb, smoothstep(-0.005, 0.005, vSel.y));
     // el nombre y el número van sobre la pieza de la ESPALDA del patrón (su foto es esa misma pieza): no se salen al costado
@@ -483,7 +489,7 @@ diffuseColor.rgb *= base;`);
     kit.updateMatrixWorld(true);
     const bb = new THREE.Box3().setFromObject(kit);
     zonas = { Y0: bb.min.y, YH: bb.max.y - bb.min.y, hem: M.hem, shortBot: M.shortBot, top: bb.max.y };
-    uni.uZonas.value.set(zonas.Y0, zonas.YH, M.hem); uni.uShortBot.value = M.shortBot;
+    uni.uZonas.value.set(zonas.Y0, zonas.YH, M.hem); uni.uShortBot.value = M.shortBot; uni.uDobl.value.set(M.anillo, M.estira, M.arriba[0], M.arriba[1]);
     kitMesh.material = matKit; kitMesh.castShadow = true; kitMesh.receiveShadow = true;
     raiz.add(kit);
     medirZonas();
