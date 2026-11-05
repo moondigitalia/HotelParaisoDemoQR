@@ -32,6 +32,15 @@ export function altoPuno(px, w, h, fila) {
   return h - altos[Math.floor(altos.length * 0.1)];
 }
 
+const mascaras = {};
+function mascara(m, S) {
+  const k = m + S;
+  if (!mascaras[k]) mascaras[k] = new Promise((ok) => {
+    const im = new Image(); im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(im, 0, 0, S, S); ok(g.getImageData(0, 0, S, S).data); };
+    im.onerror = () => ok(null); im.src = '/assets/molde/molde-' + m + '-mascara.png?v=' + (window.VERSION || '1');
+  });
+  return mascaras[k];
+}
 export async function otroLargo(src, de, a) {
   const D = await datos(); if (!D || !src || !D[de] || !D[a]) return null;
   const S = src.width, fS = S / D[de].tam, fT = S / D[a].tam;
@@ -44,6 +53,29 @@ export async function otroLargo(src, de, a) {
     g.drawImage(src, s[0] - mx, s[1] - my, s[2] - s[0] + 2 * mx, s[3] - s[1] + 2 * my, t[0] - nx, t[1] - ny, t[2] - t[0] + 2 * nx, t[3] - t[1] + 2 * ny);
   }
   const sd = src.getContext('2d').getImageData(0, 0, S, S).data;
+  // la silueta de cada pieza en los dos moldes: fuera de la pieza el molde solo trae relleno borroso (que su maniquí no
+  // enseña). Si un punto de la pieza nueva cae ahí, toma la tela de verdad más cercana, caminando hacia el centro de la pieza
+  const mS = await mascara(de, S), mT = await mascara(a, S), VAL = { frente: 40, espalda: 80, mangaI: 120, mangaD: 160, short: 200 };
+  const dentroS = (x, y, v) => x >= 0 && y >= 0 && x < S && y < S && Math.abs(mS[(y * S + x) * 4] - v) < 12;
+  const hacia = (x, y, v, cx, cy) => {   // el punto de tela más cercano yendo hacia el centro de la pieza
+    if (!mS || dentroS(x, y, v)) return [x, y];
+    const dx = cx - x, dy = cy - y, L = Math.hypot(dx, dy) || 1;
+    for (let k = 1; k < L; k++) { const X = Math.round(x + dx * k / L), Y = Math.round(y + dy * k / L); if (dentroS(X, Y, v)) return [Math.min(Math.round(X + dx / L * 3), S - 1), Math.min(Math.round(Y + dy / L * 3), S - 1)]; }
+    return [x, y];
+  };
+  if (mS && mT) for (const k of ['frente', 'espalda', 'short']) {
+    const s = caja(de, k, fS).map(Math.round), t = caja(a, k, fT).map(Math.round), v = VAL[k];
+    const ws = s[2] - s[0], hs = s[3] - s[1], wt = t[2] - t[0], ht = t[3] - t[1], cx = s[0] + ws / 2, cy = s[1] + hs * 0.6;
+    const od = g.getImageData(t[0], t[1], wt, ht), o = od.data;
+    for (let y = 0; y < ht; y++) for (let x = 0; x < wt; x++) {
+      const X = t[0] + x, Y = t[1] + y; if (Math.abs(mT[(Y * S + X) * 4] - v) >= 12) continue;   // fuera de la pieza nueva: no se ve
+      const xs = Math.round(s[0] + (x + 0.5) * ws / wt - 0.5), ys = Math.round(s[1] + (y + 0.5) * hs / ht - 0.5);
+      if (dentroS(xs, ys, v)) continue;
+      const [qx, qy] = hacia(xs, ys, v, cx, cy), i = (qy * S + qx) * 4, j = (y * wt + x) * 4;
+      o[j] = sd[i]; o[j + 1] = sd[i + 1]; o[j + 2] = sd[i + 2];
+    }
+    g.putImageData(od, t[0], t[1]);
+  }
   for (const k of ['mangaI', 'mangaD']) {
     const s = caja(de, k, fS).map(Math.round), t = caja(a, k, fT).map(Math.round);
     const ws = s[2] - s[0], hs = s[3] - s[1], wt = t[2] - t[0], ht = t[3] - t[1];
@@ -64,7 +96,12 @@ export async function otroLargo(src, de, a) {
         // en metros desde la cara de afuera (los parches y logos no se deforman); lo que pase de la orilla de la fuente
         // toma su orilla (la costura de abajo del brazo, que no se ve)
         const xs = Math.max(0, Math.min(ws - 1, Math.round(Math.max(aS, Math.min(bS, cS + (x + 0.5 - cT) * kS / kT)))));
-        const i = (ys * ws + xs) * 4, j = (y * wt + x) * 4;
+        let i = (ys * ws + xs) * 4; const j = (y * wt + x) * 4;
+        // si cae en el relleno de afuera de la manga de la fuente (y en la manga nueva sí hay tela), la tela más cercana
+        if (mS && mT && Math.abs(mT[((t[1] + y) * S + t[0] + x) * 4] - VAL[k]) < 12 && !dentroS(s[0] + xs, s[1] + ys, VAL[k])) {
+          const [qx, qy] = hacia(s[0] + xs, s[1] + ys, VAL[k], s[0] + ws / 2, s[1] + hs * 0.5); i = ((qy - s[1]) * ws + (qx - s[0])) * 4;
+          if (qx < s[0] || qy < s[1] || qx >= s[2] || qy >= s[3]) i = (ys * ws + xs) * 4;
+        }
         o[j] = pz[i]; o[j + 1] = pz[i + 1]; o[j + 2] = pz[i + 2]; o[j + 3] = 255;
       }
     }
