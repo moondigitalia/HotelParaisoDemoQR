@@ -422,7 +422,11 @@ if (t > uZonas.z - 0.01) {
   // con PATRÓN (molde): la tela sale tal cual de su pieza del patrón, sin proyectar ni estirar. El nombre y el número encima.
   vec2 pu = enPatron(false);
   if (uHayPatron > 0.5 && pu.x > 0.0) {
-    base = texture2D(uPatron, vec2(pu.x, 1.0 - pu.y)).rgb;
+    // en cada costura (costado y hombro) la tela pasa de una pieza a la otra en una franja de ~1 cm, como una costura real:
+    // sin el cambio de golpe punto por punto (eso dibujaba una línea punteada del color de la otra pieza)
+    vec3 tF = texture2D(uPatron, vec2(vF.x, 1.0 - vF.y)).rgb, tB = texture2D(uPatron, vec2(vB.x, 1.0 - vB.y)).rgb;
+    base = mix(tB, tF, smoothstep(-0.06, 0.06, vSel.x));
+    if (vS.x > 0.0) base = mix(base, texture2D(uPatron, vec2(vS.x, 1.0 - vS.y)).rgb, smoothstep(-0.005, 0.005, vSel.y));
     // el nombre y el número van sobre la pieza de la ESPALDA del patrón (su foto es esa misma pieza): no se salen al costado
     if (vSel.x < 0.0 && !(vSel.y > 0.0 && vS.x > 0.0)) { vec2 uvD = vec2((vB.x - uCajaB.x) / uCajaB.z, 1.0 - (vB.y - uCajaB.y) / uCajaB.w); vec4 nd = texture2D(uDorsal, uvD); if (uvD.x < 0.0 || uvD.x > 1.0 || uvD.y < 0.0 || uvD.y > 1.0) nd = vec4(0.0); base = mix(base, nd.rgb / max(nd.a, 0.004), nd.a); }
   }
@@ -996,7 +1000,16 @@ diffuseColor.rgb *= base;`);
       }
       const S = uni.uShortCaja.value;
       if (t > zonas.shortBot) return p.x > S.x - 0.03 && p.x < S.x + S.z + 0.03 ? 'short' : null;
-      return t > 0 && p.x > S.x && p.x < S.x + S.z ? 'calcetas' : null;
+      // abajo del short solo hay calceta donde el dedo toca la pierna de verdad; entre las piernas es el fondo
+      if (!(t > 0 && p.x > S.x && p.x < S.x + S.z)) return null;
+      if (hit) return 'calcetas';
+      // el dedo es más grueso que la calceta: si a menos de ~14 px hay pierna, es la calceta; si no, el fondo
+      for (let k = 0; k < 8; k++) {
+        const a = k * Math.PI / 4, w = new THREE.Vector2(((px + 14 * Math.cos(a) - rc.left) / rc.width) * 2 - 1, -((py + 14 * Math.sin(a) - rc.top) / rc.height) * 2 + 1);
+        ray.setFromCamera(w, cam); const h2 = ray.intersectObject(kitMesh, false)[0];
+        if (h2 && (h2.point.y - zonas.Y0) / zonas.YH < zonas.shortBot) return 'calcetas';
+      }
+      return null;
     },
     fondo(url) { ponerFondo(url || base + 'campo.webp'); },
     // true si el fondo elegido chocaba con este uniforme y se puso otro
