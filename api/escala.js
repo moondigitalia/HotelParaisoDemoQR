@@ -178,20 +178,29 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba) {
   const quien = clean((b.campos || {}).referido_de, 300); // "Nombre (tipo, WhatsApp 10 dígitos)"
   const telQuien = (quien.match(/WhatsApp\s*(\d{10})/) || [])[1] || '';
   const entrada = quien ? quien.replace(/\)\s*$/, ', ' + fechaCorta() + ')') : 'Sin nombre de quien recomienda (' + fechaCorta() + ')';
-  // Lee lo que ya tiene la ficha y suma esta recomendación; si dos llegan al mismo tiempo, se verifica y se reintenta
-  let lista = [], previas = [];
-  for (let i = 0; i < 3; i++) {
+  // Suma esta recomendación sin perder ninguna aunque lleguen varias al mismo tiempo:
+  // cada envío lee, une lo que hay + lo suyo, guarda, y vuelve a revisar después de una pausa
+  // hasta ver su recomendación guardada dos veces seguidas (para entonces los demás ya escribieron).
+  const leer = async () => {
     const c = await esc('/contacts/' + id, 'GET');
     const prev = clean(((c.data && (c.data.entity || c.data)).custom || {})[CF.referido_de], 3800);
-    lista = prev ? prev.split(SEP).filter(Boolean) : [];
-    if (i === 0) previas = lista.slice(); // lo que había ANTES de esta recomendación
-    if (lista.includes(entrada)) break; // ya quedó guardada
+    return prev ? prev.split(SEP).filter(Boolean) : [];
+  };
+  let lista = [], antes = null, seguidas = 0;
+  for (let i = 0; i < 10 && seguidas < 2; i++) {
+    lista = await leer();
+    if (antes === null) antes = lista.slice();
+    if (lista.includes(entrada)) { seguidas++; await espera(1500 + Math.random() * 1000); continue; }
+    seguidas = 0;
     const u = await guardar('/contacts/' + id, 'PUT', { triggerWorkflow: false, custom: { [CF.referido_de]: cabe(lista.concat(entrada)) } });
     if (u.status >= 300) console.error('escala referido_de', u.status, JSON.stringify(u.data));
-    await espera(500 + Math.random() * 700);
+    await espera(800 + Math.random() * 1500);
   }
-  const repetidaHoy = previas.includes(entrada); // misma persona, mismo día (p. ej. envió dos veces)
-  const todas = repetidaHoy ? previas : previas.concat(entrada);
+  if (seguidas < 2) console.error('referido_de: no se pudo confirmar', id);
+  // Su lugar en la lista final dice cuántas recomendaciones hubo antes (sirve también si llegaron al mismo tiempo)
+  const pos = lista.indexOf(entrada);
+  const previas = pos >= 0 ? lista.slice(0, pos) : antes;
+  const todas = pos >= 0 ? lista.slice(0, pos + 1) : antes.concat(entrada);
   const vez = todas.length;
   const mismo = !!telQuien && previas.some((x) => x.includes(telQuien));
   const yaEstaba = !!existente && !previas.length;
@@ -209,7 +218,7 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba) {
     asesorTxt,
     'Registrado desde la página Recomienda y gana el ' + fecha.replace(/\.$/, '') + '.',
   ].filter(Boolean).join(' ');
-  if (prueba) return { prueba: true, titulo, desc, guardado: lista.concat(lista.includes(entrada) ? [] : [entrada]).join(SEP) };
+  if (prueba) return { prueba: true, titulo, desc, guardado: lista.join(SEP) };
   const ahora = new Date();
   const iso = (d) => d.toISOString().slice(0, 19);
   const a = await esc('/activities', 'POST', {
