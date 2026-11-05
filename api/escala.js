@@ -26,9 +26,10 @@ const CF = {
 const CARRERAS = ['LAE', 'LAET', 'CNI', 'IIS', 'IGE', 'DG', 'DAJ', 'COM', 'PSI', 'EDU', 'ARQ', 'CAP', 'MKT', 'POR DEFINIR'];
 const MODALIDADES = ['ESC', 'EJE'];
 const COMO = ['Código QR', 'Sitio web', 'Referido alumno', 'Referido externo ', 'Referido Inscrito ', 'Referido colaborador', 'Referido profesor'];
-// Asesores: Referidos va directo a Rafael Martínez; lo demás lo reparte el flujo "Asignación asesor - Web y Radar"
-// entre estas tres. Si el flujo no alcanzara a asignar, el puente asigna por su cuenta (respaldo).
-const RAFA = 'rmartinez@u3m.edu.mx';
+// Asesores: los Referidos van a la coordinadora de Admisiones (Laura Escartin), que decide a quién se los pasa;
+// lo demás lo reparte el flujo "Asignación asesor - Web y Radar" entre estas tres. Si el flujo no alcanzara a asignar,
+// el puente asigna por su cuenta (respaldo).
+const LAURA = 'coordinacionadmisiones@u3m.edu.mx';
 const ASESORAS = ['admisiones05@u3m.edu.mx', 'admisiones03@u3m.edu.mx', 'admisiones04@u3m.edu.mx']; // Mariela, Paulina, Yelenyz
 let opcionesComo = null;
 const tagCache = {};
@@ -129,7 +130,6 @@ function camposPara(b, nombre, tel, existente) {
   }
   if (MODALIDADES.includes(c.modalidad)) pon('modalidad', c.modalidad);
   if (COMO.includes(c.como)) pon('como', c.comoOk);
-  pon('referido_de', clean(c.referido_de, 250));
   pon('tutor_nombre', clean(c.tutor_nombre, 250));
   if (diez(c.tutor_tel).length === 10) pon('tutor_tel', Number(diez(c.tutor_tel)));
   pon('escuela', clean(c.escuela, 250));
@@ -146,7 +146,7 @@ const sinAsesor = (a) => !a || a === 'unassigned';
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Revisa que el contacto quede con asesor. El flujo de Escala suele asignarlo en segundos;
-// si no lo hizo, el puente lo asigna (Referidos → Rafael Martínez; lo demás → una de las tres asesoras).
+// si no lo hizo, el puente lo asigna (Referidos → Laura Escartin; lo demás → una de las tres asesoras).
 async function asegurarAsesor(id, origen) {
   for (let i = 0; i < 4; i++) {
     await espera(i === 0 ? 2500 : 3000);
@@ -154,11 +154,69 @@ async function asegurarAsesor(id, origen) {
     const a = c.data && (c.data.entity || c.data).assignedTo;
     if (!sinAsesor(a)) return a;
   }
-  const quien = origen === 'referidos' ? RAFA : ASESORAS[Math.floor(Math.random() * ASESORAS.length)];
+  const quien = origen === 'referidos' ? LAURA : ASESORAS[Math.floor(Math.random() * ASESORAS.length)];
   const u = await esc('/contacts/' + id, 'PUT', { assignedTo: quien, triggerWorkflow: false });
   if (u.status >= 300) console.error('escala asesor', u.status, JSON.stringify(u.data));
   console.log('asesor asignado por respaldo', origen);
   return quien;
+}
+
+// ── Referidos ──────────────────────────────────────────────────────────────
+// Cada recomendación se suma al campo "Referido de" de la MISMA ficha (nunca se crea otra):
+//   "Ana López (Alumno U3M, WhatsApp 229…, 2 oct 2026) · Luis Ruiz (…, 5 nov 2026)"
+// y a Laura se le crea una actividad (Escala le manda correo al crearla) con todo el historial,
+// marcando si es la primera vez, si ya lo habían recomendado otros o si lo recomienda la misma persona otra vez.
+const SEP = ' · ';
+const fechaCorta = () => new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'short', year: 'numeric' });
+async function avisoReferido(id, b, nombre, existente, asesor, fecha) {
+  const quien = clean((b.campos || {}).referido_de, 300); // "Nombre (tipo, WhatsApp 10 dígitos)"
+  const telQuien = (quien.match(/WhatsApp\s*(\d{10})/) || [])[1] || '';
+  const entrada = quien ? quien.replace(/\)\s*$/, ', ' + fechaCorta() + ')') : 'Sin nombre de quien recomienda (' + fechaCorta() + ')';
+  // Lee lo que ya tiene la ficha y suma esta recomendación; si dos llegan al mismo tiempo, se verifica y se reintenta
+  let lista = [], previas = [];
+  for (let i = 0; i < 3; i++) {
+    const c = await esc('/contacts/' + id, 'GET');
+    const prev = clean(((c.data && (c.data.entity || c.data)).custom || {})[CF.referido_de], 3800);
+    lista = prev ? prev.split(SEP).filter(Boolean) : [];
+    if (i === 0) previas = lista.slice(); // lo que había ANTES de esta recomendación
+    if (lista.includes(entrada)) break; // ya quedó guardada
+    const u = await guardar('/contacts/' + id, 'PUT', { triggerWorkflow: false, custom: { [CF.referido_de]: lista.concat(entrada).join(SEP).slice(-3800) } });
+    if (u.status >= 300) console.error('escala referido_de', u.status, JSON.stringify(u.data));
+    await espera(500 + Math.random() * 700);
+  }
+  const repetidaHoy = previas.includes(entrada); // misma persona, mismo día (p. ej. envió dos veces)
+  const todas = repetidaHoy ? previas : previas.concat(entrada);
+  const vez = todas.length;
+  const mismo = !!telQuien && previas.some((x) => x.includes(telQuien));
+  const yaEstaba = !!existente && !previas.length;
+  const situacion = mismo ? 'La MISMA persona ya lo había recomendado antes.'
+    : vez === 2 ? 'Ya lo había recomendado otra persona antes.'
+    : vez > 2 ? 'Ya lo habían recomendado ' + (vez - 1) + ' personas antes.'
+    : yaEstaba ? 'Esta persona YA estaba en Escala antes de ser recomendada (llegó por otro medio).'
+    : 'Es la primera vez que lo recomiendan.';
+  const titulo = (vez > 1 || mismo || yaEstaba ? 'Revisar referido' : 'Nuevo referido') + ': ' + nombre + (vez > 1 ? ' (' + vez + 'ª recomendación)' : '');
+  const asesorTxt = !asesor || asesor === LAURA ? 'Asignado a ti para que decidas a quién pasarlo.' : 'Asesor actual: ' + asesor + ' (se respetó).';
+  const desc = [
+    situacion,
+    'Lo recomienda ahora: ' + entrada + '.',
+    vez > 1 ? 'Todas sus recomendaciones: ' + todas.map((x, k) => (k + 1) + ') ' + x).join(' ') : '',
+    asesorTxt,
+    'Registrado desde la página Recomienda y gana el ' + fecha.replace(/\.$/, '') + '.',
+  ].filter(Boolean).join(' ');
+  const ahora = new Date();
+  const iso = (d) => d.toISOString().slice(0, 19);
+  const a = await esc('/activities', 'POST', {
+    contactId: id, title: clean(titulo, 256), description: clean(desc, 3900), type: 'other', status: 'pending',
+    assignedTo: LAURA, startAt: iso(ahora), endAt: iso(new Date(ahora.getTime() + 15 * 60000)), duration: 15,
+  });
+  if (a.status >= 300) {
+    console.error('escala actividad referido', a.status, JSON.stringify(a.data));
+    // Respaldo: si la actividad no se pudo crear, que al menos le quede una tarea a Laura
+    const tk = await esc('/tasks', 'POST', { contactId: id, title: clean(titulo, 256), description: clean(desc, 3900), assignedTo: LAURA, startAt: iso(ahora), status: 'pending' });
+    if (tk.status >= 300) console.error('escala tarea referido', tk.status, JSON.stringify(tk.data));
+    return tk.status < 300 ? 'tarea' : false;
+  }
+  return 'actividad';
 }
 
 module.exports = async (req, res) => {
@@ -201,7 +259,7 @@ module.exports = async (req, res) => {
       if (!ep.phoneNumber) personal.phoneNumber = '52' + tel;
       if (emailOk && !ep.email) personal.email = email;
       const cambio = {};
-      if (b.origen === 'referidos' && sinAsesor(existente.assignedTo)) cambio.assignedTo = RAFA;
+      if (b.origen === 'referidos' && sinAsesor(existente.assignedTo)) cambio.assignedTo = LAURA;
       if (Object.keys(personal).length) cambio.personal = personal;
       if (Object.keys(custom).length) cambio.custom = custom;
       if (Object.keys(cambio).length) {
@@ -214,7 +272,7 @@ module.exports = async (req, res) => {
       if (partes.length > 1) personal.lastName = partes.slice(1).join(' ').slice(0, 100);
       if (emailOk) personal.email = email;
       const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
-      if (b.origen === 'referidos') contacto.assignedTo = RAFA;
+      if (b.origen === 'referidos') contacto.assignedTo = LAURA;
       if (Object.keys(custom).length) contacto.custom = custom;
       const up = await guardar('/contacts/upsert', 'POST', contacto);
       id = up.data && up.data.id;
@@ -229,6 +287,8 @@ module.exports = async (req, res) => {
     const asesor = await asegurarAsesor(id, b.origen);
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
+    let aviso;
+    if (b.origen === 'referidos') aviso = await avisoReferido(id, b, nombre, existente, asesor, fecha);
     let tarea;
     if (b.tarea && b.tarea.titulo) {
       const tk = await esc('/tasks', 'POST', {
@@ -238,7 +298,7 @@ module.exports = async (req, res) => {
       tarea = tk.status < 300;
       if (!tarea) console.error('escala tarea', tk.status, JSON.stringify(tk.data));
     }
-    return res.status(200).json({ ok: true, nuevo, yaExistia: !!existente, etiqueta: t.status === 200, nota: n.status < 300, tarea, asesor });
+    return res.status(200).json({ ok: true, nuevo, yaExistia: !!existente, etiqueta: t.status === 200, nota: n.status < 300, tarea, asesor, aviso });
   } catch (e) {
     console.error('escala error', e && e.message);
     return res.status(502).json({ ok: false, error: 'sin conexión con Escala' });
