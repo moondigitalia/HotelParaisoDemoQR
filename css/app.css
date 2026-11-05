@@ -414,6 +414,12 @@ h2{font-size:clamp(34px,4.4vw,54px);text-transform:uppercase}
   
 }
 .camino-sigue{border-color:var(--oro)}
+/* el botón de inicio: una píldora corta (una sola línea), no una tarjeta */
+.caminos.caminos-corto{grid-template-columns:minmax(0,1fr);margin-top:10px}
+.camino.camino-corto{min-height:0;flex-direction:row;align-items:center;gap:12px;padding:8px 22px 8px 8px;border-radius:999px;border-color:var(--oro);width:max-content;max-width:100%}
+.camino.camino-corto .ico{width:44px;height:44px;margin:0;flex:none}
+.camino.camino-corto .ico svg{width:22px;height:22px}
+.camino.camino-corto b{font-size:22px}
 
 /* ---------- capas ---------- */
 .capa,.fiesta,.panel{position:fixed;inset:0;z-index:150;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(4,7,26,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fade .3s ease}

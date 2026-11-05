@@ -459,10 +459,9 @@
 
   // antes de abrir: un solo botón, el catálogo es el camino
   function vistaInicio() {
-    var hay = S.modo && store.get('borrador');
-    return '<div class="paso"><h3>' + esc(T('inicio_t2')) + '</h3><p class="nota-corta">' + esc(T('inicio_p2')) + '</p><div class="caminos">' +
-      (hay ? '<button type="button" class="camino camino-sigue" data-camino="seguir"><span class="ico">' + icono('lapiz') + '</span><div><b>' + esc(T('seguir_armando')) + '</b><span>' + esc(T('seguir_armando_p')) + '</span></div></button>' : '') +
-      '<button type="button" class="camino" data-camino="catalogo"><span class="ico">' + icono('lista') + '</span><div><b>' + esc(T('inicio_a')) + '</b><span>' + esc(T('inicio_a_p2')) + '</span></div></button>' +
+    // un solo botón corto, sin tarjeta grande (Kid: "Seguir armando" sobraba y la tarjeta ocupaba demasiado)
+    return '<div class="paso"><h3>' + esc(T('inicio_t2')) + '</h3><p class="nota-corta">' + esc(T('inicio_p2')) + '</p><div class="caminos caminos-corto">' +
+      '<button type="button" class="camino camino-corto" data-camino="catalogo"><span class="ico">' + icono('lista') + '</span><b>' + esc(T('inicio_a')) + '</b></button>' +
       '</div>' +
       // en computadora sobra alto junto al uniforme: ahí mismo se ven los equipos, y tocar uno abre su uniforme
       '<div class="inicio-equipos"><p class="kicker">' + esc(T('p_diseno2')) + '</p>' + tarjetasPorSeccion(catalogoVisible()) + '</div></div>';
