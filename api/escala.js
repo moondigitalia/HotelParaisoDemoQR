@@ -187,8 +187,8 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0
     return prev ? prev.split(SEP).filter(Boolean) : [];
   };
   let lista = [], antes = null, seguidas = 0;
-  // Escala tarda ~7 s en cada guardado: se insiste hasta 45 s desde que llegó el registro (el límite de la página es 60 s)
-  for (let i = 0; i < 12 && seguidas < 2 && Date.now() - t0 < 45000; i++) {
+  // Escala tarda ~7 s en cada guardado: se insiste hasta 40 s desde que llegó el registro (el límite de la página es 60 s)
+  for (let i = 0; i < 12 && seguidas < 2 && Date.now() - t0 < 40000; i++) {
     lista = await leer();
     if (antes === null) antes = lista.slice();
     if (lista.includes(entrada)) { seguidas++; if (seguidas < 2) await espera(1200 + Math.random() * 800); continue; }
@@ -297,8 +297,18 @@ module.exports = async (req, res) => {
       const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
       if (!prueba && b.origen === 'referidos') contacto.assignedTo = LAURA;
       if (Object.keys(custom).length) contacto.custom = custom;
-      const up = await guardar('/contacts/upsert', 'POST', contacto);
+      let up = await guardar('/contacts/upsert', 'POST', contacto);
       id = up.data && up.data.id;
+      // Si Escala se satura (p. ej. llegan varias recomendaciones del mismo alumno a la vez), se espera,
+      // se busca otra vez (quizá otra ya lo creó) y se reintenta: el registro nunca se pierde.
+      for (let i = 0; i < 3 && (!id || ![200, 201, 412].includes(up.status)) && Date.now() - t0 < 25000; i++) {
+        console.error('escala upsert reintento', up.status);
+        await espera(2000 + Math.random() * 2500);
+        const ya = await buscar(tel, nombre);
+        if (ya) { id = ya.id; up = { status: 412, data: { id } }; break; }
+        up = await guardar('/contacts/upsert', 'POST', contacto);
+        id = up.data && up.data.id;
+      }
       if (!id || ![200, 201, 412].includes(up.status)) {
         console.error('escala upsert', up.status, JSON.stringify(up.data));
         return res.status(502).json({ ok: false, error: 'escala ' + up.status });
