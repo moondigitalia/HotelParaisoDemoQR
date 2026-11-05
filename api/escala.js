@@ -174,7 +174,7 @@ const SEP = ' · ';
 let LIMITE_REF = 3800; // límite de letras del campo en Escala (se confirma en la prueba)
 const cabe = (arr) => { const a = arr.slice(); while (a.length > 1 && a.join(SEP).length > LIMITE_REF) a.shift(); return a.join(SEP).slice(0, LIMITE_REF); };
 const fechaCorta = () => new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'short', year: 'numeric' });
-async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba) {
+async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0) {
   const quien = clean((b.campos || {}).referido_de, 300); // "Nombre (tipo, WhatsApp 10 dígitos)"
   const telQuien = (quien.match(/WhatsApp\s*(\d{10})/) || [])[1] || '';
   const entrada = quien ? quien.replace(/\)\s*$/, ', ' + fechaCorta() + ')') : 'Sin nombre de quien recomienda (' + fechaCorta() + ')';
@@ -187,10 +187,11 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba) {
     return prev ? prev.split(SEP).filter(Boolean) : [];
   };
   let lista = [], antes = null, seguidas = 0;
-  for (let i = 0; i < 10 && seguidas < 2; i++) {
+  // Escala tarda ~7 s en cada guardado: se insiste hasta 45 s desde que llegó el registro (el límite de la página es 60 s)
+  for (let i = 0; i < 12 && seguidas < 2 && Date.now() - t0 < 45000; i++) {
     lista = await leer();
     if (antes === null) antes = lista.slice();
-    if (lista.includes(entrada)) { seguidas++; await espera(1500 + Math.random() * 1000); continue; }
+    if (lista.includes(entrada)) { seguidas++; if (seguidas < 2) await espera(1200 + Math.random() * 800); continue; }
     seguidas = 0;
     const u = await guardar('/contacts/' + id, 'PUT', { triggerWorkflow: false, custom: { [CF.referido_de]: cabe(lista.concat(entrada)) } });
     if (u.status >= 300) console.error('escala referido_de', u.status, JSON.stringify(u.data));
@@ -250,6 +251,7 @@ module.exports = async (req, res) => {
 
   let b = req.body || {};
   if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = {}; } }
+  const t0 = Date.now();
   if (b.website) return res.status(200).json({ ok: true }); // trampa para bots
   const prueba = esPrueba(b.prueba);
 
@@ -309,7 +311,7 @@ module.exports = async (req, res) => {
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
     let aviso;
-    if (b.origen === 'referidos') aviso = await avisoReferido(id, b, nombre, existente, asesor, fecha, prueba);
+    if (b.origen === 'referidos') aviso = await avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0);
     let tarea;
     if (!prueba && b.tarea && b.tarea.titulo) {
       const tk = await esc('/tasks', 'POST', {
