@@ -421,7 +421,7 @@
   }
   function escudoEquipo(e) {
     var oculto = !visibleEq(e);
-    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && (!f.frente || !f.espalda || !f.short); }).length;
+    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && !f.patronCorta && !f.patronLarga && (!f.frente || !f.espalda || !f.short); }).length;   // con molde no falta nada
     var cara = e.escudo ? '<img src="' + esc(e.escudo) + '" alt="">' : '<img class="sin" src="' + esc((e.items[0] || {}).mini || '') + '" alt="">';
     return '<button type="button" class="pn-esc-b' + (oculto ? ' apagado' : '') + '" data-eq="' + esc(e.clave) + '"><span class="pn-esc-c' + (e.escudo ? '' : ' sin-escudo') + '">' + cara +
       (incompletos ? '<i class="pn-esc-falta" aria-label="Le faltan fotos">!</i>' : e.items.length > 1 ? '<i class="pn-esc-n">' + e.items.length + '</i>' : '') + '</span><b>' + esc(e.nombre || 'Sin nombre') + '</b>' + (oculto ? '<small>Oculto</small>' : '') + '</button>';
@@ -429,7 +429,7 @@
   function filaEquipo(e, si, ei, n) {
     var oculto = !visibleEq(e);
     // los que no tienen las tres fotos (frente, espalda y short) se avisan aquí para que el dueño sepa cuál abrir
-    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && (!f.frente || !f.espalda || !f.short); }).length;
+    var incompletos = e.items.filter(function (u) { var f = u.fotos || {}; return (u.tipo || '3d') === '3d' && !f.patronCorta && !f.patronLarga && (!f.frente || !f.espalda || !f.short); }).length;   // con molde no falta nada
     var cara = e.escudo ? '<span class="pn-esc"><img src="' + esc(e.escudo) + '" alt=""></span>' : '<img class="pn-th" src="' + esc((e.items[0] || {}).mini || '') + '" alt="">';
     return '<div class="pn-fila pn-uni' + (oculto ? ' apagado' : '') + '"><button type="button" class="pn-abrir" data-eq="' + esc(e.clave) + '">' + cara +
       '<span class="pn-info"><b>' + esc(e.nombre || 'Sin nombre') + '</b><small>' + (e.items.length === 1 ? '1 uniforme' : e.items.length + ' uniformes') + (oculto ? ' · oculto' : '') + (incompletos ? ' · <span class="falta">' + (incompletos === 1 ? 'a 1 le falta foto' : 'a ' + incompletos + ' les faltan fotos') + '</span>' : '') + '</small></span><span class="pn-ir" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span></button>' +
@@ -678,7 +678,7 @@
       '<div class="pn-calc-fila"><span class="etq">Franja de arriba</span><div class="pn-franja"><button type="button" class="chip' + (!u.colorFranja ? ' on' : '') + '" data-fr="">Sin franja</button>' + bolitas('fr', u.colorFranja) + '</div></div>' +
       '</div></div>';
     // las tres fotos siempre: la espalda trae su propio diseño (no se inventa volteando el frente) y el short lleva logo y a veces diseño
-    var listo = f.frente && f.espalda && f.short && !/^data:/.test(f.frente + f.espalda + f.short);
+    var pat = f.patronCorta || f.patronLarga, listo = pat ? !/^data:/.test(pat) : (f.frente && f.espalda && f.short && !/^data:/.test(f.frente + f.espalda + f.short));   // con molde, el molde ya trae todo
     h += '<div class="pn-publicar' + (listo ? ' listo' : '') + '"><button type="button" class="btn btn-oro" data-publicar' + (listo ? '' : ' disabled') + '>' + (u.nuevo ? 'Publicar' : 'Guardar') + '</button></div></div>';
     return h;
   }
@@ -806,7 +806,7 @@
       var on0 = $('.pn-fondo.on', ctl), tira = $('.pn-fondos', ctl); if (on0 && tira) tira.scrollLeft = on0.offsetLeft - 12;
       return;
     }
-    if (!pnSel) { var f0 = u.fotos || {}; ctl.innerHTML = franjaInicio(u, !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
+    if (!pnSel) { var f0 = u.fotos || {}, conMolde = !!(f0.patronCorta || f0.patronLarga); ctl.innerHTML = franjaInicio(u, conMolde ? '' : !f0.frente ? 'frente' : !f0.espalda ? 'espalda' : !f0.short ? 'short' : '', { frente: 'el frente', espalda: 'la espalda', short: 'el short' }); return; }
     var esManga = pnSel === 'mangaI' || pnSel === 'mangaD';
     var clavePat = u.manga === 'larga' ? 'patronLarga' : 'patronCorta';
     if (esManga && (u.fotos || {})[clavePat]) {
@@ -1393,18 +1393,23 @@
     var u = P.editando; if (!u || !u.fotos.frente) return;
     A.toast('Haciendo la versión de otro color…', true);
     var rgb = [1, 3, 5].map(function (i) { return parseInt(T.slice(i, i + 2), 16); });
-    Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD)]).then(function (im) {
+    Promise.all([imagenP(u.fotos.frente), imagenP(u.fotos.espalda), imagenP(u.fotos.short), imagenP(u.fotos.mangaI), imagenP(u.fotos.mangaD), imagenP(u.fotos.patronCorta), imagenP(u.fotos.patronLarga)]).then(function (im) {
       var M = window.Motor3D, cf = A.aCanvas(im[0], 1000), base = M.coloresBase(cf);
       var nuevo = A.clone(u); nuevo.id = 'u' + Date.now().toString(36); nuevo.nuevo = true; delete nuevo.destacado; delete nuevo.oculto;
       nuevo.nombre = ''; nuevo.mini = ''; nuevo.version = ''; delete nuevo.fotos.patronCorta; delete nuevo.fotos.patronLarga;
+      // el molde también cambia de color (si no, la copia regresaba a fotos y de lado se manchaba)
+      var moldes = [['patronCorta', im[5]], ['patronLarga', im[6]]].filter(function (x) { return x[1]; }).map(function (x) {
+        var c = M.recolorear(A.aCanvas(x[1], 2048), base, rgb), datos = c.toDataURL('image/webp', 0.9); if (datos.indexOf('data:image/webp') !== 0) datos = c.toDataURL('image/jpeg', 0.92);
+        return A.subirConReintento(datos, 'catalogo').then(function (url) { nuevo.fotos[x[0]] = url; });
+      });
       var mapa = function (hex) { var c = document.createElement('canvas'); c.width = c.height = 1; var g = c.getContext('2d'); g.fillStyle = hex; g.fillRect(0, 0, 1, 1); return hexDe(Array.from(M.recolorear(c, base, rgb).getContext('2d').getImageData(0, 0, 1, 1).data).slice(0, 3)); };
       ['colorShort', 'colorCalceta', 'colorFranja', 'colorTexto'].forEach(function (k) { if (nuevo[k]) nuevo[k] = mapa(nuevo[k]); });
       var lados = ['frente', 'espalda', 'short', 'mangaI', 'mangaD'];
-      return Promise.all(lados.map(function (l, i) {
+      return Promise.all(moldes.concat(lados.map(function (l, i) {
         if (!im[i]) { if (i < 3) nuevo.fotos[l] = ''; else delete nuevo.fotos[l]; return null; }
         var r = prepararCanvas(M.recolorear(A.aCanvas(im[i], 1000), base, rgb));
         return A.subirConReintento(r.data, 'catalogo').then(function (url) { nuevo.fotos[l] = url; });
-      })).then(function () {
+      }))).then(function () {
         nuevo.etiquetas.colores = M.coloresDe(A.aCanvas(im[0], 300));
         imagenP(nuevo.fotos.frente).then(function (f) { if (f) nuevo.etiquetas.colores = M.coloresDe(A.aCanvas(f, 300)); P.editando = nuevo; pintar(); A.toast('Listo: ponle nombre y publícalo'); });
       });
