@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { enderezarShort, limpiarTela, coloresBase, quitarPielOrillas } from './foto.js';
+import { otroLargo, altoPuno } from './otro-largo.js';
 
 // alturas de cada parte en cada modelo (0 = abajo, 1 = arriba), medidas sobre las imágenes con que se hicieron
 const MODELOS = {
@@ -287,7 +288,7 @@ export async function crear(canvas, opt = {}) {
     uCajaMI: { value: new THREE.Vector4(0, 0, 1, 1) }, uCajaMD: { value: new THREE.Vector4(0, 0, 1, 1) },
     uMSI: { value: new THREE.Vector3() }, uMAI: { value: new THREE.Vector3(0, -1, 0) }, uMOI: { value: new THREE.Vector3(-1, 0, 0) }, uMFI: { value: new THREE.Vector3(0, 0, 1) },
     uPatron: { value: null }, uHayPatron: { value: 0 }, uCajaB: { value: new THREE.Vector4(0, 0, 1, 1) },
-    uOtroLargo: { value: 0 }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
+    uOtroLargo: { value: 0 }, uPunoM: { value: new THREE.Vector4(1, 1, 1, 1) }, uMRI: { value: new THREE.Vector3(1, 0.05, 1) }, uMRD: { value: new THREE.Vector3(1, 0.05, 1) }, uMSD: { value: new THREE.Vector3() }, uMAD: { value: new THREE.Vector3(0, -1, 0) }, uMOD: { value: new THREE.Vector3(1, 0, 0) }, uMFD: { value: new THREE.Vector3(0, 0, 1) }, uAjMI: { value: new THREE.Vector3(1, 0, 0) }, uAjMD: { value: new THREE.Vector3(1, 0, 0) }
   };
   const matKit = new THREE.MeshStandardMaterial({ roughness: 0.78, metalness: 0.0, side: THREE.DoubleSide });
   matKit.onBeforeCompile = (sh) => {
@@ -299,7 +300,7 @@ uniform float uCorte; uniform sampler2D uFoto; uniform sampler2D uEspalda; unifo
 uniform vec3 uAjF; uniform vec3 uAjB; uniform vec3 uAjS; uniform vec4 uCaja; uniform vec2 uTorsoF; uniform vec2 uTorsoB; uniform sampler2D uRen; uniform float uHayRen; uniform vec4 uShortCaja; uniform vec3 uZonas; uniform float uShortBot;
 uniform float uSel; uniform vec4 uSelCaja; uniform vec3 uDentro; uniform sampler2D uHem; uniform float uHayHem;
 uniform sampler2D uMangaI; uniform sampler2D uMangaD; uniform float uHayMI; uniform float uHayMD; uniform vec4 uCajaMI; uniform vec4 uCajaMD; uniform vec3 uAjMI; uniform vec3 uAjMD;
-uniform float uOtroLargo; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
+uniform float uOtroLargo; uniform vec4 uPunoM; uniform vec3 uMRI; uniform vec3 uMRD; uniform vec3 uMSI; uniform vec3 uMAI; uniform vec3 uMOI; uniform vec3 uMFI; uniform vec3 uMSD; uniform vec3 uMAD; uniform vec3 uMOD; uniform vec3 uMFD;
 uniform vec3 uShort; uniform vec3 uSock; uniform float uHayShort; uniform vec3 uFranja; uniform float uHayFranja; uniform float uSockTop; uniform float uFranjaAlto;
 varying vec3 vMundo; varying vec3 vNormMundo; varying vec2 vF; varying vec2 vB; varying vec2 vS; varying vec2 vH; varying vec2 vSel; uniform sampler2D uPatron; uniform float uHayPatron; uniform vec4 uCajaB;
 // el punto del patrón que le toca a este punto de la tela: la costura se decide aquí, punto por punto (línea suave)
@@ -318,8 +319,8 @@ float xFoto(float u, float m0, float m1, vec2 tor, vec2 ph) {
   return tor.x + u * tor.y;
 }
 // una cara de la playera (frente o espalda) en este punto: de dónde sale de su foto, el puño limpio, la tela y el nombre/número
-vec3 caraPlayera(bool atras, out vec2 uvSalida) {
-  float ux = (vMundo.x - uCaja.x) / uCaja.z, vy = (vMundo.y - uCaja.y) / uCaja.w;
+vec3 caraPlayera(bool atras, vec3 pM, out vec2 uvSalida) {
+  float ux = (pM.x - uCaja.x) / uCaja.z, vy = (pM.y - uCaja.y) / uCaja.w;
   vec2 tor = atras ? uTorsoB : uTorsoF;
   vec2 uv = vec2(tor.x + (atras ? 1.0 - ux : ux) * tor.y, vy);
   bool hayManga = false;   // en este renglón el modelo tiene manga de ese lado (no es el costado del cuerpo)
@@ -344,7 +345,7 @@ vec3 caraPlayera(bool atras, out vec2 uvSalida) {
       if (q.x >= 0.0 && q.x <= 1.0 && q.y >= 0.0 && q.y <= 1.0 && g.a > 0.92) { f = g; break; }
     }
   }
-  vec3 manga = texture2D(uManga, vMundo.xy * 3.2).rgb;
+  vec3 manga = texture2D(uManga, pM.xy * 3.2).rgb;
   vec3 c = mix(manga, f.rgb / max(f.a, 0.004), smoothstep(0.35, 0.9, f.a));
   if (atras) { vec4 nd = texture2D(uDorsal, uv0); c = mix(c, nd.rgb / max(nd.a, 0.004), nd.a); }
   return c;
@@ -362,9 +363,9 @@ if (t > uZonas.z - 0.01) {
   // costura (ahí se veía el corte y lo estirado), en una franja del costado se mezclan las dos, suave, según hacia dónde mira la tela
   float nz = normalize(vNormMundo).z, franja = 0.28;
   vec2 uvF = vec2(-1.0), uvB = vec2(-1.0);
-  if (nz > franja) base = caraPlayera(false, uvF);
-  else if (nz < -franja) base = caraPlayera(true, uvB);
-  else { vec3 cf = caraPlayera(false, uvF), cb = caraPlayera(true, uvB); base = mix(cb, cf, smoothstep(-franja, franja, nz)); }
+  if (nz > franja) base = caraPlayera(false, vMundo, uvF);
+  else if (nz < -franja) base = caraPlayera(true, vMundo, uvB);
+  else { vec3 cf = caraPlayera(false, vMundo, uvF), cb = caraPlayera(true, vMundo, uvB); base = mix(cb, cf, smoothstep(-franja, franja, nz)); }
   uvSel = atras ? uvB : uvF; zona = 1.0;
   // la manga con su propia foto (tomada de lado): se pone en la cara de afuera de la manga, de un lado al otro, sin cortes;
   // hacia el frente y la espalda se mezcla suave con esas fotos. Sin foto de manga, todo queda como antes.
@@ -377,7 +378,16 @@ if (t > uZonas.z - 0.01) {
     if (uOtroLargo > 0.5 && mangaLado > 0.5) {
       vec3 S1 = mangaLado == 1.0 ? uMSI : uMSD, A1 = mangaLado == 1.0 ? uMAI : uMAD;
       float tB = dot(vMundo - S1, A1) / max(dot(A1, A1), 1e-6);
-      base = mix(base, texture2D(uManga, vMundo.xy * 3.2).rgb, smoothstep(0.2, 0.32, tB));
+      // lo que el brazo tiene de más que la manga corta sigue con la tela de la manga justo arriba de su orilla (las
+      // franjas siguen bajando), y al final, un puño del alto del de la manga corta: el mismo punto del brazo, subido por su eje
+      float tH = 0.25, cP = 0.05;
+      if (tB > tH - cP - 0.02) {
+        float tS = tB > 1.0 - cP ? tH - (1.0 - tB) : tH - cP - 0.02;
+        vec3 pS = vMundo + A1 * (tS - tB); vec2 u1, u2;
+        float nzS = normalize(vNormMundo).z;
+        vec3 cS = nzS > franja ? caraPlayera(false, pS, u1) : (nzS < -franja ? caraPlayera(true, pS, u2) : mix(caraPlayera(true, pS, u2), caraPlayera(false, pS, u1), smoothstep(-franja, franja, nzS)));
+        base = cS;
+      }
     }
     if ((mangaLado == 1.0 && uHayMI > 0.5) || (mangaLado == 2.0 && uHayMD > 0.5)) {
       // la manga es un tubo: a lo largo va del hombro (arriba de la foto) al puño (abajo); alrededor, la foto cubre la mitad
@@ -390,16 +400,22 @@ if (t > uZonas.z - 0.01) {
       // la foto se estira al largo de la manga solo si es de ese mismo largo; si es de la otra (foto de manga corta con
       // manga larga), va desde el hombro con sus proporciones reales y el resto del brazo sale de las fotos de frente y espalda
       vec3 MR = izq ? uMRI : uMRD;   // x: 1 estirar, 0 proporción real; y: radio de la manga; z: alto/ancho de la foto
-      float tF = MR.x > 0.5 ? tA : tA * sqrt(L2) / max(MR.z * 3.14159265 * MR.y, 0.01);
+      // foto de otro largo: del hombro hacia abajo con sus medidas reales; lo que la manga tenga de más sigue con el renglón
+      // de la foto justo arriba de su puño (las franjas siguen bajando) y al final va su puño, del mismo alto
+      float tF = tA;
+      if (MR.x < 0.5) {
+        vec2 pm = izq ? uPunoM.xy : uPunoM.zw;   // x: dónde empieza el puño en la foto; y: dónde acaba la tela (0 arriba, 1 abajo)
+        float Lm = sqrt(L2), Lp = max(MR.z * 3.14159265 * MR.y, 0.01), d = tA * Lm, falta = (Lm - d) / Lp;
+        tF = falta <= pm.y - pm.x ? pm.y - falta : min(d / Lp, pm.x - 0.012);
+      }
       // foto del mismo largo: TODA la manga sale de su foto (las fotos de frente y espalda también enseñan la manga y la
       // repetían: franjas y parches dobles). La mitad de afuera es la foto tal cual; la otra mitad sigue con la orilla de la
       // foto renglón por renglón, así el puño y sus líneas dan la vuelta completa sin repetir parches.
-      bool mismo = MR.x > 0.5;
+      bool mismo = true;   // la foto da la vuelta completa al brazo, sea del mismo largo o del otro
       vec2 um = (vec2(mismo ? clamp(su, 0.04, 0.96) : su, 1.0 - tF) - 0.5) / ajm.x + 0.5 - ajm.yz;
       vec4 g = izq ? texture2D(uMangaI, um) : texture2D(uMangaD, um);
       if (um.x < 0.0 || um.x > 1.0 || um.y < 0.0 || um.y > 1.0) g.a = 0.0;
       float w = (mismo ? 1.0 : 1.0 - smoothstep(1.25, 1.57, abs(fi))) * smoothstep(0.35, 0.9, g.a) * smoothstep(-0.04, 0.06, tA) * (mismo ? smoothstep(0.0, 0.025, izq ? -uxM : uxM - 1.0) : smoothstep(0.03, 0.09, izq ? -uxM : uxM - 1.0));
-      if (!mismo) w *= 1.0 - smoothstep(0.76, 0.84, tF);   // foto de otro largo: su puño no se pone a media manga
       base = mix(base, g.rgb / max(g.a, 0.004), w);
     }
   }
@@ -710,6 +726,26 @@ diffuseColor.rgb *= base;`);
     if (c.width <= c.height * 1.15) return 0;
     return lado === 'mangaI' ? 3 : 1;   // acostada: el puño queda abajo
   }
+  // en la foto de una manga (hombro arriba, puño abajo): dónde empieza su puño y dónde acaba la tela (0 arriba, 1 abajo)
+  const punos = new Map();
+  function punoFoto(c, vu) {
+    const k = punos.get(c); if (k && k.vu === vu) return k.r;
+    let r = [1, 1];
+    try {
+      const g0 = girada(c, vu), e = Math.min(1, 240 / Math.max(g0.width, g0.height)), w = Math.max(8, Math.round(g0.width * e)), h = Math.max(8, Math.round(g0.height * e));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.drawImage(g0, 0, 0, w, h);
+      const px = g.getImageData(0, 0, w, h).data, ext = [];
+      let fondo = -1;
+      for (let y = 0; y < h; y++) { let a = -1, b = -1; for (let x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > 140) { if (a < 0) a = x; b = x; } ext.push(a >= 0 && b - a > w * 0.25 ? [a, b] : null); if (ext[y]) fondo = y; }
+      if (fondo > h * 0.3) {
+        for (let y = 0; y < h; y++) if (!ext[y]) ext[y] = ext[y - 1] || [0, w - 1];
+        for (let y = h - 1; y >= 0; y--) if (!ext[y]) ext[y] = ext[y + 1];
+        const hh = fondo + 1, p = altoPuno(px, w, hh, (y) => ext[Math.max(0, Math.min(hh - 1, y))]);
+        r = [(hh - p) / h, hh / h];
+      }
+    } catch (e) { r = [1, 1]; }
+    punos.set(c, { vu, r }); return r;
+  }
   function pintarMangas() {
     [['mangaI', uni.uMangaI, uni.uHayMI], ['mangaD', uni.uMangaD, uni.uHayMD]].forEach(([lado, tx, hay]) => {
       const c = E.fotos[lado]; if (!c) { hay.value = 0; mangaDe[lado] = null; return; }
@@ -718,6 +754,7 @@ diffuseColor.rgb *= base;`);
       hay.value = 1;
       const MR = (lado === 'mangaI' ? uni.uMRI : uni.uMRD).value;
       MR.z = (vu % 2 ? c.width : c.height) / Math.max(1, vu % 2 ? c.height : c.width); MR.x = !E.mangaFotos || E.mangaFotos === E.manga ? 1 : 0;
+      const pm = punoFoto(c, vu), PM = uni.uPunoM.value; if (lado === 'mangaI') { PM.x = pm[0]; PM.y = pm[1]; } else { PM.z = pm[0]; PM.w = pm[1]; }
     });
   }
   // la espalda lleva el nombre y el número del cliente encima de la foto
@@ -870,6 +907,8 @@ diffuseColor.rgb *= base;`);
     async uniforme(o) {
       E.fotos.frente = canvasDe(o.frente); E.fotos.espalda = canvasDe(o.espalda); E.fotos.short = canvasDe(o.short); E.fotos.mangaI = canvasDe(o.mangaI); E.fotos.mangaD = canvasDe(o.mangaD); E.mangaFotos = o.mangaFotos || '';
       E.fotos.patron = { corta: canvasDe(o.patronCorta), larga: canvasDe(o.patronLarga) };
+      // con molde de un solo largo, el otro largo se arma de ese mismo molde (la manga larga es la corta, solo más larga)
+      { const P = E.fotos.patron; if (!!P.corta !== !!P.larga) { const de = P.corta ? 'corta' : 'larga', a = de === 'corta' ? 'larga' : 'corta'; try { P[a] = await otroLargo(P[de], de, a); } catch (e) { P[a] = null; } } }
       if (o.colorShort) E.colorShort = o.colorShort; if (o.colorCalceta) E.colorCalceta = o.colorCalceta; E.colorFranja = o.colorFranja || ''; E.numeroShort = !!o.numeroShort; E.torso = Array.isArray(o.torso) ? o.torso : null;
       api.ajuste(o.ajuste);
       const m = o.manga || E.manga;

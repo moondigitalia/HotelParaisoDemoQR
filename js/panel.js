@@ -1110,9 +1110,11 @@
     // se parece a ninguno (el número, el nombre) es detalle.
     // (un color que solo está arriba, como un nombre que empieza ahí, no es tela: tiene que estar arriba Y abajo)
     var bandas = [[0, Math.round(zh * 0.06)], [Math.round(zh * 0.94), zh]].map(function (rg) {
-      var l = [], vistos = {};
-      for (var y = rg[0]; y < rg[1]; y += 2) for (var x = 0; x < zw; x += 2) { var i = (y * zw + x) * 4; if (d[i + 3] < 200) continue; var k = (d[i] >> 5) + ',' + (d[i + 1] >> 5) + ',' + (d[i + 2] >> 5); if (!vistos[k]) { vistos[k] = 1; l.push([d[i], d[i + 1], d[i + 2]]); } }
-      return l;
+      var l = [], vistos = {}, todos = [];
+      for (var y = rg[0]; y < rg[1]; y += 2) for (var x = 0; x < zw; x += 2) { var i = (y * zw + x) * 4; if (d[i + 3] < 200) continue; var c0 = [d[i], d[i + 1], d[i + 2]]; todos.push(c0); var k = (d[i] >> 5) + ',' + (d[i + 1] >> 5) + ',' + (d[i + 2] >> 5); if (!vistos[k]) { vistos[k] = 1; l.push(c0); } }
+      // solo cuenta como tela un color que cubre buena parte de la orilla (una raya); la punta de un nombre o de un número
+      // que toca la orilla es muy poquito y no es tela
+      return l.filter(function (c) { var n = 0; for (var z = 0; z < todos.length; z++) if (Math.abs(c[0] - todos[z][0]) + Math.abs(c[1] - todos[z][1]) + Math.abs(c[2] - todos[z][2]) <= 60) n++; return n >= todos.length * 0.08; });
     });
     var cerca = function (c, l) { for (var z = 0; z < l.length; z++) if (Math.abs(c[0] - l[z][0]) + Math.abs(c[1] - l[z][1]) + Math.abs(c[2] - l[z][2]) <= 60) return true; return false; };
     var tela = bandas[0].filter(function (c) { return cerca(c, bandas[1]); }).concat(bandas[1].filter(function (c) { return cerca(c, bandas[0]); }));
