@@ -30,6 +30,10 @@ const COMO = ['Código QR', 'Sitio web', 'Referido alumno', 'Referido externo ',
 // lo demás lo reparte el flujo "Asignación asesor - Web y Radar" entre estas tres. Si el flujo no alcanzara a asignar,
 // el puente asigna por su cuenta (respaldo).
 const LAURA = 'coordinacionadmisiones@u3m.edu.mx';
+// Modo prueba de MOON: solo con la clave secreta (aquí solo vive su huella, no la clave).
+// Guarda todo en Escala igual que uno real, pero sin asignar a nadie ni crear avisos → no se manda ningún correo.
+const HUELLA_PRUEBA = '133f7ac8725d46b34707aa1ba69690746c3d96e970bd132fd40dc8b58c788ffb';
+const esPrueba = (k) => typeof k === 'string' && k.length > 10 && require('crypto').createHash('sha256').update(k).digest('hex') === HUELLA_PRUEBA;
 const ASESORAS = ['admisiones05@u3m.edu.mx', 'admisiones03@u3m.edu.mx', 'admisiones04@u3m.edu.mx']; // Mariela, Paulina, Yelenyz
 let opcionesComo = null;
 const tagCache = {};
@@ -167,8 +171,10 @@ async function asegurarAsesor(id, origen) {
 // y a Laura se le crea una actividad (Escala le manda correo al crearla) con todo el historial,
 // marcando si es la primera vez, si ya lo habían recomendado otros o si lo recomienda la misma persona otra vez.
 const SEP = ' · ';
+let LIMITE_REF = 3800; // límite de letras del campo en Escala (se confirma en la prueba)
+const cabe = (arr) => { const a = arr.slice(); while (a.length > 1 && a.join(SEP).length > LIMITE_REF) a.shift(); return a.join(SEP).slice(0, LIMITE_REF); };
 const fechaCorta = () => new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City', day: 'numeric', month: 'short', year: 'numeric' });
-async function avisoReferido(id, b, nombre, existente, asesor, fecha) {
+async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba) {
   const quien = clean((b.campos || {}).referido_de, 300); // "Nombre (tipo, WhatsApp 10 dígitos)"
   const telQuien = (quien.match(/WhatsApp\s*(\d{10})/) || [])[1] || '';
   const entrada = quien ? quien.replace(/\)\s*$/, ', ' + fechaCorta() + ')') : 'Sin nombre de quien recomienda (' + fechaCorta() + ')';
@@ -180,7 +186,7 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha) {
     lista = prev ? prev.split(SEP).filter(Boolean) : [];
     if (i === 0) previas = lista.slice(); // lo que había ANTES de esta recomendación
     if (lista.includes(entrada)) break; // ya quedó guardada
-    const u = await guardar('/contacts/' + id, 'PUT', { triggerWorkflow: false, custom: { [CF.referido_de]: lista.concat(entrada).join(SEP).slice(-3800) } });
+    const u = await guardar('/contacts/' + id, 'PUT', { triggerWorkflow: false, custom: { [CF.referido_de]: cabe(lista.concat(entrada)) } });
     if (u.status >= 300) console.error('escala referido_de', u.status, JSON.stringify(u.data));
     await espera(500 + Math.random() * 700);
   }
@@ -203,6 +209,7 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha) {
     asesorTxt,
     'Registrado desde la página Recomienda y gana el ' + fecha.replace(/\.$/, '') + '.',
   ].filter(Boolean).join(' ');
+  if (prueba) return { prueba: true, titulo, desc, guardado: lista.concat(lista.includes(entrada) ? [] : [entrada]).join(SEP) };
   const ahora = new Date();
   const iso = (d) => d.toISOString().slice(0, 19);
   const a = await esc('/activities', 'POST', {
@@ -235,9 +242,10 @@ module.exports = async (req, res) => {
   let b = req.body || {};
   if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = {}; } }
   if (b.website) return res.status(200).json({ ok: true }); // trampa para bots
+  const prueba = esPrueba(b.prueba);
 
   const tag = TAGS[b.origen];
-  const nombre = clean(b.nombre, 200).replace(/\s+/g, ' ');
+  const nombre = (prueba ? 'PRUEBA MOON – ignorar · ' : '') + clean(b.nombre, 200).replace(/\s+/g, ' ');
   const tel = diez(b.whatsapp);
   const email = clean(b.email, 200).toLowerCase();
   const emailOk = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email);
@@ -249,6 +257,10 @@ module.exports = async (req, res) => {
   try {
     if (b.campos) b.campos.comoOk = await comoValido(b.campos.como);
     const existente = await buscar(tel, nombre);
+    // Candado: una prueba nunca toca la ficha de una persona real
+    if (prueba && existente && !/^PRUEBA MOON/.test(((existente.personal || {}).firstName || '') + ' ' + ((existente.personal || {}).lastName || ''))) {
+      return res.status(409).json({ ok: false, error: 'prueba con número de persona real: no se tocó nada' });
+    }
     const custom = camposPara(b, nombre, tel, existente);
     let id, nuevo = false;
     if (existente) {
@@ -259,7 +271,7 @@ module.exports = async (req, res) => {
       if (!ep.phoneNumber) personal.phoneNumber = '52' + tel;
       if (emailOk && !ep.email) personal.email = email;
       const cambio = {};
-      if (b.origen === 'referidos' && sinAsesor(existente.assignedTo)) cambio.assignedTo = LAURA;
+      if (!prueba && b.origen === 'referidos' && sinAsesor(existente.assignedTo)) cambio.assignedTo = LAURA;
       if (Object.keys(personal).length) cambio.personal = personal;
       if (Object.keys(custom).length) cambio.custom = custom;
       if (Object.keys(cambio).length) {
@@ -272,7 +284,7 @@ module.exports = async (req, res) => {
       if (partes.length > 1) personal.lastName = partes.slice(1).join(' ').slice(0, 100);
       if (emailOk) personal.email = email;
       const contacto = { personal, status: 'lead', source: 'other', triggerWorkflow: false };
-      if (b.origen === 'referidos') contacto.assignedTo = LAURA;
+      if (!prueba && b.origen === 'referidos') contacto.assignedTo = LAURA;
       if (Object.keys(custom).length) contacto.custom = custom;
       const up = await guardar('/contacts/upsert', 'POST', contacto);
       id = up.data && up.data.id;
@@ -282,15 +294,15 @@ module.exports = async (req, res) => {
       }
       nuevo = up.status === 201;
     }
-    const t = await esc('/contacts/' + id + '/tags', 'PUT', { addTags: [await tagId(tag)], triggerWorkflow: true }); // activa el flujo "Asignación asesor - Web y Radar"
+    const t = await esc('/contacts/' + id + '/tags', 'PUT', { addTags: [await tagId(tag)], triggerWorkflow: !prueba }); // activa el flujo "Asignación asesor - Web y Radar"
     if (t.status !== 200) console.error('escala tags', t.status, JSON.stringify(t.data));
-    const asesor = await asegurarAsesor(id, b.origen);
+    const asesor = prueba ? null : await asegurarAsesor(id, b.origen);
     const n = await esc('/annotations', 'POST', { contactId: id, title: clean(TITULOS[b.origen] + ' · ' + fecha, 256), description: notas }, NOTE_API);
     if (n.status >= 300) console.error('escala nota', n.status, JSON.stringify(n.data));
     let aviso;
-    if (b.origen === 'referidos') aviso = await avisoReferido(id, b, nombre, existente, asesor, fecha);
+    if (b.origen === 'referidos') aviso = await avisoReferido(id, b, nombre, existente, asesor, fecha, prueba);
     let tarea;
-    if (b.tarea && b.tarea.titulo) {
+    if (!prueba && b.tarea && b.tarea.titulo) {
       const tk = await esc('/tasks', 'POST', {
         contactId: id, title: clean(b.tarea.titulo, 256), description: clean(b.tarea.descripcion, 3900) || notas,
         startAt: new Date().toISOString().slice(0, 19), status: 'pending',
