@@ -3985,9 +3985,9 @@ if (t > (uHayPatron > 0.5 ? uDobl.x : uZonas.z - 0.01)) {
     float deFrente = normalize(vNormMundo).z;
     s.a *= smoothstep(0.5, 0.68, deFrente);
     base = mix(uShort, s.rgb / max(s.a, 0.004), s.a);
-    vec2 ps = enPatron(true); if (uHayPatron > 0.5 && ps.x > 0.0) base = texture2D(uPatron, vec2(ps.x, 1.0 - ps.y)).rgb;
+    vec2 ps = enPatron(true); if (uHayPatron > 0.5 && ps.x > 0.0) base = mix(uShort, texture2D(uPatron, vec2(ps.x, 1.0 - ps.y)).rgb, smoothstep(0.2, 0.45, normalize(vNormMundo).z));
     if (!atras && uHayNum > 0.5) { vec4 ns = texture2D(uShortNum, vec2(sx, (vMundo.y - uShortCaja.y) / uShortCaja.w)); base = mix(base, ns.rgb / max(ns.a, 0.004), ns.a); }
-  } else { vec2 ps = enPatron(true); if (uHayPatron > 0.5 && ps.x > 0.0) base = texture2D(uPatron, vec2(ps.x, 1.0 - ps.y)).rgb; }
+  } else { vec2 ps = enPatron(true); if (uHayPatron > 0.5 && ps.x > 0.0) base = mix(uShort, texture2D(uPatron, vec2(ps.x, 1.0 - ps.y)).rgb, smoothstep(0.2, 0.45, normalize(vNormMundo).z)); }   // el molde solo trae el frente del short: de lado pasa suave a su color de tela, sin estirar la orilla
 } else {
   base = uSock; zona = 3.0;
   if (uHayFranja > 0.5 && vMundo.y > uSockTop - uFranjaAlto) base = uFranja;
