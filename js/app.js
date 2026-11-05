@@ -1332,7 +1332,13 @@
   // lo guardado por el dueño puede ser de antes de una mejora: lo que falte de los uniformes de arranque se toma de ahí
   function completarCatalogo(lista) {
     var base = {}; window.CATALOGO_BASE.forEach(function (u) { base[u.id] = u; });
-    return lista.map(function (u) { var b = base[u.id]; if (b && !u.silueta && b.silueta) u.silueta = b.silueta; return u; });
+    var sinV = function (x) { return String(x || '').split('?')[0]; };
+    return lista.map(function (u) {
+      var b = base[u.id]; if (b && !u.silueta && b.silueta) u.silueta = b.silueta;
+      // el molde del uniforme de arranque (costados y mangas completos): solo si el dueño no le cambió la foto ni le puso molde
+      if (b && b.fotos && b.fotos.patronCorta && u.fotos && !u.sinMolde && !u.fotos.patronCorta && !u.fotos.patronLarga && sinV(u.fotos.frente) === sinV(b.fotos.frente)) u.fotos.patronCorta = b.fotos.patronCorta;
+      return u;
+    });
   }
   function cargarTienda() {
     return fetch('/api/tienda', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (t) {

@@ -1362,6 +1362,9 @@
         cut = M.limpiarTela(cut, M.coloresBase(cut), true);
         av.push('La espalda traía nombre y número impresos: los quitamos para poner los del cliente.');
       }
+      // una foto nueva del frente, la espalda o el short es otro uniforme: el molde que tenía ya no le corresponde
+      // (si no, el 3D seguiría mostrando el molde viejo encima de la foto nueva)
+      if (lado === 'frente' || lado === 'espalda' || lado === 'short') { if (u.fotos.patronCorta || u.fotos.patronLarga) u.sinMolde = true; delete u.fotos.patronCorta; delete u.fotos.patronLarga; }
       tareas.push(ponerFoto(u, lado, cut));
       // short y calcetas: de cualquier foto que los traiga (el short de su propia foto manda)
       if (lado !== 'short' && !/^manga/.test(lado) && !u.shortPropio) {   // de la foto de una manga no se saca short
