@@ -94,7 +94,7 @@ def correr(rapido):
                 pg.locator('[data-edit]').first.click(); pg.wait_for_timeout(5000); ver('estudio')
                 pg.click('[data-hoja-ir="datos"]'); ver('estudio-hoja')
                 pg.evaluate("document.querySelector('[data-hoja=datos] .pn-hoja-cuerpo').scrollTop=1e5"); ver('estudio-hoja-abajo')
-                pg.click('[data-hoja-cerrar]')
+                pg.click('.pn-hoja:not([hidden]) [data-hoja-cerrar]')
                 bb = pg.locator('#ed-3d').bounding_box(); pg.mouse.click(bb['x'] + bb['width'] * .5, bb['y'] + bb['height'] * .35); pg.wait_for_timeout(900); ver('estudio-pieza')
                 pg.click('[data-ctl="listo"]'); pg.wait_for_timeout(300)
                 pg.mouse.click(bb['x'] + bb['width'] * .45, bb['y'] + bb['height'] * .78); pg.wait_for_timeout(900); ver('estudio-calcetas')

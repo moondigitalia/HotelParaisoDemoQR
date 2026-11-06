@@ -1889,3 +1889,10 @@ img,svg,canvas{-webkit-user-drag:none;-webkit-touch-callout:none}
 .pn-molde-b{display:flex;flex-wrap:wrap;gap:8px}
 .pn-molde-b .chip{text-decoration:none}
 .pn-molde-subir{position:relative;cursor:pointer;background:var(--oro);color:#0A1033;border-color:var(--oro)}
+
+/* Equipo y diseño + Con ChatGPT: dos renglones lado a lado (en la franja de abajo no caben uno sobre otro) */
+.pn-est-filas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:8px}
+.pn-est-filas .pn-est-equipo{margin-top:0;min-width:0}
+.pn-est-filas .pn-est-equipo span{min-width:0}
+.pn-est-filas .pn-est-equipo small{display:block;white-space:nowrap}
+.pn-est-filas .pn-est-equipo b{display:block;white-space:normal;line-height:1.05;overflow-wrap:anywhere}   /* nada se corta: el nombre largo baja a otro renglón */

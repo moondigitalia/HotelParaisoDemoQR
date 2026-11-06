@@ -648,6 +648,8 @@
       '<div id="ed-aviso"></div>' +
       '<div class="pn-est-franja"><div class="pn-ctl" id="pn-ctl">' + franjaInicio(u, faltaLado, NOMF) + '</div></div>' +
       '<div class="pn-est-oculto" aria-hidden="true"><div class="pn-fotos">' + boton('frente', 'Frente') + boton('espalda', 'Espalda') + boton('short', 'Short') + boton('mangaI', 'Manga izquierda', true) + boton('mangaD', 'Manga derecha', true) + '</div></div>' +
+      // el molde para el generador de imágenes: su propia hoja (en la franja de abajo no cabía y se cortaba)
+      '<div class="pn-hoja" data-hoja="molde" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Con ChatGPT u otro generador</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo">' + bloqueMolde() + '</div></div></div>' +
       '<div class="pn-hoja" data-hoja="datos" hidden><div class="pn-hoja-in"><div class="pn-hoja-cab"><b>Equipo y diseño</b><button type="button" class="pn-ctl-listo" data-hoja-cerrar>Listo</button></div><div class="pn-hoja-cuerpo pn-form">' +
       
       // el equipo se escoge de la lista (un error de dedo no parte al equipo en dos); si es nuevo, aquí mismo se le pone sección y escudo
@@ -692,6 +694,10 @@
       '<li><span>Sube aquí lo que te dio</span><span class="pn-molde-b"><label class="chip pn-molde-subir">Subir molde lleno<input type="file" accept="image/*,.heic,.heif" data-molde class="pn-est-oculto"></label></span></li>' +
       '</ol></div>';
   }
+  // en la franja: un renglón como "Equipo y diseño" que abre la hoja del molde
+  function filaMolde() {
+    return '<button type="button" class="pn-est-equipo pn-est-molde" data-hoja-ir="molde"><span><small>Hacerlo</small><b>Con ChatGPT</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>';
+  }
   // sus botones se atienden una sola vez para todo el panel (el estudio se vuelve a dibujar a cada rato)
   var moldeListo = false;
   function enlazarMolde() {
@@ -704,11 +710,12 @@
     var f = u.fotos || {};
     var lados = '<div class="pn-est-lados" role="tablist"><button type="button" class="vista' + (pvVista !== 'espalda' ? ' on' : '') + '" data-pv="frente">Frente</button><button type="button" class="vista' + (pvVista === 'espalda' ? ' on' : '') + '" data-pv="espalda">Espalda</button></div>';
     var nombre = esc(nombreAuto(u) || u.nombre || 'Sin equipo todavía');
-    var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo y diseño</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
-    if (!f.frente) return cab + bloqueMolde();
-    if (faltaLado) return lados + '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto ' + ({ frente: 'del frente', espalda: 'de la espalda', short: 'del short' })[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + cab;
+    var cab = '<button type="button" class="pn-est-equipo" data-hoja-ir="datos"><span><small>Equipo</small><b>' + nombre + '</b></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>';
+    var filas = '<div class="pn-est-filas">' + cab + filaMolde() + '</div>';   // los dos renglones lado a lado: siempre caben en la franja
+    if (!f.frente) return filas;
+    if (faltaLado) return lados + '<button type="button" class="pn-est-falta" data-subir="' + faltaLado + '"><span class="pn-est-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4V8Z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Falta la foto ' + ({ frente: 'del frente', espalda: 'de la espalda', short: 'del short' })[faltaLado] + '</b><small>Tócalo para subirla</small></span></button>' + filas;
     // Frente / Espalda vive aquí abajo, nunca encima del uniforme
-    return lados + '<p class="pn-ctl-ayuda">☝ Toca una pieza del uniforme para acomodarla o cambiar su foto.</p>' + cab + bloqueMolde();
+    return lados + '<p class="pn-ctl-ayuda">☝ Toca una pieza del uniforme para acomodarla o cambiar su foto.</p>' + filas;
   }
   var mEditor = null, pvVista = 'frente';
   // borrador: el dueño pinta con el dedo lo que no es de la playera (etiqueta colgando, gancho, mancha) y se rellena
