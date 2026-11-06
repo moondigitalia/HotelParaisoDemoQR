@@ -198,19 +198,23 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0
     await espera(800 + Math.random() * 1500);
   }
   if (seguidas < 2) console.error('referido_de: no se pudo confirmar', id);
+  // Reintento del mismo envío (la página no recibió respuesta y lo volvió a mandar): no sabemos si el aviso alcanzó a crearse
+  // (Escala no deja consultar actividades por contacto), así que se manda otra vez marcado; es mejor un aviso repetido que uno perdido.
+  const reintento = antes.includes(entrada);
   // Su lugar en la lista final dice cuántas recomendaciones hubo antes (sirve también si llegaron al mismo tiempo)
   const pos = lista.indexOf(entrada);
   const previas = pos >= 0 ? lista.slice(0, pos) : antes;
   const todas = pos >= 0 ? lista.slice(0, pos + 1) : antes.concat(entrada);
   const vez = todas.length;
   const mismo = !!telQuien && previas.some((x) => x.includes(telQuien));
-  const yaEstaba = !!existente && !previas.length;
+  const yaEstaba = !!existente && !previas.length && !reintento;
   const situacion = mismo ? 'La MISMA persona ya lo había recomendado antes.'
     : vez === 2 ? 'Ya lo había recomendado otra persona antes.'
     : vez > 2 ? 'Ya lo habían recomendado ' + (vez - 1) + ' personas antes.'
     : yaEstaba ? 'Esta persona YA estaba en Escala antes de ser recomendada (llegó por otro medio).'
     : 'Es la primera vez que lo recomiendan.';
   const titulo = (vez > 1 || mismo || yaEstaba ? 'Revisar referido' : 'Nuevo referido') + ': ' + nombre + (vez > 1 ? ' (' + vez + 'ª recomendación)' : '');
+  const tituloFinal = () => (reintento ? '(Puede ser repetido) ' : '') + titulo;
   const asesorTxt = !asesor || asesor === LAURA ? 'Asignado a ti para que decidas a quién pasarlo.' : 'Asesor actual: ' + asesor + ' (se respetó).';
   const desc = [
     situacion,
@@ -220,18 +224,16 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0
     'Registrado desde la página Recomienda y gana el ' + fecha.replace(/\.$/, '') + '.',
   ].filter(Boolean).join(' ');
   if (prueba) return { prueba: true, titulo, desc, guardado: lista.join(SEP) };
-  // Reintento del mismo envío (se cayó el internet y la página lo volvió a mandar): ya estaba guardado y avisado, no se repite el aviso
-  if (antes.includes(entrada)) return 'ya-avisado';
   const ahora = new Date();
   const iso = (d) => d.toISOString().slice(0, 19);
   const a = await esc('/activities', 'POST', {
-    contactId: id, title: clean(titulo, 256), description: clean(desc, 3900), type: 'other', status: 'pending',
+    contactId: id, title: clean(tituloFinal(), 256), description: clean((reintento ? 'Este aviso puede ser repetido: llegó otra vez el mismo registro hoy (la misma persona lo volvió a enviar o se cortó la conexión y la página lo reenvió). ' : '') + desc, 3900), type: 'other', status: 'pending',
     assignedTo: LAURA, startAt: iso(ahora), endAt: iso(new Date(ahora.getTime() + 15 * 60000)), duration: 15,
   });
   if (a.status >= 300) {
     console.error('escala actividad referido', a.status, JSON.stringify(a.data));
     // Respaldo: si la actividad no se pudo crear, que al menos le quede una tarea a Laura
-    const tk = await esc('/tasks', 'POST', { contactId: id, title: clean(titulo, 256), description: clean(desc, 3900), assignedTo: LAURA, startAt: iso(ahora), status: 'pending' });
+    const tk = await esc('/tasks', 'POST', { contactId: id, title: clean(tituloFinal(), 256), description: clean(desc, 3900), assignedTo: LAURA, startAt: iso(ahora), status: 'pending' });
     if (tk.status >= 300) console.error('escala tarea referido', tk.status, JSON.stringify(tk.data));
     return tk.status < 300 ? 'tarea' : false;
   }
