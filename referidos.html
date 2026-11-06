@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Recomienda y gana $500 · U3M</title>
-<meta name="description" content="Registra a tus amigos que quieran estudiar en la Universidad Tercer Milenio y gana $500 por cada uno que se inscriba. Sin límite.">
+<title>Recomienda y gana · U3M</title>
+<meta name="description" content="Recomienda a tus amigos en la Universidad Tercer Milenio y ahorra hasta $1,000 al mes en tu colegiatura.">
 <meta name="theme-color" content="#12233B">
 <link rel="icon" href="favicon.png?v=u3m3">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=u3m2">
@@ -12,83 +12,127 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="landing.css?v=20261016m">
+<link rel="stylesheet" href="landing.css?v=20261027b">
 <style>
-.big500{display:flex;align-items:flex-end;gap:14px;margin-top:10px}
-.big500 b{font-family:var(--display);font-stretch:120%;font-weight:900;font-size:clamp(72px,18vw,120px);line-height:.85;letter-spacing:-3px;color:var(--lime)}
-.big500 span{font-size:17px;font-weight:700;line-height:1.3;color:#DDE5EE;padding-bottom:6px}
-.steps3{margin-top:22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.steps3 div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;font-size:14px;line-height:1.35;color:#DDE5EE}
-.steps3 b{display:flex;width:30px;height:30px;border-radius:9px;background:var(--lime);color:var(--navy);align-items:center;justify-content:center;margin-bottom:8px}
-.sub-h{margin:6px 0 0;font-size:13px;font-weight:800;letter-spacing:2px;color:var(--lime-d)}
-.friend{border:1.5px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative}
-.friend .fh{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:15px}
-.friend .rm{background:transparent;border:0;color:var(--gray);font-size:14px;font-weight:700;padding:6px}
-.add{height:48px;border:1.5px dashed var(--blue);border-radius:12px;background:#F4F8FD;color:var(--blue);font-weight:800;font-size:15px}
-.rules{margin-top:22px;background:rgba(255,255,255,.06);border-radius:14px;padding:16px 18px;font-size:14px;line-height:1.55;color:#C9D2DC}
-.rules b{color:#fff}
-.ok-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-.ok-list li{display:flex;gap:10px;align-items:center;background:var(--paper);border-radius:10px;padding:10px 12px;font-weight:700}
-.ok-list li i{width:24px;height:24px;border-radius:50%;background:var(--lime);color:var(--navy);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;flex-shrink:0}
-.folio{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:1px;color:var(--blue)}
-@media (max-width:480px){.steps3{grid-template-columns:1fr}.steps3 div{display:flex;gap:12px;align-items:center}.steps3 b{margin:0;flex-shrink:0}}
+.pill{display:inline-block;white-space:nowrap;margin-top:14px;background:var(--lime);color:var(--navy);font-weight:900;font-size:clamp(12px,3.7vw,14px);letter-spacing:1.2px;border-radius:999px;padding:8px 16px}
+.rg h1{margin-top:14px}
+.rg h1 .amt{display:block;color:var(--lime);font-size:1.12em;letter-spacing:-1.5px}
+.nw{white-space:nowrap}
+.lead{margin:16px 0 0;font-size:18px;line-height:1.5;color:#E6ECF2}
+.lead b{color:#fff}
+.more{margin:12px 0 0;font-size:19px;font-weight:800;color:var(--lime)}
+.calc{margin-top:26px}
+.calc h2{margin:0;font-family:var(--display);font-stretch:112%;font-weight:800;font-size:clamp(24px,5.4vw,32px);line-height:1.1}
+.calc p.if{margin:8px 0 0;font-size:16.5px;line-height:1.45;color:#E6ECF2}
+.calc p.if b{color:#fff}
+.bubbles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;align-items:end;max-width:540px}
+.bub{aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.08);border:2px solid rgba(156,196,60,.45);padding:6px}
+.bub:nth-child(2){background:rgba(156,196,60,.2)}
+.bub:nth-child(3){background:var(--lime);border-color:var(--lime);color:var(--navy)}
+.bub small{font-size:clamp(13px,3.6vw,16px);font-weight:700}
+.bub b{font-family:var(--display);font-stretch:110%;font-weight:900;font-size:clamp(22px,6.6vw,34px);line-height:1.05;letter-spacing:-.5px}
+.bub span{font-size:clamp(12px,3.3vw,14.5px);font-weight:700}
+.fine{margin:14px 0 0;font-size:14.5px;line-height:1.5;color:#C9D2DC}
+.pasos{margin-top:28px;display:flex;flex-direction:column;gap:12px}
+.paso{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.07);border-radius:24px;padding:16px 18px}
+.paso .n{width:44px;height:44px;border-radius:50%;background:var(--lime);color:var(--navy);font-family:var(--display);font-weight:900;font-size:19px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.paso small{display:block;font-size:13px;font-weight:900;letter-spacing:1.5px;color:var(--lime)}
+.paso b{display:block;font-size:18px;margin-top:2px}
+.paso p{margin:4px 0 0;font-size:16px;line-height:1.45;color:#E6ECF2}
+.imp{margin-top:16px;border:2px solid var(--lime);border-radius:24px;padding:16px 18px;font-size:16px;line-height:1.5;color:#E6ECF2}
+.imp b{color:var(--lime)}
+.f-head h2{margin:0;font-family:var(--display);font-stretch:110%;font-weight:800;font-size:clamp(24px,5.4vw,30px);line-height:1.1;color:var(--navy)}
+.f-head p{margin:6px 0 0;font-size:16px;line-height:1.45;color:var(--ink)}
+.sub-h{margin:6px 0 0;font-size:13.5px;font-weight:900;letter-spacing:2px;color:var(--lime-d)}
+.sub-h span{color:var(--ink);letter-spacing:0;font-weight:700}
+.sit{display:flex;flex-direction:column;gap:8px}
+.sit label{min-height:52px;display:flex;align-items:center;gap:12px;padding:10px 16px;border:1.5px solid var(--line-2);border-radius:999px;font-size:15.5px;font-weight:700;cursor:pointer;line-height:1.25}
+.sit input{position:absolute;opacity:0;pointer-events:none}
+.sit label i{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-2);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sit label:has(input:checked){border-color:var(--blue);background:#EEF5FC;color:var(--blue-d)}
+.sit label:has(input:checked) i{border-color:var(--blue);background:var(--blue);box-shadow:inset 0 0 0 4px #EEF5FC}
+.friend{border:1.5px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.friend .fh{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px}
+.friend .rm{background:transparent;border:0;color:var(--blue);font-size:14.5px;font-weight:700;padding:6px}
+.rel{display:flex;flex-wrap:wrap;gap:8px}
+.rel .t{width:100%;font-size:14px;font-weight:700;color:var(--ink)}
+.rel label{min-height:40px;display:flex;align-items:center;padding:6px 14px;border:1.5px solid var(--line-2);border-radius:999px;font-size:14.5px;font-weight:700;cursor:pointer}
+.rel input{position:absolute;opacity:0;pointer-events:none}
+.rel label:has(input:checked){border-color:var(--blue);background:#EEF5FC;color:var(--blue-d)}
+.add{min-height:50px;border:1.5px dashed var(--blue);border-radius:999px;background:#F4F8FD;color:var(--blue);font-weight:800;font-size:15.5px}
+.check span{font-size:15px;line-height:1.45;color:var(--navy)}
+#y-err{margin:0;color:#B42318;font-size:15px;font-weight:700;display:none}
+.cta-big[disabled]{opacity:.6;cursor:wait}
+.saber{margin-top:22px;background:rgba(255,255,255,.07);border-radius:24px;padding:18px 20px}
+.saber small{display:block;font-size:13.5px;font-weight:900;letter-spacing:2px;color:var(--lime);margin-bottom:6px}
+.saber p{margin:0;font-size:16px;line-height:1.55;color:#E6ECF2}
+.ok-txt{margin:18px 0 0;font-size:18px;line-height:1.55;color:#E6ECF2}
+.ok-txt b{color:#fff}
+.ok-call{margin:16px 0 0;font-size:19px;line-height:1.45;font-weight:800;color:var(--lime)}
+#again{margin-top:26px;width:100%}
+@media (min-width:640px){.pasos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.paso{flex-direction:column}}
 </style>
 </head>
 <body>
-<div class="rd">
+<div class="rd rg">
   <header class="rd-top">
     <a class="logo light" href="/" aria-label="Universidad Tercer Milenio, inicio"><span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span><span class="t"><b>U3M</b><span>TERCER<strong>MILENIO</strong></span></span></a>
     <span class="tag">RECOMIENDA Y GANA</span>
   </header>
   <main class="rd-main">
     <section class="screen on" id="s-form">
-      <h1>Trae a tus amigos a U3M <span>y gana</span></h1>
-      <div class="big500"><b>$500</b><span>por cada amigo que se inscriba.<br>Sin límite.</span></div>
-      <div class="steps3">
-        <div><b>1</b>Registra aquí a tus amigos antes de que se inscriban.</div>
-        <div><b>2</b>Un asesor de Admisiones los contacta por WhatsApp.</div>
-        <div><b>3</b>Si se inscriben, ganas $500 por cada uno.</div>
+      <span class="pill">¡AHORA CON MÁS BENEFICIOS!</span>
+      <h1>¡Recomienda a tus amigos y ahorra <span class="amt"><span class="nw">hasta $1,000</span> <span class="nw">al mes</span></span> en tu colegiatura!</h1>
+      <p class="lead">Por cada amigo o familiar que se inscriba, comience clases y pague sus colegiaturas, puedes obtener <b>hasta 6 descuentos del 10%</b> en tu colegiatura.</p>
+      <p class="more">¡Mientras más amigos recomiendes, más puedes ahorrar!</p>
+
+      <div class="calc">
+        <h2>Mira cuánto puedes ahorrar</h2>
+        <p class="if">Si tu colegiatura mensual, después de tu beca, es de <b>$2,000</b>:</p>
+        <div class="bubbles">
+          <div class="bub"><small>1 amigo</small><b>$200</b><span>al mes</span></div>
+          <div class="bub"><small>3 amigos</small><b>$600</b><span>al mes</span></div>
+          <div class="bub"><small>5 amigos</small><b>$1,000</b><span>al mes</span></div>
+        </div>
+        <p class="fine">Ejemplo ilustrativo. Cada amigo debe cumplir las condiciones del programa. El descuento total aplicado a una colegiatura no puede superar el 50% de su importe neto.</p>
       </div>
 
-      <form class="card-w" id="ref" novalidate style="margin-top:22px">
+      <div class="pasos">
+        <div class="paso"><span class="n">1</span><div><small>PASO 1</small><b>Piensa en tus amigos o familiares.</b><p>¿Conoces a alguien que quiera estudiar una carrera o retomar sus estudios?</p></div></div>
+        <div class="paso"><span class="n">2</span><div><small>PASO 2</small><b>¡Recomiéndale U3M!</b><p>Registra sus datos aquí. Después, cuéntale por qué elegiste U3M y cómo ha sido tu experiencia.</p></div></div>
+        <div class="paso"><span class="n">3</span><div><small>PASO 3</small><b>¡Empieza a ahorrar!</b><p>Cuando tu amigo se inscriba, comience clases y pague sus colegiaturas, recibirás los descuentos que correspondan.</p></div></div>
+      </div>
+      <div class="imp"><b>¡Importante!</b> Registra a tus amigos antes de que se inscriban en U3M. Si ya están inscritos, la recomendación no podrá contar.</div>
+
+      <form class="card-w" id="ref" novalidate style="margin-top:26px">
+        <div class="f-head"><h2>¡Registra a tus amigos!</h2><p>Completa tus datos y los de las personas que quieres recomendar.</p></div>
         <p class="sub-h">TUS DATOS</p>
         <div class="field"><label for="y-nombre">Tu nombre completo</label><input class="input" id="y-nombre" autocomplete="name" placeholder="Ej. Andrea López"></div>
         <div class="field"><label for="y-wa">Tu WhatsApp (10 dígitos)</label><input class="input" id="y-wa" type="tel" inputmode="numeric" autocomplete="tel" placeholder="229 000 0000"></div>
-        <div class="field"><span class="lbl">Soy</span>
-          <div class="opts3" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-            <label><input type="radio" name="soy" value="Alumno U3M" checked>Alumno U3M</label>
-            <label><input type="radio" name="soy" value="Egresado U3M">Egresado</label>
-            <label><input type="radio" name="soy" value="Papá, mamá o familiar">Familiar</label>
-            <label><input type="radio" name="soy" value="Amigo de U3M">Otro</label>
+        <div class="field"><span class="lbl">Tu situación</span>
+          <div class="sit">
+            <label><input type="radio" name="sit" value="estudiando"><i></i>Ya estoy estudiando en U3M</label>
+            <label><input type="radio" name="sit" value="inscrito"><i></i>Ya me inscribí, pero todavía no comienzo clases</label>
           </div>
         </div>
-        <p class="sub-h" style="margin-top:8px">TUS REFERIDOS <span style="color:var(--gray);letter-spacing:0;font-weight:600">· hasta 3</span></p>
+        <div class="field"><label for="y-mail">Tu correo electrónico (opcional)</label><input class="input" id="y-mail" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"></div>
+        <p class="sub-h" style="margin-top:8px">TUS AMIGOS <span>· de 1 a 3</span></p>
         <div id="friends" style="display:flex;flex-direction:column;gap:12px"></div>
         <button class="add" type="button" id="add">+ Agregar otro amigo</button>
         <datalist id="carreras-list"></datalist>
-        <label class="check"><input type="checkbox" id="y-ok"><span>Confirmo que mis amigos están de acuerdo en que U3M los contacte por WhatsApp y acepto el <a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</span></label>
-        <p id="y-err" role="alert" style="margin:0;color:#B42318;font-size:14px;font-weight:600;display:none"></p>
-        <button class="cta-big" type="submit">REGISTRAR A MIS REFERIDOS</button>
-        <span class="micro">Registro en menos de 1 minuto</span>
+        <label class="check"><input type="checkbox" id="y-ok"><span>Confirmo que mis amigos me autorizaron a compartir sus datos para que U3M los contacte y acepto las condiciones del programa y el <a href="https://u3m.edu.mx/aviso-de-privacidad/" target="_blank" rel="noopener">aviso de privacidad</a>.</span></label>
+        <p id="y-err" role="alert"></p>
+        <button class="cta-big" type="submit" id="send">¡REGISTRAR A MIS AMIGOS!</button>
       </form>
 
-      <div class="rules"><b>Importante:</b> tus referidos deben quedar registrados <b>antes</b> de inscribirse para que cuenten. Mientras más recomiendas, más ganas: no hay límite. Promoción sujeta a las condiciones de Admisiones U3M.</div>
+      <div class="saber"><small>LO QUE DEBES SABER</small><p>Cada amigo que se inscriba, comience clases y pague sus colegiaturas puede generar hasta 6 descuentos del 10% sobre tu colegiatura después de la beca. Puedes acumular descuentos de varios amigos, hasta el 50% de tu colegiatura neta. Regístralos antes de que se inscriban. Consulta las bases completas.</p></div>
     </section>
 
     <section class="screen" id="s-ok">
-      <div class="done-top"><img src="img/asesor-avatar.webp" alt=""><div><span class="eyebrow on-dark" style="font-size:12px">REFERIDOS REGISTRADOS</span><h2 class="q-title" style="margin:6px 0 0" id="ok-title">¡Listo!</h2></div></div>
-      <div class="wa-card">
-        <span style="font-size:13px;font-weight:700;color:var(--gray)">TU FOLIO</span>
-        <span class="folio" id="folio"></span>
-        <ul class="ok-list" id="ok-list"></ul>
-        <p style="margin:0;font-size:15px;line-height:1.5;color:var(--ink)" id="ok-text"></p>
-      </div>
-      <div class="next">
-        <a class="btn btn-wa" id="share" href="#" target="_blank" rel="noopener" style="justify-content:center">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>Avisarles a mis amigos por WhatsApp</a>
-        <button class="btn btn-ghost" type="button" id="again" style="justify-content:center">Registrar más amigos</button>
-        <a class="btn btn-ghost" href="/" style="justify-content:center">Volver al sitio de U3M</a>
-      </div>
+      <div class="done-top"><img src="img/asesor-avatar.webp" alt=""><h2 class="q-title" style="margin:0">¡Listo! Recibimos tus recomendaciones.</h2></div>
+      <p class="ok-txt"><b>Gracias por recomendar U3M.</b> Nuestro equipo de Admisiones revisará los registros y dará seguimiento a tus amigos.</p>
+      <p class="ok-call">¡Cuéntales por qué elegiste U3M y cómo ha sido tu experiencia!</p>
+      <button class="cta-big" type="button" id="again">Registrar más amigos</button>
     </section>
   </main>
 </div>
@@ -99,48 +143,83 @@
 (function(){
 'use strict';
 var $=function(s){return document.querySelector(s)};
-var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 $('#carreras-list').innerHTML=(window.U3M_CARRERAS||[]).map(function(c){return '<option value="'+c.name+'">'}).join('');
-var box=$('#friends'),n=0;
+var REL=['Amigo/a','Familiar','Compañero/a','Conocido/a'];
+var box=$('#friends'),uid=0;
 function addFriend(){
   if(box.children.length>=3)return;
-  n++;var i=box.children.length+1;
+  uid++;
   var d=document.createElement('div');d.className='friend';
-  d.innerHTML='<div class="fh"><span>Amigo '+i+'</span>'+(i>1?'<button type="button" class="rm">Quitar</button>':'')+'</div>'+
-   '<input class="input f-n" placeholder="Nombre de tu amigo" aria-label="Nombre del amigo '+i+'">'+
-   '<input class="input f-w" type="tel" inputmode="numeric" placeholder="WhatsApp (10 dígitos)" aria-label="WhatsApp del amigo '+i+'">'+
-   '<input class="input f-c" list="carreras-list" placeholder="Carrera que le interesa (opcional)" aria-label="Carrera de interés del amigo '+i+'">';
+  d.innerHTML='<div class="fh"><span></span><button type="button" class="rm">Quitar</button></div>'+
+   '<input class="input f-n" autocomplete="off" placeholder="Nombre completo">'+
+   '<input class="input f-w" type="tel" inputmode="numeric" autocomplete="off" placeholder="WhatsApp (10 dígitos)">'+
+   '<div class="rel"><span class="t">Relación (opcional)</span>'+REL.map(function(r){return '<label><input type="radio" name="rel'+uid+'" value="'+r+'">'+r+'</label>'}).join('')+'</div>'+
+   '<input class="input f-c" list="carreras-list" placeholder="Carrera (opcional)">';
   box.appendChild(d);refresh();
 }
 function refresh(){
-  [].forEach.call(box.children,function(f,k){f.querySelector('.fh span').textContent='Amigo '+(k+1)});
+  [].forEach.call(box.children,function(f,k){
+    f.querySelector('.fh span').textContent='Amigo '+(k+1);
+    f.querySelector('.rm').style.display=box.children.length>1?'':'none';
+    f.querySelector('.f-n').setAttribute('aria-label','Nombre del amigo '+(k+1));
+    f.querySelector('.f-w').setAttribute('aria-label','WhatsApp del amigo '+(k+1));
+    f.querySelector('.f-c').setAttribute('aria-label','Carrera de interés del amigo '+(k+1));
+  });
   $('#add').style.display=box.children.length>=3?'none':'';
 }
 box.addEventListener('click',function(e){if(e.target.classList.contains('rm')){e.target.closest('.friend').remove();refresh()}});
 $('#add').addEventListener('click',addFriend);
 addFriend();
 
+// Cola: cada registro se guarda en este celular hasta que Escala confirma; si se cae el internet, se reintenta solo.
+var KEY='u3m_ref_cola';
+function lee(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+function escribe(c){try{localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}}
+function quita(id){escribe(lee().filter(function(x){return x.id!==id}))}
+function manda(item){
+  if(!window.u3mEscala)return;
+  item.t=Date.now();var c=lee().filter(function(x){return x.id!==item.id});c.push(item);escribe(c);
+  window.u3mEscala(item.datos).then(function(r){if(r&&r.ok)quita(item.id)});
+}
+// Al abrir la página: reintenta lo que no se confirmó (con más de 2 minutos, para no cruzarse con un envío en curso)
+lee().forEach(function(x){if(Date.now()-(x.t||0)>120000&&(x.n||0)<5){x.n=(x.n||0)+1;manda(x)}});
+
+var enviando=false;
+function error(m){var e=$('#y-err');e.textContent=m;e.style.display=m?'block':'none';if(m)e.scrollIntoView({block:'center',behavior:'smooth'})}
 $('#ref').addEventListener('submit',function(e){
   e.preventDefault();
-  var err=$('#y-err'),name=$('#y-nombre').value.trim(),wa=$('#y-wa').value.replace(/\D/g,'');
-  var fr=[].map.call(box.children,function(f){return{n:f.querySelector('.f-n').value.trim(),w:f.querySelector('.f-w').value.replace(/\D/g,''),c:f.querySelector('.f-c').value.trim()}}).filter(function(f){return f.n||f.w});
-  var bad=fr.filter(function(f){return !f.n||f.w.length!==10});
-  var msg=!name?'Escribe tu nombre.':wa.length!==10?'Tu WhatsApp debe tener 10 dígitos.':!fr.length?'Agrega al menos a un amigo.':bad.length?'Revisa el nombre y WhatsApp (10 dígitos) de cada amigo.':fr.some(function(f){return f.w===wa})?'El WhatsApp de tu amigo no puede ser el mismo que el tuyo.':!$('#y-ok').checked?'Confirma que tus amigos aceptan ser contactados.':'';
-  if(msg){err.textContent=msg;err.style.display='block';return}
-  err.style.display='none';
-  var soy=(document.querySelector('input[name=soy]:checked')||{}).value||'';
-  var COMO={'Alumno U3M':'Referido alumno','Egresado U3M':'Referido externo ','Papá, mamá o familiar':'Referido externo ','Amigo de U3M':'Referido externo '};
-  if(window.u3mEscala)fr.forEach(function(f){var cods=window.u3mCodigos?window.u3mCodigos(f.c):[];window.u3mEscala({origen:'referidos',nombre:f.n,whatsapp:f.w,
-    notas:'Referido (programa Recomienda y gana) · Lo recomendó: '+name+' · '+soy+' · WhatsApp '+wa+(f.c?' · Carrera que le interesa: '+f.c:''),
-    campos:{carreras:cods.length?cods:['POR DEFINIR'],como:COMO[soy]||'Referido externo ',referido_de:name+' ('+soy+', WhatsApp '+wa+')'}})});
-  var folio='REF-'+Date.now().toString(36).slice(-5).toUpperCase();
-  $('#ok-title').textContent='¡Gracias, '+name.split(' ')[0]+'!';
-  $('#folio').textContent=folio;
-  $('#ok-list').innerHTML=fr.map(function(f){return '<li><i>✓</i>'+esc(f.n)+(f.c?' · <span style="font-weight:500;color:var(--gray)">'+esc(f.c)+'</span>':'')+'</li>'}).join('');
-  $('#ok-text').innerHTML='Registramos a <b>'+fr.length+' '+(fr.length===1?'amigo':'amigos')+'</b>. Un asesor de Admisiones los contactará por WhatsApp. Te avisaremos al '+wa.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3')+' cuando se inscriban y ganes tus $500 por cada uno.';
-  var share='¡Hola! Te recomendé en la Universidad Tercer Milenio (U3M) en Boca del Río: 13 carreras con validez SEP, te gradúas en 3 años y hay becas de hasta 50%. Un asesor te va a escribir por WhatsApp. Si quieres, haz su Radar de Carrera (3 minutos): '+location.origin+'/radar';
-  $('#share').href='https://wa.me/?text='+encodeURIComponent(share);
+  if(enviando)return;
+  var name=$('#y-nombre').value.trim().replace(/\s+/g,' '),wa=$('#y-wa').value.replace(/\D/g,'');
+  var sitEl=document.querySelector('input[name=sit]:checked'),sit=sitEl?sitEl.value:'';
+  var mail=$('#y-mail').value.trim();
+  var fr=[].map.call(box.children,function(f){var r=f.querySelector('.rel input:checked');return{n:f.querySelector('.f-n').value.trim().replace(/\s+/g,' '),w:f.querySelector('.f-w').value.replace(/\D/g,''),r:r?r.value:'',c:f.querySelector('.f-c').value.trim()}}).filter(function(f){return f.n||f.w});
+  var tels=fr.map(function(f){return f.w});
+  var msg=!name?'Escribe tu nombre completo.'
+    :wa.length!==10?'Tu WhatsApp debe tener 10 dígitos.'
+    :!sit?'Elige tu situación: si ya estudias en U3M o si ya te inscribiste.'
+    :mail&&!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(mail)?'Revisa tu correo, o déjalo vacío.'
+    :!fr.length?'Agrega al menos a un amigo.'
+    :fr.some(function(f){return !f.n})?'Escribe el nombre completo de cada amigo.'
+    :fr.some(function(f){return f.w.length!==10})?'El WhatsApp de cada amigo debe tener 10 dígitos.'
+    :tels.indexOf(wa)>-1?'No puedes recomendarte a ti mismo: el WhatsApp de tu amigo es igual al tuyo.'
+    :tels.some(function(t,k){return tels.indexOf(t)!==k})?'Escribiste el mismo WhatsApp para dos amigos.'
+    :!$('#y-ok').checked?'Marca la casilla para confirmar que tus amigos te autorizaron.'
+    :'';
+  if(msg)return error(msg);
+  if(navigator.onLine===false)return error('No hay conexión a internet. Tus datos siguen aquí: intenta de nuevo en un momento.');
+  error('');enviando=true;$('#send').disabled=true;
+  var tipo=sit==='estudiando'?'Alumno U3M':'Inscrito U3M';
+  var sitTxt=sit==='estudiando'?'Ya estoy estudiando en U3M':'Ya me inscribí, pero todavía no comienzo clases';
+  var como=sit==='estudiando'?'Referido alumno':'Referido Inscrito ';
+  var lote=Date.now().toString(36);
+  fr.forEach(function(f,k){
+    var cods=window.u3mCodigos?window.u3mCodigos(f.c):[];
+    manda({id:lote+'-'+k,datos:{origen:'referidos',nombre:f.n,whatsapp:f.w,
+      notas:'Referido (programa Recomienda y gana) · Lo recomendó: '+name+' · '+sitTxt+' · WhatsApp '+wa+(mail?' · Correo '+mail:'')+(f.r?' · Relación: '+f.r:'')+(f.c?' · Carrera que le interesa: '+f.c:'')+(fr.length>1?' · Lo registró junto con '+(fr.length-1)+' amigo(s) más':''),
+      campos:{carreras:cods.length?cods:['POR DEFINIR'],como:como,referido_de:name+' ('+tipo+', WhatsApp '+wa+')'}}});
+  });
   document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id==='s-ok')});window.scrollTo(0,0);
+  enviando=false;$('#send').disabled=false;
 });
 $('#again').addEventListener('click',function(){
   box.innerHTML='';addFriend();$('#y-ok').checked=false;

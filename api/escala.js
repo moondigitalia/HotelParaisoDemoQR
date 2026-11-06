@@ -220,6 +220,8 @@ async function avisoReferido(id, b, nombre, existente, asesor, fecha, prueba, t0
     'Registrado desde la página Recomienda y gana el ' + fecha.replace(/\.$/, '') + '.',
   ].filter(Boolean).join(' ');
   if (prueba) return { prueba: true, titulo, desc, guardado: lista.join(SEP) };
+  // Reintento del mismo envío (se cayó el internet y la página lo volvió a mandar): ya estaba guardado y avisado, no se repite el aviso
+  if (antes.includes(entrada)) return 'ya-avisado';
   const ahora = new Date();
   const iso = (d) => d.toISOString().slice(0, 19);
   const a = await esc('/activities', 'POST', {
